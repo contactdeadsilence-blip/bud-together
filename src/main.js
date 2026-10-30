@@ -9,7 +9,7 @@ import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeomet
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {makeAvatar,animateAvatar,makeFPArms,animateFP,setLook,cleanLook,defLook,palmLocal} from './human.js';import {PAGES} from './book.js';import {openCreator,creatorOpen,hasLook,savedLook,creatorState} from './creator.js';
 const myLook=()=>savedLook()||defLook('m',1);
-import {sfx,initAudio,setVol} from './audio.js';
+import {sfx,initAudio,setVol} from './audio.js';import {initPhone,phoneOn,openPhone,closePhone,togglePhone,phoneTab,phoneBack,phoneKey,phoneClick,phoneNav,phoneRefresh,phoneState,phoneCSS} from './phone.js';
 import {STRAINS,SHOP,READY,stage,POUR,THIRSTY,SLOTS,CAN,RATE,BAGCAP,STYLE,DECOR,defDecor,ROOMB,SURFS,BIG,ROLL,canSleep,MINPS} from './rules.js';
 const $=id=>document.getElementById(id);const Q=new URLSearchParams(location.search);
 const settings=Object.assign({sens:5,qual:2,vol:7,inv:0,vib:1},JSON.parse(localStorage.bt_set||'{}'));if(Q.has('q'))settings.qual=+Q.get('q');
@@ -261,20 +261,22 @@ const ekey=e=>{const p=e.data.plant;return e.type+'|'+(e.type=='shelf'?JSON.stri
 // ---------- input glyphs ----------
 let padMode=false;
 // ---------- central action map ----------
-const ACT=[['jump','Jump · Interact · Confirm',0],['crouch','Crouch · Cancel',1],['pickup','Pick up · Use tool',2],['inventory','Inventory',3],['prev','Previous slot',4],['next','Next slot',5],['alt','Secondary (drop held)',6],['tool','Primary tool (pour)',7],['map','Map',8],['pause','Pause',9],['sprint','Sprint',10],['decor','Decorate shed',11],['camera','Sensitivity preset',16],['rotl','Rotate held item left',14],['rotr','Rotate held item right',15]];
+const ACT=[['jump','Jump · Interact · Confirm',0],['crouch','Crouch · Cancel',1],['pickup','Pick up · Use tool',2],['inventory','Inventory',3],['prev','Previous slot',4],['next','Next slot',5],['alt','Secondary (drop held)',6],['tool','Primary tool (pour)',7],['map','Map',8],['pause','Pause',9],['sprint','Sprint',10],['decor','Decorate shed',11],['camera','Sensitivity preset',16],['rotl','Rotate held item left',14],['rotr','Rotate held item right',15],['phone','Phone · Quick Bud (hold if shared with Map)',8]];
 const DEFB=Object.fromEntries(ACT.map(a=>[a[0],a[2]]));let binds={...DEFB,...JSON.parse(localStorage.bt_binds||'{}')};
 const BN=['A','B','X','Y','LB','RB','LT','RT','View','☰','LS','RS','▲','▼','◀','▶','⌂'],BCL=['pA','pB','pX','pY','pL','pL','pT','pT','pV','pV','pL','pL','pL','pL','pL','pL','pL'];
 const bglyph=i=>`<span class="g ${BCL[i]}">${BN[i]}</span>`;
 const GA={use:'jump',drop:'alt',alt:'pickup',phone:'inventory',inv:'inventory',map:'map',tool:'tool',jump:'jump',crouch:'crouch',sprint:'sprint',pause:'pause'};
 const GK={use:'E',drop:'G',alt:'F',phone:'Tab',cycle:'Q',pause:'Esc',inv:'I',map:'M',tool:'E',jump:'Space',crouch:'C',sprint:'Shift'};
 const G=a=>padMode?(a=='cycle'?bglyph(binds.prev)+bglyph(binds.next):bglyph(binds[GA[a]])):`<span class="g">${GK[a]}</span>`;
-function renderHelp(){$('help').innerHTML=`${padMode?'L-stick move · R-stick look':'WASD move · Mouse look'} · ${G('use')} ${padMode?'jump/interact':'interact'} · ${G('alt')} pick up/use · ${G('drop')} drop · ${G('cycle')} slots · ${G('inv')} inventory · ${G('map')} map · ${G('crouch')} crouch · ${G('pause')} pause`}
+function renderHelp(){$('help').innerHTML=`${padMode?'L-stick move · R-stick look':'WASD move · Mouse look'} · ${G('use')} ${padMode?'jump/interact':'interact'} · ${G('alt')} pick up/use · ${G('drop')} drop · ${G('cycle')} slots · ${G('inv')} inventory · ${G('map')} map · ${padMode?'hold '+G('map'):'P'} phone · ${G('crouch')} crouch · ${G('pause')} pause`}
 function setMode(p){if(padMode===p)return;padMode=p;document.body.classList.toggle('pad',p);renderHelp();const r=uiRoot();if(p&&r&&r.id!='splash'&&!fEl)setFocus(defFocus(r));if(lapOpen)renderLap(true)}renderHelp();
 // ---------- input ----------
 const keys={};let yaw=Math.PI,pitch=-.1,locked=false;
-const free=()=>game&&!paused&&!bookOpen&&!lapOpen&&!decoCat&&!invOpen&&!mapOpen&&!$('menu').classList.contains('on');
+const free=()=>game&&!phoneOn()&&!paused&&!bookOpen&&!lapOpen&&!decoCat&&!invOpen&&!mapOpen&&!$('menu').classList.contains('on');
 addEventListener('keydown',e=>{if(creatorOpen())return;setMode(false);if(e.code=='Tab'&&game)e.preventDefault();keys[e.code]=true;if(e.repeat)return;
  if(capture&&e.code=='Escape'){capture=null;renderRemap();return}
+ if(game&&phoneOn()){if(phoneKey(e))e.preventDefault();return}
+ if(game&&e.code=='KeyP'&&free()){openPhone();return}
  if(bookOpen){if(e.code=='Escape'||e.code=='KeyB')closeBook();if(e.code=='ArrowRight'||e.code=='KeyD'||e.code=='KeyE')turnBook(1);if(e.code=='ArrowLeft'||e.code=='KeyA'||e.code=='KeyQ')turnBook(-1);return}
  if(game&&decoCat&&(e.code=='Escape'||e.code=='Tab'||e.code=='KeyK')){closeDecoCat();return}
  if(game&&decoOn&&free()){if(e.code=='Escape'||e.code=='KeyK'){decoMode(false);return}if(e.code=='Tab'){openDecoCat();return}if(e.code=='KeyQ'){decoCancel()||decoMode(false);return}if(e.code=='KeyX'){decoRemove();return}if(e.code=='KeyR'){decoRy+=(e.shiftKey?-1:1)*Math.PI/12;return}if(e.code=='KeyE'){decoAct();return}if(e.code=='Space')jump();return}
@@ -315,7 +317,7 @@ const GRIP={water:[.86,.42],pallet:[.5,.5],shelf:[.9,.5],soil:[.9,.42],gbag:[.6,
 const _bx=new THREE.Box3(),_bc=new THREE.Vector3(),_bs=new THREE.Vector3();
 function gripFit(g,t,fp){g.parent?.remove(g);g.position.set(0,0,0);g.rotation.set(0,t=='water'?(fp?Math.PI/2:-Math.PI/2):0,0);g.scale.setScalar(1);g.updateMatrixWorld(true);_bx.setFromObject(g);_bx.getSize(_bs);_bx.getCenter(_bc);const [fy,mx]=GRIP[t]||[.5,.3];const m=Math.max(_bs.x,_bs.y,_bs.z)||1;const sc=Math.min(1,(fp?mx*.9:mx)/m);
  const gy=_bx.min.y+_bs.y*fy;g.scale.setScalar(sc);g.position.set(-_bc.x*sc,-gy*sc,-_bc.z*sc);if(fp)g.position.z-=.02;if(fp&&t=='water')g.position.add(new THREE.Vector3(-.08,.14,-.05));g.userData.r0=g.rotation.y;g.userData.grip={sc,off:g.position.clone(),h:_bs.y*sc,top:(_bx.max.y-gy)*sc}}const bagG=new THREE.Group();
-function applyWorld(w){W=w;syncDecor(w.decor);setRoom(w.room);if(w.slept>(applyWorld.sl??w.slept)){$('sleepfx').classList.add('on');setTimeout(()=>$('sleepfx').classList.remove('on'),1600)}applyWorld.sl=w.slept;
+function applyWorld(w){W=w;phoneRefresh();syncDecor(w.decor);setRoom(w.room);if(w.slept>(applyWorld.sl??w.slept)){$('sleepfx').classList.add('on');setTimeout(()=>$('sleepfx').classList.remove('on'),1600)}applyWorld.sl=w.slept;
  const seen=new Set();for(const e of w.ents){seen.add(e.id);let o=ENTS.get(e.id);const k=ekey(e);
   if(!o||o.k!=k){if(o)o.g.parent?.remove(o.g);o={g:prop(e),k};ENTS.set(e.id,o)}o.e=e;
   if(e.by){const tgt=e.bi?bagG:e.by==myId?hand:OTH.get(e.by)?.g.userData.hold;if(tgt&&o.g.parent!=tgt){gripFit(o.g,e.type,tgt==hand);tgt.add(o.g);if(tgt==hand)hand.userData.grip=o.g.userData.grip}}
@@ -378,7 +380,7 @@ $('osk').innerHTML=[...OSK].map(c=>`<button class="key" data-k="${c}">${c}</butt
 ['code','nm','au','ap'].forEach(k=>$(k).addEventListener('focus',()=>{oskT=$(k);setTgt()}));
 function setTgt(){document.querySelectorAll('#code,#nm,#au,#ap').forEach(e=>e.classList.toggle('tgt',e==(oskT||$('code'))))}
 function oskKey(k){const t=oskT||$('code');if(k=='DEL')t.value=t.value.slice(0,-1);else if(k=='OK'){if(t.id=='au'){oskT=$('ap')}else if(t.id=='ap'){setFocus(document.querySelector('[data-a=login]'))}else if(t.id=='code'){oskT=$('nm')}else{setFocus(document.querySelector('[data-a=dojoin]'))}}else if(t.value.length<(+t.maxLength||10))t.value+=k;setTgt()}
-function uiRoot(){if(bookOpen)return $('book');if(game&&decoCat&&!paused&&!$('menu').classList.contains('on'))return $('decocat');if(game&&invOpen&&!$('menu').classList.contains('on'))return $('invs');if(game&&mapOpen&&!$('menu').classList.contains('on'))return $('mapv');if($('splash').classList.contains('on'))return $('splash');if($('menu').classList.contains('on'))return [...$('menu').children].find(e=>e.id!='brand'&&e.offsetParent)||null;if(lapOpen)return $('laptop');if(paused)return $('pause');return null}
+function uiRoot(){if(game&&phoneOn()&&!$('menu').classList.contains('on')&&!paused)return $('phone');if(bookOpen)return $('book');if(game&&decoCat&&!paused&&!$('menu').classList.contains('on'))return $('decocat');if(game&&invOpen&&!$('menu').classList.contains('on'))return $('invs');if(game&&mapOpen&&!$('menu').classList.contains('on'))return $('mapv');if($('splash').classList.contains('on'))return $('splash');if($('menu').classList.contains('on'))return [...$('menu').children].find(e=>e.id!='brand'&&e.offsetParent)||null;if(lapOpen)return $('laptop');if(paused)return $('pause');return null}
 let fEl=null;const focusables=r=>[...r.querySelectorAll('button,input,select')].filter(e=>e.offsetParent&&!e.disabled);
 function setFocus(e){fEl&&fEl.classList.remove('f');fEl=e;if(e){e.classList.add('f');e.scrollIntoView?.({block:'nearest'})}}
 function defFocus(root){const L=focusables(root);for(const s of['.slot.held','#au','[data-sv]','.rm','.card[data-buy]','#code','[data-a=solo]','[data-a=resume]','#bstart','#sens','.card','[data-a=back]'])if(L.find(e=>e.matches(s)))return L.find(e=>e.matches(s));return L[0]||null}
@@ -424,20 +426,22 @@ function renderRemap(){$('rml').innerHTML=ACT.map(([k,n])=>`<button class="rm" d
 function getPad(){const ps=[...(navigator.getGamepads?.()||[])].filter(p=>p&&p.connected!==false);if(!ps.length){if(padIdx>=0)padLost();return null}let p=ps.find(p=>p.index===padIdx);
  if(!p){p=ps.find(p=>p.mapping==='standard')||ps[0];padIdx=p.index;padInd(true,p.id);for(const k in pb)pb[k]=true;gate=true}return p}
 const radial=(x,y,dz)=>{const m=Math.hypot(x,y);if(m<dz)return [0,0];const s=Math.min(1,(m-dz)/(1-dz))/m;return [x*s,y*s]};
-let padTrash=0;function pollPad(dt){if(creatorOpen()){gate=true;return null}const gp=getPad(),root=uiRoot();
+let padTrash=0,viewT=0,viewF=false;function pollPad(dt){if(creatorOpen()){gate=true;return null}const gp=getPad(),root=uiRoot();
  if(root!==lastRoot){lastRoot=root;gate=true;rp.d='';if(root&&root.id!='splash'&&padMode)setFocus(defFocus(root))}
  if(!gp)return null;
  const B=k=>{const b=gp.buttons[k];return !!b&&(b.pressed||b.value>.5)};const E={};let any=false;for(let k=0;k<17;k++){const v=B(k);if(v)any=true;E[k]=v&&!pb[k];pb[k]=v}
  const std=gp.mapping==='standard'||gp.axes.length<6,ax=i=>gp.axes[i]||0;const lx=ax(0),ly=ax(1),rx=std?ax(2):ax(3),ry=std?ax(3):ax(4);
  if(any||Math.hypot(lx,ly)>.4||Math.hypot(rx,ry)>.4)setMode(true);
- if(capture){for(let k=0;k<17;k++)if(E[k]&&(k<12||k>15)){const o=Object.keys(binds).find(a=>binds[a]==k);if(o&&o!=capture)binds[o]=binds[capture];binds[capture]=k;localStorage.bt_binds=JSON.stringify(binds);toast('Bound '+capture+' → '+BN[k]);capture=null;gate=true;renderRemap();renderHelp();break}return null}
+ if(capture){for(let k=0;k<17;k++)if(E[k]&&(k<12||k>15)){const old=binds[capture],pm=x=>(x=='phone'&&capture=='map')||(x=='map'&&capture=='phone');for(const o of Object.keys(binds))if(o!=capture&&binds[o]==k&&!pm(o))binds[o]=old;if(capture=='map'&&binds.phone==old)binds.phone=k;binds[capture]=k;localStorage.bt_binds=JSON.stringify(binds);toast('Bound '+capture+' → '+BN[k]);capture=null;gate=true;renderRemap();renderHelp();break}return null}
  if(root){if((root.id=='invs'&&E[binds.inventory])||(root.id=='mapv'&&E[binds.map])){invOpen?closeInv():closeMap();return null}
   if(root.id=='invs'&&E[2]&&fEl?.dataset.slot){send({t:'cycle',sel:+fEl.dataset.slot});setTimeout(()=>{drop();renderInv()},150);return null}if(root.id=='splash'){if(E[0]||E[9])endSplash();return null}
+  if(root.id=='phone'){if(E[binds.phone]||E[9]||E[binds.pause]){closePhone();return null}if(E[4]||E[5]){phoneTab(E[5]?1:-1);return null}
+   let dx=(E[15]?1:0)-(E[14]?1:0);if(dx&&phoneNav(dx))return null;if(fEl?.dataset.line&&(B(14)||B(15))){if(E[0])uiA();return null}}
   if(root.id=='book'){if(E[4]||E[14]||E[12])turnBook(-1);if(E[5]||E[15]||E[13])turnBook(1);const [bx]=radial(lx,ly,.5);if(bx&&rp.d!='b'+Math.sign(bx)){rp.d='b'+Math.sign(bx);turnBook(Math.sign(bx))}else if(!bx&&rp.d[0]=='b')rp.d='';if(E[1]||E[9]||E[binds.pause])closeBook();else if(E[0])turnBook(1);return null}
   if(E[binds.pause]||E[9]){if(decoCat)closeDecoCat();else if(lapOpen)closeLap();else if(invOpen)closeInv();else if(mapOpen)closeMap();else if(root.id=='pause')setPause(false);else if(!game)uiA();return null}
   let dx=(B(15)?1:0)-(B(14)?1:0),dy=(B(13)?1:0)-(B(12)?1:0);if(!dx&&!dy){const [x,y]=radial(lx,ly,.5);if(Math.abs(x)>Math.abs(y)){if(x)dx=Math.sign(x)}else if(y)dy=Math.sign(y)}
   const d=dx+','+dy;if(dx||dy){if(d!=rp.d){rp.d=d;rp.t=.35;nav(dx,dy)}else if((rp.t-=dt)<=0){rp.t=.11;nav(dx,dy)}}else rp.d='';
-  if(lapOpen&&(E[4]||E[5]))cycleTab(E[5]?1:-1);if(decoCat&&(E[4]||E[5]))cycleDecoTab(E[5]?1:-1);if(decoCat&&(E[3]||E[binds.decor])){closeDecoCat();return null}if(E[0])uiA();else if(E[1])uiB();return null}
+  if(lapOpen&&(E[4]||E[5]))cycleTab(E[5]?1:-1);if(decoCat&&(E[4]||E[5]))cycleDecoTab(E[5]?1:-1);if(decoCat&&(E[3]||E[binds.decor])){closeDecoCat();return null}if(E[0])uiA();else if(E[1]){if(root.id=='phone')phoneBack();else uiB()}return null}
  if(gate&&!any)gate=false;const pad0=()=>({mx:lx,my:ly,rx,ry,sprint:false,crouch:false,use:false});
  const Pa=a=>E[binds[a]],Ha=a=>B(binds[a]);
  if(!gate&&decoOn){if(Pa('decor')){decoMode(false);return pad0()}if(E[0]||E[2])decoAct();if(Pa('tool'))decoRemove();if(E[3])openDecoCat();if(E[1]){decoCancel()||decoMode(false)}if(Pa('pause'))setPause(true);if(Ha('rotl'))decoRy+=dt*2;if(Ha('rotr'))decoRy-=dt*2;if(E[12]||E[13])decoRy+=(E[12]?1:-1)*Math.PI/12;return pad0()}
@@ -445,7 +449,7 @@ let padTrash=0;function pollPad(dt){if(creatorOpen()){gate=true;return null}cons
   if(Pa('jump')){if(t&&promptFor(c,t))interact();else jump()}
   if(Pa('pickup')){if(c&&t?.e&&useRule(c,t.e))interact(true);else interact()}
   if(Pa('tool')&&c&&c.type!='water'&&t?.e&&useRule(c,t.e))interact(true);
-  if(Pa('alt')&&!c)drop();if(c&&Ha('alt')){padTrash+=dt;if(padTrash>.8&&!trashSent){trashSent=true;send({t:'trash'});rumble(.4,120)}}else{if(padTrash>0&&padTrash<=.8&&!trashSent)drop();padTrash=0;trashSent=false}if(Pa('inventory'))openInv();if(Pa('map'))openMap();if(Pa('pause'))setPause(true);if(Pa('camera'))sensPreset();
+  if(Pa('alt')&&!c)drop();if(c&&Ha('alt')){padTrash+=dt;if(padTrash>.8&&!trashSent){trashSent=true;send({t:'trash'});rumble(.4,120)}}else{if(padTrash>0&&padTrash<=.8&&!trashSent)drop();padTrash=0;trashSent=false}if(Pa('inventory'))openInv();if(binds.phone==binds.map){if(Ha('map')){viewT+=dt;if(viewT>.45&&!viewF){viewF=true;openPhone();rumble(.3,80)}}else{if(viewT>0&&!viewF)openMap();viewT=0;viewF=false}}else{if(Pa('map'))openMap();if(Pa('phone'))openPhone()}if(Pa('pause'))setPause(true);if(Pa('camera'))sensPreset();
   if(Pa('prev')||E[12])cycle(-1);if(Pa('next')||E[13])cycle(1);if(c){if(Ha('rotl'))rotV=1;else if(Ha('rotr'))rotV=-1}if(Pa('sprint'))sprintOn=!sprintOn}
  if(Math.hypot(lx,ly)<.25)sprintOn=false;
  return {mx:lx,my:ly,rx,ry,sprint:sprintOn,crouch:!gate&&Ha('crouch'),use:!gate&&Ha('tool')}}
@@ -550,7 +554,7 @@ function holdGhost(c,t,fr){const show=fr&&c&&!decoOn&&settings.ghost!==false;if(
 
 function startGame(pl){roster=pl;game={};$('menu').classList.remove('on');$('hud').style.display='block';me.pos.set(0,0,3.5);yaw=0;pitch=-.15;toast('Welcome to your grow shed! Check the laptop.');if(!localStorage.bt_book){const h=$('bhint');h.innerHTML=`📗 New grower? Open the <b>Grow Book</b>: press <b>B</b>, read the green book on the desk, or go to <b>Pause → Grow Book</b>.`;h.style.display='block';setTimeout(()=>h.style.display='none',25000)}}
 function endGame(){game=null;closeBook();pzSent=false;$('bhint').style.display='none';W=null;for(const o of ENTS.values())o.g.parent?.remove(o.g);ENTS.clear();for(const o of OTH.values()){scene.remove(o.g);o.tag.remove()}OTH.clear();if(fpArms){camera.remove(fpArms);fpArms=null}$('hud').style.display='none';ws&&ws.close();ws=null;paused=false;$('pause').classList.remove('on');closeLap();document.exitPointerLock?.()}
-document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const qb=e.target.closest('[data-q]');const el=e.target.closest('button');if(!el)return;const ds=el.dataset;sfx('ui');
+document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const qb=e.target.closest('[data-q]');const el=e.target.closest('button');if(!el)return;const ds=el.dataset;if(ds.ph){phoneClick(el);return}sfx('ui');
  if(qb&&ds.buy){qty[ds.buy]=THREE.MathUtils.clamp((qty[ds.buy]||1)+(+qb.dataset.q),1,10);renderLap(true);return}
  if(ds.k)return oskKey(ds.k);if(ds.rm){capture=ds.rm;renderRemap();return}if(ds.slot!=null){send({t:'cycle',sel:+ds.slot});setTimeout(renderInv,150);return}if(ds.tab){tab=ds.tab;renderLap();return}if(ds.buy){send({t:'buy',item:ds.buy,n:qty[ds.buy]||1});return}if(ds.upg){send({t:'upgrade'});return}if(ds.dk){decoPick(ds.dk);return}if(ds.ds){const [k,v]=ds.ds.split(':');send({t:'dstyle',k,v});return}if(ds.dt){decoTab=ds.dt;renderDecoCat();return}if(ds.a=='decoclose'){closeDecoCat();return}if(ds.a=='decor'){const t0=ds.dt0;closeLap();if(paused)setPause(false);decoMode(true);if(t0)openDecoCat(t0);return}
  const a=ds.a,nm=()=>($('nm').value||localStorage.bt_nm||'Grower').toUpperCase();
@@ -603,7 +607,8 @@ function frame(){requestAnimationFrame(frame);frames++;const dt=Math.min(clock.g
 const demo=new THREE.Group(),demoPl=[];[[-1.2,-3,300],[0,-3.2,470],[1.2,-3,130]].forEach(([x,z,a],i)=>{const g=prop({id:900+i,type:'pot',data:{soil:1,plant:{s:['owl','kush','haze'][i],age:a,health:100,water:80,nutr:80}}});g.position.set(x,0,z);demo.add(g);demoPl.push(g.userData.plant)});
 const dlp=prop({type:'light',data:{}});dlp.position.set(-.5,0,-3.1);demo.add(dlp);scene.add(demo);setInterval(()=>demo.visible=!game,200);
 frame();
-window.__bt={tpHold(pid,t){const o=OTH.get(pid);if(!o)return;const h=o.g.userData.hold;h.clear();if(!t)return;const g=prop({id:-1,type:t,data:SHOP[t]?.uses?{uses:SHOP[t].uses}:{g:10,s:'owl'}});gripFit(g,t,false);h.add(g)},openBook,turnBook,closeBook,get bookP(){return bookP},fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
+initPhone({game:()=>game&&!paused&&!$('menu').classList.contains('on'),W:()=>W,send:m=>send(m),toast:t=>toast(t),sfx:k=>sfx(k),rumble:(a,b)=>rumble(a,b),bglyph:i=>bglyph(i),binds:()=>binds,padMode:()=>padMode,setFocus:e=>setFocus(e),defFocus:r=>defFocus(r),fEl:()=>fEl});{const st=document.createElement('style');st.textContent=phoneCSS;document.head.appendChild(st)}
+window.__bt={acts:()=>ACT.map(a=>a[0]),focusEl:e=>setFocus(e),phone:()=>phoneState(),openPhone:()=>openPhone(),closePhone:()=>closePhone(),tpHold(pid,t){const o=OTH.get(pid);if(!o)return;const h=o.g.userData.hold;h.clear();if(!t)return;const g=prop({id:-1,type:t,data:SHOP[t]?.uses?{uses:SHOP[t].uses}:{g:10,s:'owl'}});gripFit(g,t,false);h.add(g)},openBook,turnBook,closeBook,get bookP(){return bookP},fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
  decor:()=>({on:decoOn,cat:decoCat,ghost:ghostK||null,ok:!!(typeof decoValid!='undefined'&&decoValid)}),decoMode:o=>decoMode(o),openDecoCat:t=>openDecoCat(t),decoPick:k=>decoPick(k), target:()=>{syncCam();const t=target();return t&&(t.fx||t.e.type)},cre:()=>creatorState(),state:()=>({root:creatorOpen()?'cre':uiRoot()?.id||null,focus:fEl?(fEl.dataset.a||fEl.dataset.buy||fEl.dataset.tab||fEl.dataset.k||fEl.id||fEl.className):null,tab,lapOpen,paused,padMode,held:carried()?.type||null,book:bookOpen?bookP:null,alert:$('alert').textContent,pouring:drops.visible,meter:meter.style.display!='none'?$('mtxt').textContent:null,checks:checks.length,bag:bag().map(e=>e.type),yaw,pitch,x:me.pos.x,z:me.pos.z,y:me.y,ch:me.ch,invOpen,mapOpen,sprint:sprintOn,binds:{...binds},rum:rumN,prompt:$('prompt').textContent,padInd:$('padind').classList.contains('c'),money:W?.money,code:$('code').value,sens:settings.sens,qty:{...qty}})};
 
 // ---------- accounts: profile sync + farm saves ----------

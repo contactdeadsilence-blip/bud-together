@@ -35,3 +35,7 @@ export const SURFS={desk:{w:.8,d:1.5,h:.935,max:8},table:{w:1.1,d:.6,h:.78,max:8
 export const BIG=['shelf','pallet','sink','table','bed','tcan','desk','dirtbag','trash','light','rack','water'];// can't sit on a table
 export const ROLL=1.6,JOINT=6;// seconds to roll; $ per pre-roll on the spot (vs $4/g jar)
 export const WAKE=7*60,canSleep=min=>min>=19*60||min<5*60;
+// v12: shared catalog categories (laptop shop + Quick Bud phone app)
+export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Furniture',bulk:'Bulk Pallets'};
+export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
+export const MAXORD=10;// max units per line in one order

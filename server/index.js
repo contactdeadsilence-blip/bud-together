@@ -1,4 +1,4 @@
-import {SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep} from '../src/rules.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
+import {SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD} from '../src/rules.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
 const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','dist');
 const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));
 // ---------- accounts + saves ----------
@@ -57,6 +57,12 @@ function tick(w,dt){const U=w.util;if(!(U.off&2))U.kwh+=w.ents.filter(e=>e.type=
    if(pl.nutr<5||!L)pl.health=Math.max(Math.min(pl.health,HFLOOR),pl.health-dt*.25);else pl.health=Math.min(100,pl.health+dt*.6)}
   if(e.type==='rack')for(const s of e.data.slots||[])if(s.t>0)s.t=Math.max(0,s.t-dt)}}
 function msg(w,t){w.log.push(t)}
+// v12: one order path for the laptop shop and the Quick Bud phone app (validated, priced and delivered server-side)
+function order(w,m,say){const L=[];for(const x of Array.isArray(m.items)?m.items.slice(0,40):[]){const it=SHOP[x?.k];if(!it)return say('Unknown item');if(it.hide)return say('Not sold — fill your can at the sink');const n=Math.max(1,Math.min(MAXORD,x.n|0||1));const o=L.find(l=>l.k===x.k);if(o)o.n=Math.min(MAXORD,o.n+n);else L.push({k:x.k,n})}
+ if(!L.length)return say('Cart is empty');const tot=L.reduce((a,l)=>a+SHOP[l.k].p*l.n,0);if(w.money<tot)return say(`Not enough money — need $${tot}`);w.money-=tot;const oid=w.nid++,os=w.orders??=[];let i=0;
+ for(const l of L)for(let k=0;k<l.n;k++)w.pending.push({type:l.k,t:4+(i++)*.5,oid});os.unshift({id:oid,via:m.via==='phone'?'phone':'laptop',day:w.day,min:Math.round(w.min),items:L,tot,n:i});os.length=Math.min(os.length,12);w.sound='buy';
+ const units=L.reduce((a,l)=>a+l.n,0);return say(L.length===1?`Ordered ${L[0].n}× ${SHOP[L[0].k].n} — arriving at the door`:`Order #${oid} placed: ${units} items, $${tot} — arriving at the door`)}
+const orderView=w=>(w.orders||[]).map(o=>{const P=w.pending.filter(p=>p.oid===o.id);return{...o,left:P.length,eta:P.length?Math.ceil(Math.max(...P.map(p=>p.t))):0}});
 function trash(w,c,say){w.ents=w.ents.filter(e=>e!==c);w.sound='drop';if(c.type==='water'&&!w.ents.some(e=>e.type==='water'))w.ents.push({id:w.nid++,type:'water',x:3.3,y:0,z:-.45,ry:0,by:0,data:{w:0}});
  return say(c.type==='dirtbag'?`Dumped ${c.data.f} pot${c.data.f>1?'s':''} of old dirt`:c.type==='trash'?'Trash disposed':c.type==='pallet'&&!c.data.n?'Empty pallet disposed':c.type==='water'?'Tossed the can — a fresh one is by the sink':'Threw away '+(SHOP[c.type]?.n||c.type))}
 const clampN=(v,a)=>Math.max(-a,Math.min(a,+v||0));
@@ -78,7 +84,8 @@ function norm(w,pid){w.ents.filter(e=>e.by===pid).sort((a,b)=>(a.bi||0)-(b.bi||0
 function act(w,pid,m){act0(w,pid,m);norm(w,pid)}
 function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e=>!e.bi)||null,t=m.target&&m.target!=='drop'?ent(w,m.target):null;const say=s=>{w.toast={pid,t:s}};
  const give=e=>{if(!w.ents.includes(e))w.ents.push(e);for(const o of bag)o.bi=(o.bi||0)+1;e.by=pid;e.bi=0};const full=()=>bag.length>=3&&(say('Hands full (3 items max) — drop something'),true);
- if(m.t==='buy'){const it=SHOP[m.item];if(!it||it.hide)return say('Not sold — fill your can at the sink');const n=Math.max(1,Math.min(10,m.n|0||1));if(w.money<it.p*n)return say('Not enough money');w.money-=it.p*n;for(let i=0;i<n;i++)w.pending.push({type:m.item,t:4+i*.5});w.sound='buy';return say(`Ordered ${n}× ${it.n} — arriving at the door`)}
+ if(m.t==='buy')m={t:'order',items:[{k:m.item,n:m.n}],via:'laptop'};
+ if(m.t==='order')return order(w,m,say);
  if(m.t==='paybill'){const U=w.util,tot=U.bills.reduce((a,b)=>a+b.amt,0);if(!tot)return say('No bills due');if(w.money<tot)return say(`Need $${tot} to pay utilities`);w.money-=tot;U.bills=[];const was=U.off;U.off=0;w.sound='cash';return say(`Paid utilities $${tot}`+(was?' — water & power back on':''))}
  if(m.t==='upgrade'){if(w.room>1)return;if(w.rep<5)return say('Need 5 reputation');if(w.money<500)return say('Need $500');w.money-=500;w.room=2;return say('Grow room expanded!')}
  if(m.t==='drop'){if(!c)return;c.by=0;c.bi=0;c.x=+m.x||0;c.z=+m.z||0;c.y=+m.y||0;c.ry=+m.ry||0;return}
@@ -159,6 +166,6 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  ws.on('close',()=>{if(!room)return;saveRoom(room);room.w.ents.forEach(e=>{if(e.by===me.id){e.by=0}});room.players=room.players.filter(p=>p!==me);if(!room.players.length)rooms.delete(room.code);else{if(room.host===me.id)room.host=room.players[0].id;bc(room,{t:'roster',pl:roster(room),host:room.host,left:me.id})}});
 });
 setInterval(()=>{for(const r of rooms.values())saveRoom(r)},+process.env.BT_AUTOSAVE_MS||45000);
-let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{money:w.money,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,log:w.log,toast:w.toast,sound:w.sound,fx:w.fx,pending:w.pending.length,util:w.util,decor:w.decor,sleepers:w.sleepers||[],slept:w.slept||0}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
+let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{money:w.money,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,log:w.log,toast:w.toast,sound:w.sound,fx:w.fx,pending:w.pending.length,orders:orderView(w),util:w.util,decor:w.decor,sleepers:w.sleepers||[],slept:w.slept||0}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
 const shutdown=async()=>{await Promise.all([...rooms.values()].map(saveRoom));process.exit(0)};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 const PORT=process.env.PORT||3000;server.listen(PORT,()=>console.log('Bud Together on :'+PORT));
