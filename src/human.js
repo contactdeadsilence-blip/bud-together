@@ -263,7 +263,7 @@ export function animateAvatar(root,dt,st){const H=root.userData.h;if(!H)return;c
  // head/neck/spine follow look pitch
  H.look+=((st.pitch||0)-H.look)*k;const p=-H.look;if(Math.abs(p)>.001&&!H.fp){pitchBone(H,H.bones.spine_03,p*.2);pitchBone(H,H.bones.neck_01,p*.3);pitchBone(H,H.bones.Head,p*.4)}
  // hold anchor follows the right hand
- const hb=H.bones.hand_r;if(hb){root.updateMatrixWorld(true);hb.getWorldPosition(_v);root.worldToLocal(_v);root.userData.hold.position.copy(_v);root.userData.hold.rotation.set(-(st.pitch||0)*.4,0,0)}}
+ if(H.bones.hand_r){root.updateMatrixWorld(true);palmLocal(root,root,_v);root.userData.hold.position.copy(_v);root.userData.hold.rotation.set(-(st.pitch||0)*.4,0,0)}}
 export function makeAvatar(color,idx,look){return makeHuman(look||defLook(idx%2?'f':'m',idx))}
 // ---------------- first-person arms ----------------
 function fpSetup(root,H){const a=H.acts;for(const k in a)a[k].stop();H.fpA=a.Idle_Loop.reset().play();H.fpA.timeScale=0;H.mixer.update(.35);H.g.rotation.y=Math.PI;H.g.position.set(0,0,0);H.g.updateMatrixWorld(true);const hp=H.bones.Head.getWorldPosition(new THREE.Vector3());H.g.parent.worldToLocal(hp);H.hd=hp;H.fq=['upperarm_r','upperarm_l','lowerarm_r','lowerarm_l','hand_r','hand_l'].map(n=>[H.bones[n],H.bones[n].quaternion.clone()]);H.g.position.set(-hp.x,FPP.y-hp.y,FPP.z-hp.z)}
@@ -273,3 +273,7 @@ function fpPose(H,lift){for(const sd of['_r','_l']){const sg=sd=='_r'?1:-1;pitch
 export function makeFPArms(color,idx,look){return makeHuman(look||defLook('m',idx),{fp:1})}
 export function animateFP(root,dt,bob,held,pour){const H=root.userData.h;if(!H)return;const b=Math.sin(bob*.5)*.01;H.g.position.y=FPP.y-H.hd.y+b;H.g.position.z=FPP.z-H.hd.z;for(const[b,q]of H.fq)b.quaternion.copy(q);H.g.updateMatrixWorld(true);fpPose(H,held?.15:0);
  const r=H.bones.upperarm_r,hr=H.bones.hand_r;if(held&&r){H.g.updateMatrixWorld(true)}if(pour&&hr)hr.rotateX(-.6)}
+
+// palm centre of the right hand (between wrist and middle-finger knuckle), in `space`'s local coords
+const _pv=new THREE.Vector3();
+export function palmLocal(root,space,out){const H=root.userData.h;const a=H?.bones.hand_r;if(!a)return false;root.updateMatrixWorld(true);a.getWorldPosition(out);const b=H.bones.middle_01_r;if(b){b.getWorldPosition(_pv);out.lerp(_pv,.6)}space.worldToLocal(out);return true}
