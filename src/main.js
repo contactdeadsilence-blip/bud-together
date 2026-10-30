@@ -6,6 +6,7 @@ import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
 import {ShaderPass} from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import {GTAOPass} from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import {makeAvatar,animateAvatar,makeFPArms,animateFP} from './avatar.js';
 import {sfx,initAudio,setVol} from './audio.js';
 import {STRAINS,SHOP,READY,stage,POUR} from './rules.js';
 const $=id=>document.getElementById(id);const Q=new URLSearchParams(location.search);
@@ -240,7 +241,7 @@ renderer.domElement.addEventListener('mousedown',e=>{setMode(false);if(free()){i
 document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement==renderer.domElement);
 addEventListener('mousemove',e=>{if(Math.abs(e.movementX)+Math.abs(e.movementY)>3)setMode(false);if(!locked||!free())return;const s=settings.sens*.0005;yaw-=e.movementX*s;pitch=THREE.MathUtils.clamp(pitch-e.movementY*s*(settings.inv?-1:1),-1.4,1.4)});
 // ---------- game ----------
-let game=null,W=null,ws=null,myId=0,hostId=0,roster=[],paused=false,lapOpen=false,pendingSolo=false;const ENTS=new Map(),OTH=new Map();
+let game=null,W=null,ws=null,myId=0,hostId=0,roster=[],paused=false,lapOpen=false,pendingSolo=false;const ENTS=new Map(),OTH=new Map();let fpArms=null;
 const me={pos:new THREE.Vector3(0,0,3),bob:0,y:0,vy:0,ch:0};let invK='',invOpen=false,mapOpen=false,capture=null,sprintOn=false,rumN=0,lastBagN=0;
 function collide(p){for(const w of WALLS){const r=.3;const cx=THREE.MathUtils.clamp(p.x,w.x0,w.x1),cz=THREE.MathUtils.clamp(p.z,w.z0,w.z1);const dx=p.x-cx,dz=p.z-cz,l=Math.hypot(dx,dz);
  if(l<r){if(l<1e-4){p.x+=r}else{p.x+=dx/l*(r-l);p.z+=dz/l*(r-l)}}}p.x=THREE.MathUtils.clamp(p.x,-14,14);p.z=THREE.MathUtils.clamp(p.z,-12,12.8)}
@@ -253,8 +254,8 @@ function net(cb){if(ws&&ws.readyState==1)return cb();ws=new WebSocket((location.
    if(m.left){const o=OTH.get(m.left);if(o){scene.remove(o.g);o.tag.remove();OTH.delete(m.left)}}}
   if(m.t=='start')startGame(m.pl);
   if(m.t=='w')applyWorld(m.w);
-  if(m.t=='s'&&game){let o=OTH.get(m.id);if(!o){const r=roster.find(p=>p.id==m.id)||{color:'#fff',name:'?'};o={g:dude(r.color),tag:document.createElement('div'),tp:new THREE.Vector3()};o.tag.className='tag';o.tag.textContent=r.name;o.tag.style.color=r.color;document.body.append(o.tag);scene.add(o.g);o.g.position.set(m.p[0],0,m.p[1]);OTH.set(m.id,o)}
-   o.tp.set(m.p[0],0,m.p[1]);o.yaw=m.r}};
+  if(m.t=='s'&&game){let o=OTH.get(m.id);if(!o){const r=roster.find(p=>p.id==m.id)||{color:'#fff',name:'?'};o={g:makeAvatar(r.color,Math.max(0,roster.indexOf(r))),spd:0,lp:null,tag:document.createElement('div'),tp:new THREE.Vector3()};o.tag.className='tag';o.tag.textContent=r.name;o.tag.style.color=r.color;document.body.append(o.tag);scene.add(o.g);o.g.position.set(m.p[0],0,m.p[1]);OTH.set(m.id,o)}
+   o.tp.set(m.p[0],0,m.p[1]);o.yaw=m.r;o.pitch=m.q||0;o.cr=m.c||0}};
  ws.onclose=()=>{if(game)toast('Disconnected')}}
 function renderLobby(){$('lpl').innerHTML=roster.map(p=>`<div class="pl" style="color:${p.color}">● ${p.name}${p.id==hostId?' (host)':''}</div>`).join('')+`<p>${roster.length}/4 growers</p>`;$('bstart').style.display=myId==hostId?'':'none'}
 function dude(c){const g=new THREE.Group(),m=mat(c),sk=mat('#ffd3a8'),dk=mat('#2a3a5a');g.add(at(sh(new THREE.Mesh(new THREE.CapsuleGeometry(.28,.5,4,12),m)),0,.95,0),at(sh(new THREE.Mesh(new THREE.SphereGeometry(.23,16,12),sk)),0,1.55,0),
@@ -382,7 +383,7 @@ function pollPad(dt){const gp=getPad(),root=uiRoot();
  if(Math.hypot(lx,ly)<.25)sprintOn=false;
  return {mx:lx,my:ly,rx,ry,sprint:sprintOn,crouch:!gate&&Ha('crouch'),use:!gate&&Ha('tool')}}
 function startGame(pl){roster=pl;game={};$('menu').classList.remove('on');$('hud').style.display='block';me.pos.set(0,0,3.5);yaw=0;pitch=-.15;toast('Welcome to your grow shed! Check the laptop.')}
-function endGame(){game=null;W=null;for(const o of ENTS.values())o.g.parent?.remove(o.g);ENTS.clear();for(const o of OTH.values()){scene.remove(o.g);o.tag.remove()}OTH.clear();$('hud').style.display='none';ws&&ws.close();ws=null;paused=false;$('pause').classList.remove('on');closeLap();document.exitPointerLock?.()}
+function endGame(){game=null;W=null;for(const o of ENTS.values())o.g.parent?.remove(o.g);ENTS.clear();for(const o of OTH.values()){scene.remove(o.g);o.tag.remove()}OTH.clear();if(fpArms){camera.remove(fpArms);fpArms=null}$('hud').style.display='none';ws&&ws.close();ws=null;paused=false;$('pause').classList.remove('on');closeLap();document.exitPointerLock?.()}
 document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const qb=e.target.closest('[data-q]');const el=e.target.closest('button');if(!el)return;const ds=el.dataset;sfx('ui');
  if(qb&&ds.buy){qty[ds.buy]=THREE.MathUtils.clamp((qty[ds.buy]||1)+(+qb.dataset.q),1,10);renderLap(true);return}
  if(ds.k)return oskKey(ds.k);if(ds.rm){capture=ds.rm;renderRemap();return}if(ds.slot!=null){send({t:'cycle',sel:+ds.slot});setTimeout(renderInv,150);return}if(ds.tab){tab=ds.tab;renderLap();return}if(ds.buy){send({t:'buy',item:ds.buy,n:qty[ds.buy]||1});return}if(ds.upg){send({t:'upgrade'});return}
@@ -406,9 +407,9 @@ function frame(){requestAnimationFrame(frame);frames++;const dt=Math.min(clock.g
     const k=1-Math.exp(-dt*16);lookV.x+=(lx*c*3.6*s-lookV.x)*k;lookV.y+=(ly*c*2.6*s*(settings.inv?-1:1)-lookV.y)*k;yaw-=lookV.x*dt;pitch=THREE.MathUtils.clamp(pitch-lookV.y*dt,-1.4,1.4)}else lookV.set(0,0)}else lookV.set(0,0);
   const f=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),r=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));const v=f.multiplyScalar(my).addScaledVector(r,mx);if(v.length()>1)v.normalize();
   const cr=fr&&(keys.KeyC||pad?.crouch);me.ch+=((cr?.6:0)-me.ch)*(1-Math.exp(-dt*12));if(me.y>0||me.vy){me.vy-=14*dt;me.y+=me.vy*dt;if(me.y<=0){me.y=0;me.vy=0}}
-  const sp=cr?2:keys.ShiftLeft||pad?.sprint?6:4;me.pos.addScaledVector(v,sp*dt);collide(me.pos);me.bob+=v.length()*dt*9;syncCam();hand.position.y=-.38+Math.sin(me.bob*.5)*.01;
-  if((sendT-=dt)<0){sendT=1/15;send({t:'s',p:[+me.pos.x.toFixed(2),+me.pos.z.toFixed(2)],r:+yaw.toFixed(2)})}
-  for(const o of OTH.values()){o.g.position.lerp(o.tp,1-Math.exp(-dt*10));o.g.rotation.y=o.yaw+Math.PI;const p=o.g.position.clone().setY(2.1).project(camera);o.tag.style.display=p.z<1?'':'none';o.tag.style.left=(p.x+1)/2*innerWidth+'px';o.tag.style.top=(1-p.y)/2*innerHeight+'px'}
+  const sp=cr?2:keys.ShiftLeft||pad?.sprint?6:4;me.pos.addScaledVector(v,sp*dt);collide(me.pos);me.bob+=v.length()*dt*9;syncCam();hand.position.y=-.38+Math.sin(me.bob*.5)*.01;if(!fpArms&&game){const i=Math.max(0,roster.findIndex(p=>p.id==myId));fpArms=makeFPArms(roster[i]?.color||'#4caf50',i);camera.add(fpArms)}if(fpArms){fpArms.visible=!!game;animateFP(fpArms,dt,me.bob,!!carried(),drops.visible)}
+  if((sendT-=dt)<0){sendT=1/15;send({t:'s',p:[+me.pos.x.toFixed(2),+me.pos.z.toFixed(2)],r:+yaw.toFixed(2),q:+pitch.toFixed(2),c:+(me.ch/.6).toFixed(2)})}
+  for(const o of OTH.values()){o.g.position.lerp(o.tp,1-Math.exp(-dt*10));o.g.rotation.y=o.yaw+Math.PI;{const p=o.g.position;const d=o.lp?Math.hypot(p.x-o.lp.x,p.z-o.lp.z)/Math.max(dt,1e-3):0;o.lp=p.clone();o.spd+=(d-o.spd)*(1-Math.exp(-dt*6));animateAvatar(o.g,dt,{spd:o.spd,cr:o.cr,pitch:o.pitch,held:o.g.userData.hold.children.length>0})}const p=o.g.position.clone().setY(2.1).project(camera);o.tag.style.display=p.z<1?'':'none';o.tag.style.left=(p.x+1)/2*innerWidth+'px';o.tag.style.top=(1-p.y)/2*innerHeight+'px'}
   if(W){const c=carried(),bg=bag();curT=fr?target():null;const pr=promptFor(c,curT);let h='';
    if(curT){const pr2=promptFor(c,curT,true),wat=c?.type=='water'&&curT.e?.type=='pot'&&pr2;h=wat?`Hold ${padMode?G('tool'):G('use')} Water`:pr?`${G('use')} ${pr}`:(c?`<span style="opacity:.7">Can't use ${NAME(c.type)} here</span>`:'');if(padMode&&!wat&&curT.e&&!pr2&&pr&&!/^Use Laptop/.test(pr))h+=`&nbsp; ${G('alt')} Pick up`;else if(padMode&&!wat&&pr2&&pr2==pr)h=`${G('use')}${G('alt')} ${pr}`;else if(padMode&&!wat&&pr2&&pr2!=pr)h+=`&nbsp; ${G('alt')} ${pr2}`;if(curT.e?.type=='pot')h+='<br><small>'+plantInfo(curT.e)+'</small>';
     if(curT.e?.type=='rack'&&curT.e.data.slots?.length)h+='<br><small>'+curT.e.data.slots.map(s=>s.t>0?`drying ${Math.ceil(s.t)}s`:'✔ dry').join(' · ')+'</small>'}
@@ -427,5 +428,5 @@ function frame(){requestAnimationFrame(frame);frames++;const dt=Math.min(clock.g
 const demo=new THREE.Group(),demoPl=[];[[-1.2,-3,300],[0,-3.2,470],[1.2,-3,130]].forEach(([x,z,a],i)=>{const g=prop({id:900+i,type:'pot',data:{soil:1,plant:{s:['owl','kush','haze'][i],age:a,health:100,water:80,nutr:80}}});g.position.set(x,0,z);demo.add(g);demoPl.push(g.userData.plant)});
 const dlp=prop({type:'light',data:{}});dlp.position.set(-.5,0,-3.1);demo.add(dlp);scene.add(demo);setInterval(()=>demo.visible=!game,200);
 frame();
-window.__bt={get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
+window.__bt={fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
  target:()=>{syncCam();const t=target();return t&&(t.fx||t.e.type)},state:()=>({root:uiRoot()?.id||null,focus:fEl?(fEl.dataset.a||fEl.dataset.buy||fEl.dataset.tab||fEl.dataset.k||fEl.id||fEl.className):null,tab,lapOpen,paused,padMode,held:carried()?.type||null,pouring:drops.visible,meter:meter.style.display!='none'?$('mtxt').textContent:null,checks:checks.length,bag:bag().map(e=>e.type),yaw,pitch,x:me.pos.x,z:me.pos.z,y:me.y,ch:me.ch,invOpen,mapOpen,sprint:sprintOn,binds:{...binds},rum:rumN,prompt:$('prompt').textContent,padInd:$('padind').classList.contains('c'),money:W?.money,code:$('code').value,sens:settings.sens,qty:{...qty}})};
