@@ -36,6 +36,9 @@ input{font:900 28px Nunito;text-align:center;width:220px;padding:8px;border-radi
 #pause{z-index:25;background:rgba(10,20,10,.6);backdrop-filter:blur(4px)}
 #brand{position:absolute;bottom:16px;right:20px;opacity:.7;display:flex;gap:8px;align-items:center;font-weight:900;letter-spacing:.2em;font-size:11px}#brand img{height:26px}
 .tag{position:fixed;transform:translate(-50%,-100%);font-weight:900;font-size:14px;text-shadow:0 2px 3px #000;pointer-events:none;z-index:9}
+.g.pA,.g.pB,.g.pX,.g.pY{border-radius:50%;color:#fff;min-width:24px;text-align:center}.g.pA{background:#5fcf3a}.g.pB{background:#ff5a4a}.g.pX{background:#3a8cff}.g.pY{background:#ffc83a;color:#222}.g.pL{background:#556;color:#fff}
+.card.shop{display:block;width:100%}.qty{float:right;font:900 20px Nunito;color:#ffcf3a}.qb{display:inline-block;width:26px;text-align:center;background:#1c2733;border-radius:6px;margin:0 4px;cursor:pointer}body.pad .qb{display:none}
+#lbody.one{grid-template-columns:1fr}.f{z-index:2;position:relative}
 </style></head><body>
 <div id="splash" class="scr on"><img src="/logo.svg" alt="DEAD SILENCE Studios"><p>DEAD SILENCE STUDIOS PRESENTS</p></div>
 <div id="menu" class="scr">
@@ -43,11 +46,11 @@ input{font:900 28px Nunito;text-align:center;width:220px;padding:8px;border-radi
  <button class="btn" data-a="solo">Play Solo</button><button class="btn" data-a="host">Host Co-op</button><button class="btn b" data-a="join">Join Code</button><button class="btn b" data-a="set">Settings</button></div>
  <div id="m-join" class="panel" style="display:none"><h2>ENTER ROOM CODE</h2><input id="code" maxlength="4"><br><input id="nm" placeholder="NAME" maxlength="10" style="font-size:20px"><div id="osk"></div><button class="btn" data-a="dojoin">Join</button><button class="btn b" data-a="back">Back</button><p id="jerr" style="color:#ff8a7a"></p></div>
  <div id="m-lobby" class="panel" style="display:none"><div>ROOM CODE</div><div class="code" id="lcode">----</div><div id="lpl"></div><button class="btn" data-a="start" id="bstart">Start Growing</button><button class="btn b" data-a="leave">Leave</button></div>
- <div id="m-set" class="panel" style="display:none"><h2>SETTINGS</h2><p>Look sensitivity <input type="range" id="sens" min="1" max="10" style="width:180px"></p><p>Quality <select id="qual" style="font:900 18px Nunito"><option value="2">High</option><option value="1">Medium</option><option value="0">Low</option></select></p><p>Volume <input type="range" id="vol" min="0" max="10" style="width:180px"></p><button class="btn b" data-a="back">Back</button></div>
+ <div id="m-set" class="panel" style="display:none"><h2>SETTINGS</h2><p>Look sensitivity <input type="range" id="sens" min="1" max="10" style="width:180px"></p><p>Quality <select id="qual" style="font:900 18px Nunito"><option value="2">High</option><option value="1">Medium</option><option value="0">Low</option></select></p><p>Invert look <select id="inv" style="font:900 18px Nunito"><option value="0">Off</option><option value="1">On</option></select></p><p>Volume <input type="range" id="vol" min="0" max="10" style="width:180px"></p><button class="btn b" data-a="back">Back</button></div>
  <div id="brand"><img src="/logo.svg">DEAD SILENCE STUDIOS</div>
 </div>
 <div id="hud"><div id="cross"></div><div id="prompt"></div><div id="stats"></div><div id="clock"></div><div id="hold"></div><div id="toast"></div><div id="feed"></div>
-<div id="help">Move WASD / L-stick · Look mouse / R-stick · Use <span class="g">E</span><span class="g a">A</span> · Drop <span class="g">G</span><span class="g b">B</span> · Pause Esc / Start</div></div>
+<div id="help"></div></div>
 <div id="laptop" class="scr"><div id="lap"><div class="bar"><button class="tab" data-tab="shop">Shop</button><button class="tab" data-tab="contracts">Contracts</button><button class="tab" data-tab="upg">Upgrades</button><b id="lmoney"></b><button class="tab" data-a="close">✕ Close</button></div><div id="lbody"></div></div></div>
 <div id="pause" class="scr"><h1>PAUSED</h1><div class="sub">START / ESC TO RESUME</div><button class="btn" data-a="resume">Resume</button><button class="btn b" data-a="set">Settings</button><button class="btn b" data-a="tomenu">Quit to Menu</button></div>
 <script type="module" src="/src/main.js"></script></body></html>

@@ -29,31 +29,34 @@ function tick(w,dt){w.min+=dt*4;if(w.min>=1440){w.min-=1440;w.day++;
    if(pl.health<=0)pl.dead=true}
   if(e.type==='rack')for(const s of e.data.slots||[])if(s.t>0)s.t=Math.max(0,s.t-dt)}}
 function msg(w,t){w.log.push(t)}
-function act(w,pid,m){const c=w.ents.find(e=>e.by===pid),t=m.target?ent(w,m.target):null;const say=s=>{w.toast={pid,t:s}};
- if(m.t==='buy'){const it=SHOP[m.item];if(!it)return;const n=Math.max(1,Math.min(10,m.n|0||1));if(w.money<it.p*n)return say('Not enough money');w.money-=it.p*n;for(let i=0;i<n;i++)w.pending.push({type:m.item,t:4+i*.5});return say(`Ordered ${n}× ${it.n} — arriving at the door`)}
+function norm(w,pid){w.ents.filter(e=>e.by===pid).sort((a,b)=>(a.bi||0)-(b.bi||0)).forEach((e,i)=>e.bi=i)}
+function act(w,pid,m){act0(w,pid,m);norm(w,pid)}
+function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e=>!e.bi)||null,t=m.target&&m.target!=='drop'?ent(w,m.target):null;const say=s=>{w.toast={pid,t:s}};
+ const give=e=>{if(!w.ents.includes(e))w.ents.push(e);for(const o of bag)o.bi=(o.bi||0)+1;e.by=pid;e.bi=0};const full=()=>bag.length>=3&&(say('Hands full (3 items max) — drop something'),true);
+ if(m.t==='buy'){const it=SHOP[m.item];if(!it)return;const n=Math.max(1,Math.min(10,m.n|0||1));if(w.money<it.p*n)return say('Not enough money');w.money-=it.p*n;for(let i=0;i<n;i++)w.pending.push({type:m.item,t:4+i*.5});w.sound='buy';return say(`Ordered ${n}× ${it.n} — arriving at the door`)}
  if(m.t==='upgrade'){if(w.room>1)return;if(w.rep<5)return say('Need 5 reputation');if(w.money<500)return say('Need $500');w.money-=500;w.room=2;return say('Grow room expanded!')}
- if(m.t==='drop'){if(!c)return;c.by=0;c.x=+m.x||0;c.z=+m.z||0;c.y=+m.y||0;c.ry=+m.ry||0;return}
+ if(m.t==='drop'){if(!c)return;c.by=0;c.bi=0;c.x=+m.x||0;c.z=+m.z||0;c.y=+m.y||0;c.ry=+m.ry||0;return}
+ if(m.t==='cycle'){if(bag.length<2)return;const L=bag.length,d=m.d<0?1:L-1;for(const e of bag)e.bi=((e.bi||0)+d)%L;return}
  if(m.t!=='use')return;
  if(m.target==='drop'){if(!c||c.type!=='packed')return say('Pack product into a jar first');const {s,g}=c.data;w.ents=w.ents.filter(e=>e!==c);
   const k=w.contracts.find(k=>k.s===s);if(k){k.got+=g;if(k.got>=k.g){w.money+=k.pay;w.rep+=k.g>=20?2:1;w.contracts=w.contracts.filter(x=>x!==k);say(`Contract done! +$${k.pay} · +rep`);w.sound='cash'}else say(`${k.shop}: ${k.got}/${k.g}g delivered`)}
   else{const v=g*4;w.money+=v;say(`No ${STRAINS[s].name} contract — sold on the spot for $${v}`);w.sound='cash'}return}
  if(!t)return;
- if(!c){ // empty hand
-  if(t.type==='pot'&&stage(t.data.plant)==='ready'){const p=t.data.plant,g=Math.max(1,Math.round(STRAINS[p.s].g*(.35+.65*p.health/100)));t.data.plant=null;t.data.soil=0;
-   w.ents.push({id:w.nid++,type:'wetbud',x:0,y:0,z:0,ry:0,by:pid,data:{s:p.s,g}});return say(`Harvested ${g}g wet ${STRAINS[p.s].name} — hang it to dry`)}
-  if(t.type==='pot'&&t.data.plant?.dead){t.data.plant=null;t.data.soil=0;return say('Cleared the dead plant')}
-  if(t.type==='rack'){const sl=t.data.slots||[];const i=sl.findIndex(s=>s.t<=0);if(i>=0){const s=sl.splice(i,1)[0];w.ents.push({id:w.nid++,type:'drybud',x:0,y:0,z:0,ry:0,by:pid,data:{s:s.s,g:s.g}});return say(`Took ${s.g}g dried bud — pack it at the scale`)}
-   if(sl.length)return say('Still drying…')}
-  if(t.by)return;t.by=pid;w.sound='pick';return}
- const use=()=>{if(c.data.uses!=null&&--c.data.uses<=0)w.ents=w.ents.filter(e=>e!==c)};
- if(t.type==='pot'){const d=t.data;
-  if(c.type==='soil'){if(d.soil)return say('Pot already has soil');d.soil=1;use();w.sound='pour';return say('Filled pot with soil')}
-  if(c.type.startsWith('seed_')){if(!d.soil)return say('Add soil first');if(d.plant)return say('Already planted');d.plant={s:c.type.slice(5),age:0,water:40,nutr:30,health:80};use();return say('Planted '+STRAINS[d.plant.s].name)}
-  if(c.type==='water'){if(!d.plant)return say('Nothing to water');d.plant.water=100;use();w.sound='pour';return say('Watered')}
-  if(c.type==='nutr'){if(!d.plant)return say('Nothing to feed');d.plant.nutr=100;use();w.sound='pour';return say('Fed nutrients')}}
- if(t.type==='rack'&&c.type==='wetbud'){const sl=t.data.slots=t.data.slots||[];if(sl.length>=4)return say('Rack is full');sl.push({s:c.data.s,g:c.data.g,t:DRY});w.ents=w.ents.filter(e=>e!==c);return say('Hung to dry (1 min)')}
- if(t.type==='scale'&&c.type==='drybud'){const j=w.ents.find(e=>e.type==='jars'&&!e.by);if(!j)return say('Need a Jar Box placed in the shed');c.type='packed';if(--j.data.uses<=0)w.ents=w.ents.filter(e=>e!==j);w.sound='cash';return say(`Weighed & packed: ${c.data.g}g ${STRAINS[c.data.s].name}`)}
- say("Can't use that here")}
+ if(c){const use=()=>{if(c.data.uses!=null&&--c.data.uses<=0)w.ents=w.ents.filter(e=>e!==c)};const ct=c.type;
+  if(t.type==='pot'&&(ct==='soil'||ct.startsWith('seed_')||ct==='water'||ct==='nutr')){const d=t.data;
+   if(ct==='soil'){if(d.soil)return say('Pot already has soil');d.soil=1;use();w.sound='pour';return say('Filled pot with soil')}
+   if(ct.startsWith('seed_')){if(!d.soil)return say('Add soil first');if(d.plant)return say('Already planted');d.plant={s:ct.slice(5),age:0,water:40,nutr:30,health:80};use();return say('Planted '+STRAINS[d.plant.s].name)}
+   if(ct==='water'){if(!d.plant)return say('Nothing to water');d.plant.water=100;use();w.sound='pour';return say('Watered')}
+   if(ct==='nutr'){if(!d.plant)return say('Nothing to feed');d.plant.nutr=100;use();w.sound='pour';return say('Fed nutrients')}}
+  if(t.type==='rack'&&ct==='wetbud'){const sl=t.data.slots=t.data.slots||[];if(sl.length>=4)return say('Rack is full');sl.push({s:c.data.s,g:c.data.g,t:DRY});w.ents=w.ents.filter(e=>e!==c);return say('Hung to dry (1 min)')}
+  if(t.type==='scale'&&ct==='drybud'){const j=w.ents.find(e=>e.type==='jars'&&!e.by);if(!j)return say('Need a Jar Box placed in the shed');c.type='packed';if(--j.data.uses<=0)w.ents=w.ents.filter(e=>e!==j);w.sound='cash';return say(`Weighed & packed: ${c.data.g}g ${STRAINS[c.data.s].name}`)}
+  if(m.only)return say("Can't use "+(SHOP[ct]?.n||ct)+' on that')}
+ if(t.type==='pot'&&stage(t.data.plant)==='ready'){if(full())return;const p=t.data.plant,g=Math.max(1,Math.round(STRAINS[p.s].g*(.35+.65*p.health/100)));t.data.plant=null;t.data.soil=0;
+  give({id:w.nid++,type:'wetbud',x:0,y:0,z:0,ry:0,by:pid,data:{s:p.s,g}});return say(`Harvested ${g}g wet ${STRAINS[p.s].name} — hang it to dry`)}
+ if(t.type==='pot'&&t.data.plant?.dead){t.data.plant=null;t.data.soil=0;return say('Cleared the dead plant')}
+ if(t.type==='rack'){const sl=t.data.slots||[];const i=sl.findIndex(s=>s.t<=0);if(i>=0){if(full())return;const s=sl.splice(i,1)[0];give({id:w.nid++,type:'drybud',x:0,y:0,z:0,ry:0,data:{s:s.s,g:s.g}});return say(`Took ${s.g}g dried bud — pack it at the scale`)}
+  if(sl.length)return say('Still drying…')}
+ if(t.by||full())return;give(t);w.sound='pick'}
 let nid=1;
 wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  const send=m=>ws.send(JSON.stringify(m));
@@ -66,7 +69,7 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
   else if(!room)return;
   else if(m.t==='start'&&me.id===room.host){room.started=true;bc(room,{t:'start',pl:roster(room)})}
   else if(m.t==='s'){m.id=me.id;bc(room,m,me)}
-  else if(m.t==='dbg'){if(!process.env.BT_DEBUG)return;const w=room.w;if(m.id){const e=w.ents.find(e=>e.id===m.id);if(e?.data.plant)Object.assign(e.data.plant,{age:m.age,health:100,water:100,nutr:100})}if(m.dry)w.ents.forEach(e=>(e.data.slots||[]).forEach(s=>s.t=0));if(m.contract)w.contracts[0].s=m.contract;room.dirty=true}
+  else if(m.t==='dbg'){if(!process.env.BT_DEBUG)return;const w=room.w;if(m.id){const e=w.ents.find(e=>e.id===m.id);if(e?.data.plant)Object.assign(e.data.plant,{age:m.age,health:100,water:100,nutr:100})}if(m.dry)w.ents.forEach(e=>(e.data.slots||[]).forEach(s=>s.t=0));if(m.contract)w.contracts[0].s=m.contract;if(m.spawn){const q=m.spawn;w.ents.push({id:w.nid++,type:'pot',x:q.x,y:0,z:q.z,ry:0,by:0,data:{soil:1,plant:q.age==null?null:{s:q.s,age:q.age,water:q.water??100,nutr:100,health:q.health??100,dead:!!q.dead}}})}if(m.money)w.money+=m.money;room.dirty=true}
   else{act(room.w,me.id,m);room.dirty=true}
  });
  ws.on('close',()=>{if(!room)return;room.w.ents.forEach(e=>{if(e.by===me.id){e.by=0}});room.players=room.players.filter(p=>p!==me);if(!room.players.length)rooms.delete(room.code);else{if(room.host===me.id)room.host=room.players[0].id;bc(room,{t:'roster',pl:roster(room),host:room.host,left:me.id})}});
