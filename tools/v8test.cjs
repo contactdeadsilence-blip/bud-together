@@ -7,8 +7,8 @@ tx(A,{t:'host',name:'A'});await sl(200);tx(B,{t:'join',code:A.code,name:'B'});aw
 const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i)};const E=(c,f)=>c.w.ents.find(f);const held=c=>c.w.ents.filter(e=>e.by==c.id);
 ok('starts with sink + watering can',E(A,e=>e.type=='sink')&&E(A,e=>e.type=='water'&&e.data.w==100));
 tx(A,{t:'buy',item:'water'});await st();ok('watering can not sold',A.toasts.at(-1).includes('Not sold'));
-tx(A,{t:'dbg',money:200});await st();tx(A,{t:'buy',item:'shelf'});tx(A,{t:'buy',item:'pal_soil'});await sl(5600);const sh=E(A,e=>e.type=='shelf'),pl=E(A,e=>e.type=='pallet');ok('shelf + pallet delivered',sh&&pl&&pl.data.n==8&&pl.data.it=='soil');ok('pallet discounted',A.w.money==350-45-136,A.w.money);
-for(let i=0;i<3;i++){tx(A,{t:'use',target:pl.id});await st()}ok('take one bag at a time off pallet',E(A,e=>e.id==pl.id).data.n==5&&held(A).length==3);
+tx(A,{t:'dbg',money:200});await st();tx(A,{t:'buy',item:'shelf'});tx(A,{t:'buy',item:'pal_soil'});await sl(5600);const sh=E(A,e=>e.type=='shelf'),pl=E(A,e=>e.type=='pallet');ok('shelf + pallet delivered',sh&&pl&&pl.data.n==8&&pl.data.it=='soil');ok('pallet discounted',A.w.money==1000+200-45-136,A.w.money);
+for(let i=0;i<3;i++){tx(A,{t:'use',target:pl.id,only:true});await st()}ok('take one bag at a time off pallet',E(A,e=>e.id==pl.id).data.n==5&&held(A).length==3);
 tx(A,{t:'use',target:sh.id,ry:1.2});await st();let s=E(A,e=>e.id==sh.id);ok('store item on shelf (with rotation)',s.data.slots.filter(Boolean).length==1&&s.data.slots[0].ry==1.2&&held(A).length==2);
 tx(A,{t:'use',target:sh.id});tx(A,{t:'use',target:sh.id});await st();ok('B sees shelf contents (co-op)',E(B,e=>e.id==sh.id).data.slots.filter(Boolean).length==3);
 tx(B,{t:'use',target:sh.id});await st();ok('B takes item off shelf',E(B,e=>e.id==sh.id).data.slots.filter(Boolean).length==2&&held(B).length==1);

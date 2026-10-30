@@ -2,7 +2,7 @@
 const pp=require('puppeteer-core'),{spawn}=require('child_process');const sl=ms=>new Promise(r=>setTimeout(r,ms));const ST=process.argv[2]||'1';const OUT='/workspace/ui-shots/grow/';
 (async()=>{const PORT=3231;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(700);
 const b=await pp.launch({executablePath:'/usr/bin/google-chrome',headless:'new',protocolTimeout:300000,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-const P=await b.newPage();await P.setViewport({width:1280,height:720});P.on('pageerror',e=>console.log('ERR',e.message));
+const P=await b.newPage();await P.setViewport({width:1280,height:720});let _ec=0;P.on('pageerror',e=>{if(_ec++<2)console.log('ERR',e.stack)});
 await P.evaluateOnNewDocument(()=>{window.__pad={id:'Xbox Sim',index:0,connected:true,mapping:'standard',timestamp:0,buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0})),axes:[0,0,0,0]};navigator.getGamepads=()=>[window.__pad,null,null,null]});
 await P.goto(`http://localhost:${PORT}/?q=2&nosplash`,{waitUntil:'networkidle0'});
 const ev=(f,...a)=>P.evaluate(f,...a);const frames=async n=>{const f0=await ev(()=>__bt.frames);while(await ev(()=>__bt.frames)<f0+n)await sl(15)};

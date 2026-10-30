@@ -1,7 +1,23 @@
-export const STRAINS={kush:{name:'Silent Kush',speed:.85,g:14,ppg:14},haze:{name:'Pixel Haze',speed:1.15,g:10,ppg:10},owl:{name:'Night Owl',speed:1,g:12,ppg:12}};
-export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},pot:{n:'Pot',p:10},seed_haze:{n:'Pixel Haze Seeds',p:15,uses:3},seed_owl:{n:'Night Owl Seeds',p:20,uses:3},seed_kush:{n:'Silent Kush Seeds',p:30,uses:3},
+export const STRAINS={kush:{name:'Silent Kush',speed:.85,g:14,ppg:14,diff:2,col:'#7a2fd0',look:{pis:'#e8862e',frost:.8,cal:'#5a1fb0'}},haze:{name:'Pixel Haze',speed:1.15,g:10,ppg:10,diff:1,col:'#f0cf4a',look:{pis:'#f2efe4',frost:.55,cal:'#b8c25a'}},owl:{name:'Night Owl',speed:1,g:12,ppg:12,diff:2,col:'#4fdc7a',look:{pis:'#ff9a3c',frost:.9,cal:'#7ec890'}},
+ lemon:{name:'Lemon Byte',speed:1.3,g:8,ppg:9,diff:1,col:'#ffe24a',look:{pis:'#ffb030',frost:.6,cal:'#d8e04a'}},blue:{name:'Blue Glitch',speed:.95,g:13,ppg:13,diff:2,col:'#4a8cff',look:{pis:'#ff7a5a',frost:.75,cal:'#5f8fd8'}},og:{name:'Ghost OG',speed:.75,g:18,ppg:17,diff:3,col:'#e8f4ff',look:{pis:'#c86a2a',frost:1,cal:'#9ab88a'}}};
+// v12 stage 3: seed types, pot sizes, soil tiers, nutrients, quality grades
+export const SEEDT={r:{n:'Regular',m:1,d:'cheap · random phenotype (yield ±25%)'},f:{n:'Feminized',m:1.6,d:'stable · +4 quality'},a:{n:'Auto',m:1.4,d:'fast (+35%) · grows without much light · -20% yield'}};
+export function seedOf(k){if(!k?.startsWith('seed_'))return null;const [,s,t]=k.split('_');return STRAINS[s]?{s,ty:t||'r'}:null}
+const SEEDBASE={haze:15,owl:20,kush:30,lemon:12,blue:22,og:40};
+export const SOILQ=['Basic Soil','Premium Soil','Super Soil'];
+export const CURE=240,GRADES=[['A+',92,1.5],['A',85,1.3],['B',72,1.1],['C',58,.9],['D',0,.7]];
+export const grade=q=>GRADES.find(g=>q>=g[1]);
+export const gradeOk=(q,min)=>!min||GRADES.findIndex(g=>g[0]==grade(q)[0])<=GRADES.findIndex(g=>g[0]==min);
+export const prodQ=d=>Math.min(100,Math.round((d.q??70)+(d.cure||0)*8));
+export function stage6(p){if(!p)return '';if(p.dead)return 'dead';const a=p.age;return a<15?'germination':a<60?'seedling':a<170?'veg':a<230?'pre-flower':a<READY?'flower':'ripe'}
+export const STAGE6=['germination','seedling','veg','pre-flower','flower','ripe'];
+export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35,uses:4,ent:'soil',dat:{sq:1}},soil_s:{n:'Super Soil',p:55,uses:4,ent:'soil',dat:{sq:2}},pot:{n:'Pot',p:10},pot_s:{n:'Small Pot',p:6,ent:'pot',dat:{sz:.7}},pot_l:{n:'Large Pot',p:18,ent:'pot',dat:{sz:1.4}},gbed:{n:'Garden Bed',p:45,ent:'pot',dat:{sz:2,bed:1}},nutr_g:{n:'Grow Nutrients (N)',p:18,uses:8,ent:'nutr',dat:{f:'g'}},nutr_b:{n:'Bloom Nutrients (P-K)',p:18,uses:8,ent:'nutr',dat:{f:'b'}},
  water:{n:'Watering Can',p:0,hide:1},shelf:{n:'Storage Shelf',p:45},nutr:{n:'Nutrients',p:15,uses:8},light:{n:'Grow Light',p:60},rack:{n:'Drying Rack',p:40},jars:{n:'Jar Box',p:12,uses:10},scale:{n:'Scale',p:35},gbag:{n:'Garbage Bags',p:4,uses:5},papers:{n:'Rolling Papers',p:6,uses:10},table:{n:'Work Table',p:60},bed:{n:'Bed',p:150},tcan:{n:'Trash Can',p:20},
  pal_soil:{n:'Pallet · 8 Soil Bags',p:136,pal:'soil',k:8},pal_nutr:{n:'Pallet · 6 Nutrients',p:72,pal:'nutr',k:6},pal_pot:{n:'Pallet · 10 Pots',p:80,pal:'pot',k:10},pal_jars:{n:'Pallet · 6 Jar Boxes',p:61,pal:'jars',k:6}};
+for(const k of ['soil_p','soil_s','pot_s','pot_l','gbed','nutr_g','nutr_b','pal_soil','pal_nutr','pal_pot','pal_jars']){const v=SHOP[k];delete SHOP[k];SHOP[k]=v}
+for(const s in STRAINS)for(const t in SEEDT)SHOP['seed_'+s+(t=='r'?'':'_'+t)]={n:STRAINS[s].name+(t=='r'?' Seeds':' '+SEEDT[t].n+' Seeds'),p:Math.round(SEEDBASE[s]*SEEDT[t].m),uses:3};
+export const GH={x0:-11,x1:-6.2,z0:-2.6,z1:2.6};// greenhouse footprint (west of the shed)
+export const inGH=e=>e.x>GH.x0&&e.x<GH.x1&&e.z>GH.z0&&e.z<GH.z1;
 // shelves / sink / utilities
 export const SLOTS=6,CAN=100,FILL=10,GAL=2;// shelf slots; can capacity %; % per fill tick; gallons per full can
 export const RATE={water:.5,kwh:.15,base:2,light:.6};// $/gallon, $/kWh, $/day base, kW per placed grow light
@@ -37,5 +53,6 @@ export const ROLL=1.6,JOINT=6;// seconds to roll; $ per pre-roll on the spot (vs
 export const WAKE=7*60,canSleep=min=>min>=19*60||min<5*60;
 // v12: shared catalog categories (laptop shop + Quick Bud phone app)
 export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Furniture',bulk:'Bulk Pallets'};
-export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
+export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
 export const MAXORD=10;// max units per line in one order
+export function harvQ(p){const b=p.qt?p.qs/p.qt*100:60;return Math.max(15,Math.min(92,Math.round(b*.9+(p.sq||0)*4+(p.ty==='f'?4:0)+((p.ph||1)-1)*8)))}
