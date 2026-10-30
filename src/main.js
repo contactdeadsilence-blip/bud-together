@@ -78,18 +78,48 @@ let WILT=0;function fan(pb,p,yaw,elev,s,col,geo=FAN7,roll=0){elev-=WILT*1.1;s*=1
 function blobAt(pb,p,sx,sy,sz,col,geo=BUD,r=0){_o.position.copy(p);_o.rotation.set(r,r*2,r*3);_o.scale.set(sx,sy,sz);_o.updateMatrix();pb.add(geo,_o.matrix,col)}
 const TINT={kush:'#8a62c8',haze:'#dcd070',owl:'#b8e8c0'},SCOL={kush:'#a06bf0',haze:'#f0cf4a',owl:'#4fdc7a'},LEAFC={kush:'#2f7a3a',haze:'#4ea53a',owl:'#2c8a50'};
 const budCol=(s,fl,ready,dry)=>{const c=new THREE.Color('#8cc456').lerp(new THREE.Color(TINT[s]),.15+.4*fl);if(ready)c.lerp(new THREE.Color('#f4fff0'),.15);if(dry)c.lerp(new THREE.Color('#8a8a50'),.45).multiplyScalar(.85);return c};
-function cola(pb,p,len,size,fl,s,r,leafC,o={}){const nb=Math.max(3,Math.round(len/size*2.2)),dir=o.down?-1:1;const bc=budCol(s,fl,o.ready,o.dry);
+function colaLo(pb,p,len,size,fl,s,r,leafC,o={}){const nb=Math.max(3,Math.round(len/size*2.2)),dir=o.down?-1:1;const bc=budCol(s,fl,o.ready,o.dry);
  const pc=new THREE.Color('#f4f0e2').lerp(new THREE.Color(o.ready||o.dry?'#c45a22':'#e8862e'),o.ready||o.dry?1:Math.max(0,fl-.35)*1.5);
  for(let i=0;i<nb;i++){const t=i/(nb-1),a=r()*6.28,rad=size*.5*(1-t*.6)*r();const q=V(p.x+Math.cos(a)*rad,p.y+dir*t*len,p.z+Math.sin(a)*rad);const sz=size*(.6+.45*r())*(1-.4*t);
   blobAt(pb,q,sz,sz*1.3,sz,bc.clone().offsetHSL(0,0,(r()-.5)*.08),BUD,r()*3);
   if(fl>.05)for(let k=0;k<2+(o.ready?1:0);k++){const d=V(r()-.5,r()*.8*dir+.1,r()-.5).normalize();const b0=q.clone().addScaledVector(d,sz*.8);seg(pb,b0,b0.clone().addScaledVector(d,sz*(.7+r()*.7)),sz*.09,pc,CYL3)}
   if(i%3==1&&leafC)fan(pb,q,a,.7*dir,sz*2.4,leafC,FAN1)}}
+// v12: high-detail buds. Dense spiralled calyx clusters, curling pistils (strain colour), frosted sugar leaves and trichome points.
+const CALYX=prep(new THREE.LatheGeometry([[0,-1],[.62,-.75],[.8,-.15],[.66,.4],[.32,.8],[.08,.97],[0,1]].map(([x,y])=>new THREE.Vector2(x,y)),6));
+const BLOOK={kush:{pis:'#e8862e',frost:.75,cal:'#7d5bb8'},haze:{pis:'#f2efe4',frost:.55,cal:'#b8c25a'},owl:{pis:'#ff9a3c',frost:.9,cal:'#7ec890'}};
+const blook=s=>BLOOK[s]||STRAINS[s]?.look||{pis:'#e8862e',frost:.6,cal:'#8cc456'};
+let LODB=null,CAMO=null;// when set, cola() writes hi detail to LODB.hi / LODB.tri and a cheap copy to LODB.lo
+function colaHi(pb,p,len,size,fl,s,r,leafC,o,tri){const L=blook(s),dir=o.down?-1:1,bc=budCol(s,fl,o.ready,o.dry),cc=new THREE.Color(L.cal),pc0=new THREE.Color(L.pis);
+ const pc=new THREE.Color('#f4f0e2').lerp(pc0,Math.min(1,.25+fl*.9));if(o.ready||o.dry)pc.lerp(new THREE.Color(o.dry?'#8a4a1a':'#b0521c'),o.dry?.75:.45);
+ const frost=new THREE.Color('#f2fff4'),fr=L.frost*fl*(o.dry?.7:1);
+ size*=1.2;blobAt(pb,V(p.x,p.y+dir*len*.45,p.z),size*.48,len*.55,size*.48,bc.clone().multiplyScalar(.7),BUD,0);// core
+ const nc=Math.max(12,Math.min(72,Math.round(len/size*15*(.45+.55*fl))));const ga=2.39996;
+ for(let i=0;i<nc;i++){const t=(i+.5)/nc,a=i*ga+r()*.3,taper=Math.pow(1-t,.6)*.8+.25*(1-t)+.08,rad=size*.5*taper;
+  const out=V(Math.cos(a),0,Math.sin(a)),q=V(p.x,p.y+dir*t*len,p.z).addScaledVector(out,rad);const lay=i%3==0?.6:1,cs=size*(.24+.16*r())*(.65+.5*taper)*(.6+.4*fl)*(lay<1?1.15:1);q.addScaledVector(out,rad*(lay-1));
+  const ax=out.clone().multiplyScalar(.8).add(V(0,dir*(.6+.5*t),0)).normalize();_q.setFromUnitVectors(UP,ax);_m.compose(q,_q,V(cs*.75,cs*1.15,cs*.75));
+  const col=bc.clone().lerp(cc,.2+.35*r()*fl).lerp(frost,fr*(.08+.12*r())).offsetHSL(0,0,(r()-.5)*.1);pb.add(CALYX,_m,col);
+  const tip=q.clone().addScaledVector(ax,cs*1.1);
+  if(fl>.05&&i%2==0){const np=1+(r()<.5?1:0);for(let k=0;k<np;k++){const d1=ax.clone().add(V(r()-.5,r()-.5,r()-.5).multiplyScalar(.9)).normalize(),L1=cs*(1.1+r()*.9)*(o.dry?.6:1);const m1=tip.clone().addScaledVector(d1,L1*.55);const d2=d1.clone().add(V(r()-.5,(o.ready||o.dry?-.6:.2),r()-.5)).normalize();
+   seg(pb,tip,m1,cs*.05,pc,CYL3);seg(pb,m1,m1.clone().addScaledVector(d2,L1*.5),cs*.04,pc,CYL3)}}
+  if(tri&&fl>.15)for(let k=0;k<3+Math.round(fl*4);k++){const v=V(r()-.5,r()-.5,r()-.5).multiplyScalar(cs*1.4).add(q);tri.push(v.x,v.y,v.z,r())}
+  if(leafC&&i%4==2&&t<.92){const lc2=new THREE.Color(leafC).lerp(frost,fr*.55);fan(pb,q.clone().addScaledVector(out,cs*.4),-a+Math.PI/2,(.35+.4*r())*dir,size*(.9+r()*.6),lc2,FAN3,(r()-.5)*.6);
+   if(tri)for(let k=0;k<3;k++){const v=q.clone().addScaledVector(out,cs*(.8+r()*2)).add(V(0,dir*cs*r(),0));tri.push(v.x,v.y,v.z,r())}}}
+ const top=V(p.x,p.y+dir*len*1.02,p.z);_q.setFromUnitVectors(UP,V(0,dir,0));_m.compose(top,_q,V(size*.22,size*.4,size*.22));pb.add(CALYX,_m,bc.clone().lerp(frost,fr*.3))}
+function cola(pb,p,len,size,fl,s,r,leafC,o={}){if(LODB){const r2=mulberry((r()*1e9)|0);colaHi(LODB.hi,p,len,size,fl,s,r2,leafC,o,LODB.tri);colaLo(LODB.lo,p,len,size,fl,s,r,leafC,o);return}colaHi(pb,p,len,size,fl,s,r,leafC,o,o.tri||null)}
+// trichome sparkle: tiny additive points whose brightness twinkles with view time
+const TRIU={time:{value:0}};const TRIM=new THREE.ShaderMaterial({uniforms:TRIU,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+ vertexShader:`attribute float rnd;uniform float time;varying float vS;void main(){vec4 mv=modelViewMatrix*vec4(position,1.);float tw=pow(.5+.5*sin(time*2.3+rnd*40.+position.x*90.),6.);vS=.12+.85*tw;gl_PointSize=clamp((.5+1.6*tw)*(.9/-mv.z),1.,3.5);gl_Position=projectionMatrix*mv;}`,
+ fragmentShader:`varying float vS;void main(){vec2 c=gl_PointCoord-.5;float d=dot(c,c);if(d>.25)discard;gl_FragColor=vec4(vec3(.95,1.,.97)*vS*(1.-d*3.5),1.);}`});
+function triPoints(a){const n=a.length/4,P=new Float32Array(n*3),Rn=new Float32Array(n);for(let i=0;i<n;i++){P[i*3]=a[i*4];P[i*3+1]=a[i*4+1];P[i*3+2]=a[i*4+2];Rn[i]=a[i*4+3]}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('rnd',new THREE.BufferAttribute(Rn,1));const pt=new THREE.Points(g,TRIM);pt.frustumCulled=false;pt.renderOrder=3;return pt}
+// LOD wrapper: near = full calyx detail + trichomes, far = simple blobs
+function budLOD(B,near=2.6){const lod=new THREE.LOD(),hi=new THREE.Group();hi.add(B.hi.mesh());if(B.tri.length)hi.add(triPoints(B.tri));lod.addLevel(hi,0);lod.addLevel(B.lo.mesh(),near);lod.userData.buds=1;return lod}
 function plantModel(p,id){if(p&&(p.dead||p.health<=0))p={...p,age:Math.max(p.age||0,170)};const g=new THREE.Group();if(!p)return g;const r=mulberry(id*7919+13),pb=new PB(),st=stage(p),hb=(p.health??100)/100;const YEL=new THREE.Color('#d8c24a');
  const dead=st=='dead',wl=dead?1:p.wilt||0,BRN=new THREE.Color('#7a5a32');WILT=dead?1.15:wl;
  const lc=(x=0)=>{const c=new THREE.Color(LEAFC[p.s]).offsetHSL((r()-.5)*.03,0,(r()-.5)*.07).lerp(YEL,Math.min(1,(1-hb)*.8+x+wl*1.6));if(wl>.5)c.lerp(BRN,Math.min(1,(wl-.5)*2)+(dead?.1:0));if(dead)c.offsetHSL(0,0,(r()-.5)*.08);return c};const stemC=dead?'#6a4a2a':p.s=='kush'?'#6a7a3a':'#6f9a3c';
  if(st=='seedling'||dead&&p.age<60){const f=p.age/60,H=.03+.09*f;seg(pb,V(0,0,0),V(0,H,0),.005+.003*f,'#9acb5a');for(const s of[0,Math.PI])blobAt(pb,V(Math.cos(s)*.02,H,-Math.sin(s)*.02),.028,.004,.014,lc(),ROUND,0);
   for(const s of[0,Math.PI])fan(pb,V(0,H,0),s,.45,.03+.08*f,lc(),FAN3);if(f>.6)for(const s of[Math.PI/2,-Math.PI/2])fan(pb,V(0,H+.012,0),s,.6,.05*f,lc(),FAN5);WILT=0;g.add(pb.mesh());return g}
- const gv=Math.min(1,(p.age-60)/140),fl=Math.max(0,Math.min(1,(p.age-200)/(READY-200))),ready=st=='ready'&&!dead,sc=.88+r()*.24;
+ LODB=p.age>200?{hi:new PB(),lo:new PB(),tri:[]}:null;const gv=Math.min(1,(p.age-60)/140),fl=Math.max(0,Math.min(1,(p.age-200)/(READY-200))),ready=st=='ready'&&!dead,sc=.88+r()*.24;
  const H=(.2+.5*gv+.32*fl)*sc,N=3+Math.round(gv*4),lean=V((r()-.5)*.05+wl*.12,0,(r()-.5)*.05);let prev=V(0,0,0);
  for(let i=1;i<=N+1;i++){const t=i/(N+1),pt=V(lean.x*t*t,H*t,lean.z*t*t);seg(pb,prev,pt,(.016+.012*gv)*(1-t*.6),stemC);prev=pt}
  for(let i=1;i<=N;i++){const t=i/(N+.6),node=V(lean.x*t*t,H*t,lean.z*t*t),ph=i*Math.PI/2+(r()-.5)*.4;
@@ -100,7 +130,7 @@ function plantModel(p,id){if(p&&(p.dead||p.health<=0))p={...p,age:Math.max(p.age
     fan(pb,be,yaw+.5,.75,sz*.55,lc(yel),FAN5);if(fl>0)cola(pb,be,.03+.09*fl,.012+.022*fl,fl,p.s,r,lc(),{ready})}}}
  WILT=0;const top=V(lean.x,H,lean.z);WILT=dead?1.15:wl;for(let k=0;k<3;k++)fan(pb,top.clone().add(V(0,.01,0)),k*2.1,1.0,(.06+.05*gv)*sc,lc(),FAN5);
  if(fl>0)cola(pb,top.clone().add(V(0,-.06*fl,0)),.06+.2*fl,.016+.03*fl,fl,p.s,r,lc(),{ready});
- WILT=0;const me=pb.mesh();g.add(me);g.userData.sway=r()*6;return g}
+ WILT=0;const me=pb.mesh();g.add(me);if(LODB){if(LODB.hi.g.length)g.add(budLOD(LODB));LODB=null}g.userData.sway=r()*6;return g}
 // ---------- world ----------
 const WALLH=3;let WALLS=[];const roomG=new THREE.Group(),room2G=new THREE.Group();scene.add(roomG,room2G);
 const woodM=pmat(WOOD.desk(),1,1),darkWood=pmat(WOOD.dark(),1,1),trimM=pmat(WOOD.dark(),2,.5,{color:'#c8a890'}),roofM=pmat(SURF.shingle(),4,2,{ns:1.4});
@@ -194,7 +224,8 @@ const lcdT=lbl('lcd',(x,w,h)=>{x.fillStyle='#0e2a14';x.fillRect(0,0,w,h);x.fillS
 const jarLbl=(s,g)=>lbl('jar'+s+g,(x,w,h)=>{x.fillStyle='#fff8ea';x.fillRect(0,0,w,h);x.fillStyle=SCOL[s];x.fillRect(0,0,w,26);x.fillRect(0,h-26,w,26);x.fillStyle='#222';x.font='bold 30px sans-serif';x.textAlign='center';x.fillText(STRAINS[s].name,w/2,h*.48);x.font='bold 40px sans-serif';x.fillText(g+'g',w/2,h*.8)},256,128);
 const gbagT=lbl('gbag',(x,w,h)=>{x.fillStyle='#2a6a3a';x.fillRect(0,0,w,h);x.fillStyle='#fff';x.font='bold 30px sans-serif';x.textAlign='center';x.fillText('TRASH BAGS',w/2,h*.45);x.font='20px sans-serif';x.fillText('HEAVY DUTY ×5',w/2,h*.75)},256,128);
 const JARG=new THREE.LatheGeometry([[0,0],[.09,0],[.1,.02],[.1,.17],[.085,.19],[.085,.21],[0,.21]].map(([x,y])=>new THREE.Vector2(x,y)),18);
-function budBranch(s,dry,n=1,seed=1){const pb=new PB(),r=mulberry(seed);for(let k=0;k<n;k++){const o=V((k-(n-1)/2)*.07,0,0);seg(pb,o.clone().add(V(0,.06,0)),o.clone().add(V(0,-.12,0)),.006,dry?'#8a8a50':'#6f9a3c');cola(pb,o.clone().add(V(0,-.02,0)),.13,.025,1,s,r,dry?'#8a8a3a':'#3f8a3a',{down:1,dry})}return pb.mesh()}
+function nugs(s,seed,n,spread,dry=1){const pb=new PB(),r=mulberry(seed),T=[];for(let i=0;i<n;i++){const c=V((r()-.5)*spread,.025+(i/n)*.11,(r()-.5)*spread);colaHi(pb,c,.035+r()*.02,.03+r()*.008,1,s,r,'#7a8a3a',{dry},T)}const g=new THREE.Group();g.add(pb.mesh());if(T.length)g.add(triPoints(T));return g}
+function budBranch(s,dry,n=1,seed=1){const pb=new PB(),r=mulberry(seed),T=[];for(let k=0;k<n;k++){const o=V((k-(n-1)/2)*.07,0,0);seg(pb,o.clone().add(V(0,.06,0)),o.clone().add(V(0,-.12,0)),.006,dry?'#8a8a50':'#6f9a3c');cola(pb,o.clone().add(V(0,-.02,0)),.13,.03,1,s,r,dry?'#8a8a3a':'#3f8a3a',{down:1,dry,tri:T})}const g=new THREE.Group();g.add(pb.mesh());if(T.length)g.add(triPoints(T));return g}
 const PALM=pmat(WOOD.pallet(),1,.3);
 let SINKG=null;function sinkModel(){if(SINKG)return SINKG.clone();const g=new THREE.Group();const cer=pmat(SURF.ceramic(),1,1,{color:'#f4f2ee',roughness:1}),chr=new THREE.MeshStandardMaterial({color:'#e8ecf0',metalness:1,roughness:.12}),stl=pmat(SURF.brushed(),1,2,{metalness:.9}),tile=pmat(SURF.subway(),1.5,1.2),dk=mat('#1a1c1e',{roughness:.4,metalness:.5});
  // basin: thick ceramic walls with rounded edges, bottom slopes to drain
@@ -233,7 +264,7 @@ function prop(e){const g=new THREE.Group(),t=e.type,d=e.data||{};
  else if(t=='scale'){const st=mat('#d8dce2',{metalness:.7,roughness:.3});g.add(at(box(.5,.08,.4,'#2a2e34',{roughness:.5}),0,.04,0),at(cyl(.17,.17,.015,st,24),0,.09,-.04),at(new THREE.Mesh(new THREE.PlaneGeometry(.2,.06).rotateX(-Math.PI/2+.0),new THREE.MeshBasicMaterial({map:lcdT})),0,.081,.15),blob(.35))}
  else if(t=='wetbud'||t=='drybud'){const b=budBranch(d.s,t=='drybud',2,e.id);b.rotation.x=Math.PI;b.position.y=.08;g.add(b)}
  else if(t=='packed'){g.add(new THREE.Mesh(JARG,glass),at(cyl(.092,.092,.04,'#1a1a1a',16),0,.225,0));const lb=new THREE.Mesh(new THREE.CylinderGeometry(.101,.101,.08,18,1,true,-.9,1.8),mat('#fff',{map:jarLbl(d.s,d.g)}));lb.position.y=.1;g.add(lb);
-  const pb=new PB(),r=mulberry(e.id);for(let i=0;i<7;i++)blobAt(pb,V((r()-.5)*.1,.03+r()*.1,(r()-.5)*.1),.03,.035,.03,budCol(d.s,1,0,1),BUD,r()*3);g.add(pb.mesh(),blob(.15))}
+  g.add(nugs(d.s,e.id,6,.1),blob(.15))}
  else if(t=='gbag'){g.add(at(rbox(.34,.2,.22,mat('#fff',{map:gbagT,roughness:.75,normalMap:SURF.fabric('#fff','card').normalMap}),.012),0,.1,0),at(cyl(.07,.07,.24,'#1b1b1b',12),.05,.27,0),blob(.25));g.children[1].rotation.z=Math.PI/2}
  else if(t=='trash'){const tb=sh(new THREE.Mesh(new THREE.IcosahedronGeometry(.24,3),mat('#151515',{roughness:1,metalness:.1,normalMap:polyN.normalMap,roughnessMap:polyN.roughnessMap})));tb.scale.set(1,1.15,1);tb.position.y=.25;const P=tb.geometry.attributes.position;for(let i=0;i<P.count;i++){const f=1+Math.sin(P.getX(i)*30+P.getZ(i)*20)*.06;P.setXYZ(i,P.getX(i)*f,P.getY(i),P.getZ(i)*f)}tb.geometry.computeVertexNormals();
   g.add(tb,at(new THREE.Mesh(new THREE.ConeGeometry(.06,.12,8),mat('#151515',{roughness:.3})),0,.56,0),at(new THREE.Mesh(new THREE.TorusGeometry(.04,.012,6,10),mat('#ffcf3a')),0,.52,0),blob(.3));g.children.at(-2).rotation.x=Math.PI/2}
@@ -346,7 +377,7 @@ const meter=document.createElement('div');meter.id='meter';meter.style.cssText='
 meter.innerHTML='<div id="mtxt"></div><div style="width:130px;height:12px;border-radius:6px;background:rgba(0,0,0,.55);border:2px solid #fff;overflow:hidden"><div id="mbar" style="height:100%;width:0;background:linear-gradient(90deg,#c2a27a,#3fa0ff);transition:width .12s"></div></div>';document.body.append(meter);
 function pourFx(dt,pot,on){const sp=new THREE.Vector3(.2,.2,-.05);hand.rotation.x+=((on?-.6:0)-hand.rotation.x)*(1-Math.exp(-dt*10));if(!on||!pot){drops.visible=false;return}hand.updateMatrixWorld(true);{const tip=hand.children.find(o=>o.userData.tip)?.userData.tip;if(tip)tip.getWorldPosition(sp);else hand.localToWorld(sp.set(0,.1,-.3))}
  const tg=new THREE.Vector3(pot.x+(Math.random()-.5)*.03,.34,pot.z);drops.visible=true;pourVis+=dt;for(let i=0;i<DROPS;i++){const f=((i/DROPS)+pourVis*2.2)%1;_v.lerpVectors(sp,tg,f);_v.y+=Math.sin(f*Math.PI)*.05-f*f*.02;_v.x+=Math.sin(i*7)*.008*f;_v.z+=Math.cos(i*5)*.008*f;_o.position.copy(_v);_o.scale.setScalar(1-f*.3);_o.rotation.set(0,0,0);_o.updateMatrix();drops.setMatrixAt(i,_o.matrix)}drops.instanceMatrix.needsUpdate=true}
-function syncCam(){camera.position.set(me.pos.x,1.62+me.y-me.ch+Math.sin(me.bob)*.035,me.pos.z);camera.rotation.set(pitch,yaw,0,'YXZ');camera.updateMatrixWorld()}
+function syncCam(){camera.position.set(me.pos.x,1.62+me.y-me.ch+Math.sin(me.bob)*.035,me.pos.z);camera.rotation.set(pitch,yaw,0,'YXZ');if(CAMO){camera.position.set(CAMO[0],CAMO[1],CAMO[2]);camera.lookAt(CAMO[3],CAMO[4],CAMO[5])}camera.updateMatrixWorld()}
 function interact(only){initAudio();if(decoOn){if(only)decoRemove();else decoAct();return}syncCam();curT=target();const c=carried(),t=curT;if(!t)return;if(t.fx=='laptop'){if(!only)openLap();return}if(t.fx=='book'){if(!only)openBook();return}
  if(t.fx=='drop'){if(c)send({t:'use',target:'drop'});return}
  if(t.fx=='bin'){if(c)send({t:'use',target:'bin'});return}
@@ -573,7 +604,7 @@ function openCre(t,first){const wasP=paused;setFocus(null);openCreator({tab:t,mo
 const GLP=[];for(let i=0;i<3;i++){const l=new THREE.SpotLight('#ffd6f4',0,5,1.1,.6,1.2);l.castShadow=HQ&&i==0;l.shadow.mapSize.set(512,512);l.shadow.bias=-.002;scene.add(l,l.target);GLP.push(l)}
 // ---------- loop ----------
 const clock=new THREE.Clock();let T=0,sendT=0,frames=0;
-function frame(){requestAnimationFrame(frame);frames++;const dt=Math.min(clock.getDelta(),.1);T+=dt;const pad=pollPad(dt);
+function frame(){requestAnimationFrame(frame);frames++;const dt=Math.min(clock.getDelta(),.1);T+=dt;TRIU.time.value=T;const pad=pollPad(dt);
  if(game){const fr=free();let mx=0,my=0;
   if(fr){mx=(keys.KeyD?1:0)-(keys.KeyA?1:0);my=(keys.KeyW?1:0)-(keys.KeyS?1:0);
    if(pad){const [x,y]=radial(pad.mx,pad.my,.18);mx+=x;my-=y;const [lx,ly]=radial(pad.rx,pad.ry,.14);const m=Math.hypot(lx,ly),c=m>0?Math.pow(m,1.7)/m:0,s=settings.sens/5;
@@ -608,7 +639,7 @@ const demo=new THREE.Group(),demoPl=[];[[-1.2,-3,300],[0,-3.2,470],[1.2,-3,130]]
 const dlp=prop({type:'light',data:{}});dlp.position.set(-.5,0,-3.1);demo.add(dlp);scene.add(demo);setInterval(()=>demo.visible=!game,200);
 frame();
 initPhone({game:()=>game&&!paused&&!$('menu').classList.contains('on'),W:()=>W,send:m=>send(m),toast:t=>toast(t),sfx:k=>sfx(k),rumble:(a,b)=>rumble(a,b),bglyph:i=>bglyph(i),binds:()=>binds,padMode:()=>padMode,setFocus:e=>setFocus(e),defFocus:r=>defFocus(r),fEl:()=>fEl});{const st=document.createElement('style');st.textContent=phoneCSS;document.head.appendChild(st)}
-window.__bt={acts:()=>ACT.map(a=>a[0]),focusEl:e=>setFocus(e),phone:()=>phoneState(),openPhone:()=>openPhone(),closePhone:()=>closePhone(),tpHold(pid,t){const o=OTH.get(pid);if(!o)return;const h=o.g.userData.hold;h.clear();if(!t)return;const g=prop({id:-1,type:t,data:SHOP[t]?.uses?{uses:SHOP[t].uses}:{g:10,s:'owl'}});gripFit(g,t,false);h.add(g)},openBook,turnBook,closeBook,get bookP(){return bookP},fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
+window.__bt={cam:a=>{CAMO=a||null},acts:()=>ACT.map(a=>a[0]),focusEl:e=>setFocus(e),phone:()=>phoneState(),openPhone:()=>openPhone(),closePhone:()=>closePhone(),tpHold(pid,t){const o=OTH.get(pid);if(!o)return;const h=o.g.userData.hold;h.clear();if(!t)return;const g=prop({id:-1,type:t,data:SHOP[t]?.uses?{uses:SHOP[t].uses}:{g:10,s:'owl'}});gripFit(g,t,false);h.add(g)},openBook,turnBook,closeBook,get bookP(){return bookP},fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
  decor:()=>({on:decoOn,cat:decoCat,ghost:ghostK||null,ok:!!(typeof decoValid!='undefined'&&decoValid)}),decoMode:o=>decoMode(o),openDecoCat:t=>openDecoCat(t),decoPick:k=>decoPick(k), target:()=>{syncCam();const t=target();return t&&(t.fx||t.e.type)},cre:()=>creatorState(),state:()=>({root:creatorOpen()?'cre':uiRoot()?.id||null,focus:fEl?(fEl.dataset.a||fEl.dataset.buy||fEl.dataset.tab||fEl.dataset.k||fEl.id||fEl.className):null,tab,lapOpen,paused,padMode,held:carried()?.type||null,book:bookOpen?bookP:null,alert:$('alert').textContent,pouring:drops.visible,meter:meter.style.display!='none'?$('mtxt').textContent:null,checks:checks.length,bag:bag().map(e=>e.type),yaw,pitch,x:me.pos.x,z:me.pos.z,y:me.y,ch:me.ch,invOpen,mapOpen,sprint:sprintOn,binds:{...binds},rum:rumN,prompt:$('prompt').textContent,padInd:$('padind').classList.contains('c'),money:W?.money,code:$('code').value,sens:settings.sens,qty:{...qty}})};
 
 // ---------- accounts: profile sync + farm saves ----------
