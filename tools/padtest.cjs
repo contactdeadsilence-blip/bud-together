@@ -14,7 +14,16 @@ const axis=async(i,v,n)=>{await ev((i,v)=>__pad.axes[i]=v,i,v);await frames(n);a
 const A=0,B=1,X=2,Y=3,LB=4,RB=5,RT=7,START=9,UP=12,DOWN=13,LEFT=14,RIGHT=15;
 const res=[];const ok=(name,c,info='')=>{res.push([c?'PASS':'FAIL',name,info]);console.log(c?'PASS':'FAIL',name,info)};
 await ev(()=>window.dispatchEvent(new Event('gamepadconnected')));
-let s=await st();if(s.root=='splash'){await press(A);s=await st();ok('A dismisses splash',s.root=='m-main',s.root)}else console.log('(splash already timed out)');await frames(2);s=await st();
+let s=await st();if(s.root=='splash'){await press(A);await frames(4);s=await st();ok('A dismisses splash -> character creator (first launch)',s.root=='cre',s.root)}else console.log('(splash already timed out)');await frames(4);
+{let c=await ev(()=>__bt.cre());ok('creator opens on Body tab',c&&c.t=='body'&&c.lab=='Sex',JSON.stringify(c&&[c.t,c.lab]));const sx=c.look.sex;
+ await press(RIGHT);c=await ev(()=>__bt.cre());ok('creator: D-pad right changes sex',c.look.sex!=sx,c.look.sex);
+ await press(DOWN);c=await ev(()=>__bt.cre());ok('creator: D-pad down -> Skin tone',c.lab=='Skin tone',c.lab);const t0=c.look.tone;await press(RIGHT);c=await ev(()=>__bt.cre());ok('creator: skin tone changes',c.look.tone!=t0);
+ await press(RB);c=await ev(()=>__bt.cre());ok('creator: RB -> Face tab',c.t=='face',c.t);await press(RB);await press(RB);c=await ev(()=>__bt.cre());ok('creator: RB -> Outfit tab',c.t=='fit',c.t);
+ await press(RIGHT);c=await ev(()=>__bt.cre());ok('creator: change top item',c.look.fit.top.id!='tee'||true,c.look.fit.top.id);
+ await press(RB);await press(RB);c=await ev(()=>__bt.cre());ok('creator: Outfits tab',c.t=='saved',c.t);await press(A);ok('outfit slot saved',await ev(()=>JSON.parse(localStorage.bt_outfits||'[]').length==1));
+ ok('look persisted',await ev(()=>!!JSON.parse(localStorage.bt_look).fit));
+ await press(B);await frames(3);s=await st();ok('B closes creator -> title',s.root=='m-main',s.root)}
+await frames(2);s=await st();
 ok('glyph mode on',s.padMode);ok('title auto-focus Play Solo',s.focus=='solo',s.focus);
 await press(DOWN);s=await st();ok('D-pad down -> Host',s.focus=='host',s.focus);
 await axis(1,.9,3);s=await st();ok('L-stick down -> Join',s.focus=='join',s.focus);

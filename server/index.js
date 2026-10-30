@@ -4,7 +4,8 @@ const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send
 const server=http.createServer(app);const wss=new WebSocketServer({server,path:'/ws'});
 const rooms=new Map();const COLORS=['#ff6b4a','#3fb5ff','#ffd23f','#9b6bff'];
 const mk=()=>{let c;do c=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('');while(rooms.has(c));return c};
-const roster=r=>r.players.map((p,i)=>({id:p.id,name:p.name,color:COLORS[i]}));
+const roster=r=>r.players.map((p,i)=>({id:p.id,name:p.name,color:COLORS[i],look:p.look||null}));
+const okLook=l=>l&&typeof l=='object'&&JSON.stringify(l).length<3000?l:null;
 const bc=(r,m,ex)=>{const s=JSON.stringify(m);r.players.forEach(p=>p!==ex&&p.ws.readyState===1&&p.ws.send(s))};
 // ---------- game rules ----------
 const SHOPS=['Green Leaf Co.','Pacific Buds','Dead Calm Dispensary','High Tide','Mellow Mart','The Herb Loft'];
@@ -68,7 +69,7 @@ let nid=1;
 wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  const send=m=>ws.send(JSON.stringify(m));
  ws.on('message',d=>{let m;try{m=JSON.parse(d)}catch{return}
-  if(m.t==='host'||m.t==='join'){me.name=String(m.name||'Grower').slice(0,10);
+  if(m.t==='host'||m.t==='join'){me.name=String(m.name||'Grower').slice(0,10);me.look=okLook(m.look);
    if(m.t==='host'){room={code:mk(),players:[],host:me.id,started:false,w:newWorld()};rooms.set(room.code,room)}
    else{const r=rooms.get(String(m.code||'').toUpperCase());if(!r)return send({t:'err',e:'Room not found'});if(r.players.length>=4)return send({t:'err',e:'Room full'});room=r}
    room.players.push(me);send({t:'joined',code:room.code,id:me.id,host:room.host,started:room.started});bc(room,{t:'roster',pl:roster(room),host:room.host});
@@ -76,6 +77,8 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
   else if(!room)return;
   else if(m.t==='start'&&me.id===room.host){room.started=true;bc(room,{t:'start',pl:roster(room)})}
   else if(m.t==='s'){m.id=me.id;bc(room,m,me)}
+  else if(m.t==='look'){me.look=okLook(m.look);if(me.look)bc(room,{t:'look',id:me.id,look:me.look},me)}
+  else if(m.t==='spend'){const n=Math.max(0,m.n|0);if(room.w.money>=n){room.w.money-=n;room.w.toast={pid:me.id,t:'Bought '+String(m.why||'item').slice(0,30)+' (-$'+n+')'}}}
   else if(m.t==='dbg'){if(!process.env.BT_DEBUG)return;const w=room.w;if(m.id){const e=w.ents.find(e=>e.id===m.id);if(e?.data.plant)Object.assign(e.data.plant,{age:m.age,health:100,water:100,nutr:100})}if(m.dry)w.ents.forEach(e=>(e.data.slots||[]).forEach(s=>s.t=0));if(m.contract)w.contracts[0].s=m.contract;if(m.spawn){const q=m.spawn;w.ents.push({id:w.nid++,type:'pot',x:q.x,y:0,z:q.z,ry:0,by:0,data:{soil:1,moist:q.water??100,crack:q.crack||0,plant:q.age==null?null:{s:q.s,age:q.age,water:q.water??100,nutr:100,health:q.health??100,dead:!!q.dead,dry:q.dry||0,wilt:0}}})}if(m.ff)for(let i=0;i<m.ff*10;i++)tick(w,.1);if(m.give)w.ents.push({id:w.nid++,type:m.give,x:0,y:0,z:0,ry:0,by:me.id,bi:-1,data:SHOP[m.give]?.uses?{uses:SHOP[m.give].uses}:{}}),norm(w,me.id);if(m.set){const e=ent(w,m.set.id);Object.assign(e.data,m.set.d||{});if(m.set.p)Object.assign(e.data.plant,m.set.p)}if(m.money)w.money+=m.money;room.dirty=true}
   else{act(room.w,me.id,m);room.dirty=true}
  });
