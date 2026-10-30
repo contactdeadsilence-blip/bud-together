@@ -1,6 +1,28 @@
-import {SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR} from '../src/rules.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import path from 'path';import {fileURLToPath} from 'url';
+import {SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR} from '../src/rules.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
 const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','dist');
 const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));
+// ---------- accounts + saves ----------
+const store=await openStore();console.log('Store:',store.kind);
+app.use('/api',express.json({limit:'200kb'}));
+const U=n=>String(n||'').trim().toLowerCase();const okU=n=>/^[a-z0-9_]{3,16}$/.test(n);
+const hash=(pw,salt)=>crypto.scryptSync(String(pw),salt,64).toString('hex');
+async function newSess(u){const tok=crypto.randomBytes(24).toString('hex');await store.set('sess:'+tok,{u,t:Date.now()});return tok}
+async function who(tok){if(!tok||typeof tok!='string')return null;const s=await store.get('sess:'+tok);return s?.u||null}
+const authed=f=>async(q,r)=>{try{const u=await who(q.get('x-bt-token'));if(!u)return r.status(401).json({e:'Not logged in'});await f(q,r,u)}catch(e){console.error(e);r.status(500).json({e:'Server error'})}};
+app.post('/api/signup',async(q,r)=>{const u=U(q.body?.user),pw=String(q.body?.pass||'');if(!okU(u))return r.status(400).json({e:'Username: 3-16 letters, numbers or _'});if(pw.length<4)return r.status(400).json({e:'Password must be 4+ characters'});
+ if(await store.get('user:'+u))return r.status(409).json({e:'Username taken'});const salt=crypto.randomBytes(16).toString('hex');await store.set('user:'+u,{u,salt,h:hash(pw,salt),c:Date.now()});r.json({user:u,token:await newSess(u)})});
+app.post('/api/login',async(q,r)=>{const u=U(q.body?.user),a=await store.get('user:'+u);if(!a)return r.status(401).json({e:'Wrong username or password'});const h=hash(String(q.body?.pass||''),a.salt);
+ if(!crypto.timingSafeEqual(Buffer.from(h,'hex'),Buffer.from(a.h,'hex')))return r.status(401).json({e:'Wrong username or password'});r.json({user:u,token:await newSess(u)})});
+app.post('/api/logout',async(q,r)=>{const t=q.get('x-bt-token');if(t)await store.del('sess:'+t);r.json({ok:1})});
+app.get('/api/me',authed(async(q,r,u)=>r.json({user:u})));
+app.get('/api/profile',authed(async(q,r,u)=>r.json((await store.get('prof:'+u))||{})));
+app.put('/api/profile',authed(async(q,r,u)=>{const b=q.body;if(!b||typeof b!='object')return r.status(400).json({e:'bad'});const o={};for(const[k,v]of Object.entries(b))if(/^bt_\w{1,20}$/.test(k)&&typeof v=='string'&&v.length<20000)o[k]=v;await store.set('prof:'+u,o);r.json({ok:1})}));
+app.get('/api/saves',authed(async(q,r,u)=>r.json((await store.list('save:'+u+':')).map(({k,v})=>({id:k.split(':')[2],name:v.name,day:v.w.day,money:v.w.money,rep:v.w.rep,plants:v.w.ents.filter(e=>e.data?.plant&&!e.data.plant.dead).length,at:v.at})).sort((a,b)=>b.at-a.at))));
+app.delete('/api/saves/:id',authed(async(q,r,u)=>{await store.del('save:'+u+':'+String(q.params.id).replace(/\W/g,''));r.json({ok:1})}));
+// world save: strip transient fields; held items get dropped at the delivery pad
+function snap(w){const c=JSON.parse(JSON.stringify(w));for(const e of c.ents)if(e.by){e.by=0;e.bi=0;e.x=PAD.x+(Math.random()-.5);e.z=PAD.z+(Math.random()-.5);e.y=0}c.log=[];delete c.toast;delete c.sound;delete c.fx;return c}
+async function saveRoom(r){if(!r.owner||!r.started)return;try{await store.set('save:'+r.owner+':'+r.sid,{name:r.sname,at:Date.now(),w:snap(r.w)});r.savedAt=Date.now()}catch(e){console.error('save failed',e.message)}}
+
 const server=http.createServer(app);const wss=new WebSocketServer({server,path:'/ws'});
 const rooms=new Map();const COLORS=['#ff6b4a','#3fb5ff','#ffd23f','#9b6bff'];
 const mk=()=>{let c;do c=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('');while(rooms.has(c));return c};
@@ -12,7 +34,7 @@ const SHOPS=['Green Leaf Co.','Pacific Buds','Dead Calm Dispensary','High Tide',
 const PAD={x:2.4,z:7.2};
 function newWorld(){const w={money:150,rep:0,day:1,min:8*60,room:1,ents:[],nid:1,contracts:[],pending:[],log:[],util:{gal:0,kwh:0,bills:[],off:0}};
  const add=(type,x,z,data={})=>w.ents.push({id:w.nid++,type,x,y:0,z,ry:0,by:0,data:{...data,...(SHOP[type]?.uses?{uses:SHOP[type].uses}:{})}});
- add('pot',-1,-3);add('pot',0,-3);add('soil',2.5,-3.8);add('seed_haze',1.5,-3.9);add('sink',3.55,-1.2,{fixed:1});w.ents.at(-1).ry=Math.PI/2;add('water',3.3,-.45,{w:CAN});add('light',-.5,-3.9);add('gbag',3.3,-3.7);
+ add('pot',-1,-3);add('pot',0,-3);add('soil',2.5,-3.8);add('seed_haze',1.5,-3.9);add('sink',3.55,-1.2,{fixed:1});w.ents.at(-1).ry=-Math.PI/2;add('water',3.3,-.45,{w:CAN});add('light',-.5,-3.9);add('gbag',3.3,-3.7);
  for(let i=0;i<3;i++)newContract(w);return w}
 function newContract(w){const ks=Object.keys(STRAINS),s=ks[Math.random()*ks.length|0],big=w.rep>=5&&Math.random()<.5;const g=(big?14:5)+Math.round(Math.random()*(big?20:8))+w.rep;
  w.contracts.push({id:w.nid++,shop:SHOPS[Math.random()*SHOPS.length|0],s,g,got:0,pay:Math.round(g*STRAINS[s].ppg*(1.4+Math.min(w.rep,20)*.04)),due:w.day+(big?3:2)})}
@@ -76,14 +98,18 @@ function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e
 let nid=1;
 wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  const send=m=>ws.send(JSON.stringify(m));
- ws.on('message',d=>{let m;try{m=JSON.parse(d)}catch{return}
+ ws.on('message',async d=>{let m;try{m=JSON.parse(d)}catch{return}
   if(m.t==='host'||m.t==='join'){me.name=String(m.name||'Grower').slice(0,10);me.look=okLook(m.look);
-   if(m.t==='host'){room={code:mk(),players:[],host:me.id,started:false,w:newWorld()};rooms.set(room.code,room)}
+   if(m.t==='host'){const u=await who(m.token);let w=null,sid=null,sname='Farm';
+    if(u&&m.save){sid=String(m.save).replace(/\W/g,'');const sv=await store.get('save:'+u+':'+sid);if(!sv)return send({t:'err',e:'Save not found'});w=sv.w;sname=sv.name;w.log=['Welcome back — farm loaded (Day '+w.day+')']}
+    else if(u){sid=crypto.randomBytes(5).toString('hex');sname=String(m.sname||'').slice(0,20)||('Farm '+new Date().toISOString().slice(0,10))}
+    if(room&&room.players.includes(me))return;room={code:mk(),players:[],host:me.id,started:false,w:w||newWorld(),owner:u,sid,sname};rooms.set(room.code,room)}
    else{const r=rooms.get(String(m.code||'').toUpperCase());if(!r)return send({t:'err',e:'Room not found'});if(r.players.length>=4)return send({t:'err',e:'Room full'});room=r}
-   room.players.push(me);send({t:'joined',code:room.code,id:me.id,host:room.host,started:room.started});bc(room,{t:'roster',pl:roster(room),host:room.host});
+   room.players.push(me);send({t:'joined',code:room.code,id:me.id,host:room.host,started:room.started,save:room.owner?{id:room.sid,name:room.sname,owner:room.owner}:null});bc(room,{t:'roster',pl:roster(room),host:room.host});
    if(room.started)send({t:'start',pl:roster(room)})}
   else if(!room)return;
-  else if(m.t==='start'&&me.id===room.host){room.started=true;bc(room,{t:'start',pl:roster(room)})}
+  else if(m.t==='save'&&room.owner){await saveRoom(room);send({t:'saved'})}
+  else if(m.t==='start'&&me.id===room.host){room.started=true;room.owner&&saveRoom(room);bc(room,{t:'start',pl:roster(room)})}
   else if(m.t==='s'){m.id=me.id;bc(room,m,me)}
   else if(m.t==='pause'){me.paused=!!m.v}
   else if(m.t==='look'){me.look=okLook(m.look);if(me.look)bc(room,{t:'look',id:me.id,look:me.look},me)}
@@ -91,7 +117,9 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
   else if(m.t==='dbg'){if(!process.env.BT_DEBUG)return;const w=room.w;if(m.id){const e=w.ents.find(e=>e.id===m.id);if(e?.data.plant)Object.assign(e.data.plant,{age:m.age,health:100,water:100,nutr:100})}if(m.dry)w.ents.forEach(e=>(e.data.slots||[]).forEach(s=>s.t=0));if(m.contract)w.contracts[0].s=m.contract;if(m.spawn){const q=m.spawn;w.ents.push({id:w.nid++,type:'pot',x:q.x,y:0,z:q.z,ry:0,by:0,data:{soil:1,moist:q.water??100,crack:q.crack||0,plant:q.age==null?null:{s:q.s,age:q.age,water:q.water??100,nutr:100,health:q.health??100,dead:!!q.dead,dry:q.dry||0,wilt:0}}})}if(m.ff)for(let i=0;i<m.ff*10;i++)tick(w,.1);if(m.give)w.ents.push({id:w.nid++,type:m.give,x:0,y:0,z:0,ry:0,by:me.id,bi:-1,data:/bud|packed/.test(m.give)?{s:'owl',g:12}:SHOP[m.give]?.uses?{uses:SHOP[m.give].uses}:{}}),norm(w,me.id);if(m.set){const e=ent(w,m.set.id);Object.assign(e.data,m.set.d||{});if(m.set.p)Object.assign(e.data.plant,m.set.p)}if(m.money)w.money+=m.money;if(m.bill)bill(w);if(m.overdue){for(const b of w.util.bills)b.due=0;w.util.off=3}if(m.give==='water')w.ents.at(-1).data.w=CAN;if(m.give==='shelf')w.ents.at(-1).data.slots=[];if(m.pallet){w.ents.push({id:w.nid++,type:'pallet',x:m.pallet.x,y:0,z:m.pallet.z,ry:0,by:0,data:{it:m.pallet.it,n:SHOP['pal_'+m.pallet.it].k}})}if(m.place){const q=m.place;w.ents.push({id:w.nid++,type:q.type,x:q.x,y:0,z:q.z,ry:q.ry||0,by:0,data:q.data||{}})}room.dirty=true}
   else{act(room.w,me.id,m);room.dirty=true}
  });
- ws.on('close',()=>{if(!room)return;room.w.ents.forEach(e=>{if(e.by===me.id){e.by=0}});room.players=room.players.filter(p=>p!==me);if(!room.players.length)rooms.delete(room.code);else{if(room.host===me.id)room.host=room.players[0].id;bc(room,{t:'roster',pl:roster(room),host:room.host,left:me.id})}});
+ ws.on('close',()=>{if(!room)return;saveRoom(room);room.w.ents.forEach(e=>{if(e.by===me.id){e.by=0}});room.players=room.players.filter(p=>p!==me);if(!room.players.length)rooms.delete(room.code);else{if(room.host===me.id)room.host=room.players[0].id;bc(room,{t:'roster',pl:roster(room),host:room.host,left:me.id})}});
 });
+setInterval(()=>{for(const r of rooms.values())saveRoom(r)},+process.env.BT_AUTOSAVE_MS||45000);
 let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{money:w.money,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,log:w.log,toast:w.toast,sound:w.sound,fx:w.fx,pending:w.pending.length,util:w.util}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
+const shutdown=async()=>{await Promise.all([...rooms.values()].map(saveRoom));process.exit(0)};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 const PORT=process.env.PORT||3000;server.listen(PORT,()=>console.log('Bud Together on :'+PORT));

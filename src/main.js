@@ -259,8 +259,8 @@ function collide(p){for(const w of WALLS){const r=.3;const cx=THREE.MathUtils.cl
 const send=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m));
 function net(cb){if(ws&&ws.readyState==1)return cb();ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/ws');ws.onopen=cb;
  ws.onmessage=e=>{const m=JSON.parse(e.data);
-  if(m.t=='err')$('jerr').textContent=m.e;
-  if(m.t=='joined'){myId=m.id;hostId=m.host;$('lcode').textContent=m.code;if(!pendingSolo&&!m.started)showMenu('lobby')}
+  if(m.t=='err'){$('jerr').textContent=m.e;if(!game)showMenu('main');$('acctline').textContent=m.e}
+  if(m.t=='joined'){if(m.save&&ACC.user==m.save.owner){ACC.last=m.save.id;localStorage.bt_lastsave=m.save.id}myId=m.id;hostId=m.host;$('lcode').textContent=m.code;if(!pendingSolo&&!m.started)showMenu('lobby')}
   if(m.t=='look'){const r=roster.find(p=>p.id==m.id);if(r)r.look=m.look;const o=OTH.get(m.id);if(o)setLook(o.g,cleanLook(m.look));return}
   if(m.t=='roster'){roster=m.pl;hostId=m.host;renderLobby();if(pendingSolo&&myId==hostId){pendingSolo=false;send({t:'start'})}
    if(m.left){const o=OTH.get(m.left);if(o){scene.remove(o.g);o.tag.remove();OTH.delete(m.left)}}}
@@ -333,16 +333,16 @@ function renderLap(keep){if(!W)return;const L0=[...document.querySelectorAll('#l
  $('lbody').innerHTML=h;$('lbody').classList.toggle('one',tab=='shop');if(fi>=0){const L=[...document.querySelectorAll('#laptop button')];setFocus(L[fi]||null)}}
 // ---------- menus / focus ----------
 function setPause(v){if(!game)return;paused=v;setTimeout(syncPause);$('pause').classList.toggle('on',v);if(v)document.exitPointerLock?.();setFocus(null)}
-function showMenu(which){setFocus(null);$('pause').classList.remove('on');$('menu').classList.add('on');['main','join','lobby','set','remap'].forEach(k=>$('m-'+k).style.display=k==which?(k=='main'?'flex':''):'none')}
+function showMenu(which){setFocus(null);$('pause').classList.remove('on');$('menu').classList.add('on');{const o=$('osk');if(which=='acct')$('oskslot').appendChild(o);else if(which=='join')$('nm').after(o)}['main','join','lobby','set','remap','acct','saves'].forEach(k=>$('m-'+k).style.display=k==which?(k=='main'?'flex':''):'none')}
 const OSK='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let oskT=null;
 $('osk').innerHTML=[...OSK].map(c=>`<button class="key" data-k="${c}">${c}</button>`).join('')+'<button class="key w" data-k="DEL">DEL</button><button class="key w" data-k="OK">OK</button>';
-['code','nm'].forEach(k=>$(k).addEventListener('focus',()=>{oskT=$(k);setTgt()}));
-function setTgt(){document.querySelectorAll('#code,#nm').forEach(e=>e.classList.toggle('tgt',e==(oskT||$('code'))))}
-function oskKey(k){const t=oskT||$('code');if(k=='DEL')t.value=t.value.slice(0,-1);else if(k=='OK'){if(t.id=='code'){oskT=$('nm')}else{setFocus(document.querySelector('[data-a=dojoin]'))}}else if(t.value.length<(+t.maxLength||10))t.value+=k;setTgt()}
+['code','nm','au','ap'].forEach(k=>$(k).addEventListener('focus',()=>{oskT=$(k);setTgt()}));
+function setTgt(){document.querySelectorAll('#code,#nm,#au,#ap').forEach(e=>e.classList.toggle('tgt',e==(oskT||$('code'))))}
+function oskKey(k){const t=oskT||$('code');if(k=='DEL')t.value=t.value.slice(0,-1);else if(k=='OK'){if(t.id=='au'){oskT=$('ap')}else if(t.id=='ap'){setFocus(document.querySelector('[data-a=login]'))}else if(t.id=='code'){oskT=$('nm')}else{setFocus(document.querySelector('[data-a=dojoin]'))}}else if(t.value.length<(+t.maxLength||10))t.value+=k;setTgt()}
 function uiRoot(){if(bookOpen)return $('book');if(game&&invOpen&&!$('menu').classList.contains('on'))return $('invs');if(game&&mapOpen&&!$('menu').classList.contains('on'))return $('mapv');if($('splash').classList.contains('on'))return $('splash');if($('menu').classList.contains('on'))return [...$('menu').children].find(e=>e.id!='brand'&&e.offsetParent)||null;if(lapOpen)return $('laptop');if(paused)return $('pause');return null}
 let fEl=null;const focusables=r=>[...r.querySelectorAll('button,input,select')].filter(e=>e.offsetParent&&!e.disabled);
 function setFocus(e){fEl&&fEl.classList.remove('f');fEl=e;if(e){e.classList.add('f');e.scrollIntoView?.({block:'nearest'})}}
-function defFocus(root){const L=focusables(root);for(const s of['.slot.held','.rm','.card[data-buy]','#code','[data-a=solo]','[data-a=resume]','#bstart','#sens','.card','[data-a=back]'])if(L.find(e=>e.matches(s)))return L.find(e=>e.matches(s));return L[0]||null}
+function defFocus(root){const L=focusables(root);for(const s of['.slot.held','#au','[data-sv]','.rm','.card[data-buy]','#code','[data-a=solo]','[data-a=resume]','#bstart','#sens','.card','[data-a=back]'])if(L.find(e=>e.matches(s)))return L.find(e=>e.matches(s));return L[0]||null}
 function nav(dx,dy){const root=uiRoot();if(!root||root.id=='splash')return;const L=focusables(root);if(!L.length)return;if(!fEl||!L.includes(fEl)){setFocus(defFocus(root));return}
  if(dx&&fEl.dataset.buy){const k=fEl.dataset.buy;qty[k]=THREE.MathUtils.clamp((qty[k]||1)+dx,1,10);renderLap(true);sfx('ui');return}
  if(dx&&(fEl.type=='range'||fEl.tagName=='SELECT')){if(fEl.type=='range')fEl.value=+fEl.value+dx;else fEl.selectedIndex=THREE.MathUtils.clamp(fEl.selectedIndex+dx,0,fEl.options.length-1);fEl.dispatchEvent(new Event('change'));sfx('ui');return}
@@ -415,12 +415,13 @@ document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const 
  if(qb&&ds.buy){qty[ds.buy]=THREE.MathUtils.clamp((qty[ds.buy]||1)+(+qb.dataset.q),1,10);renderLap(true);return}
  if(ds.k)return oskKey(ds.k);if(ds.rm){capture=ds.rm;renderRemap();return}if(ds.slot!=null){send({t:'cycle',sel:+ds.slot});setTimeout(renderInv,150);return}if(ds.tab){tab=ds.tab;renderLap();return}if(ds.buy){send({t:'buy',item:ds.buy,n:qty[ds.buy]||1});return}if(ds.upg){send({t:'upgrade'});return}
  const a=ds.a,nm=()=>($('nm').value||localStorage.bt_nm||'Grower').toUpperCase();
- if(a=='solo'){pendingSolo=true;net(()=>send({t:'host',name:nm(),look:myLook()}))}
- if(a=='host'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook()}))}if(a=='join'){showMenu('join');oskT=$('code');setTgt()}if(a=='set')showMenu('set');if(a=='remap'){capture=null;showMenu('remap');renderRemap();setFocus(defFocus($('m-remap')))}if(a=='rmback'){capture=null;showMenu('set')}if(a=='rmreset'){binds={...DEFB};localStorage.bt_binds=JSON.stringify(binds);renderRemap();renderHelp();toast('Controller buttons reset')}if(a=='closeinv')closeInv();if(a=='closemap')closeMap();
+ if(a=='solo'){pendingSolo=true;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}
+ if(a=='host'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}if(a=='join'){showMenu('join');oskT=$('code');setTgt()}if(a=='set')showMenu('set');if(a=='remap'){capture=null;showMenu('remap');renderRemap();setFocus(defFocus($('m-remap')))}if(a=='rmback'){capture=null;showMenu('set')}if(a=='rmreset'){binds={...DEFB};localStorage.bt_binds=JSON.stringify(binds);renderRemap();renderHelp();toast('Controller buttons reset')}if(a=='closeinv')closeInv();if(a=='closemap')closeMap();
  if(a=='back'){if(game){$('menu').classList.remove('on');setFocus(null);if(paused)$('pause').classList.add('on')}else showMenu('main')}
  if(a=='dojoin'){localStorage.bt_nm=$('nm').value;pendingSolo=false;net(()=>send({t:'join',code:$('code').value,name:nm(),look:myLook()}))}
+ if(a=='acct'){if(ACC.tok)return acctLogout();showMenu('acct');oskT=$('au');setTgt();setFocus($('au'))}if(a=='guest')showMenu('main');if(a=='login'||a=='signup')acctAuth(a);if(a=='saves'){showMenu('saves');renderSaves()}if(a=='cont'&&ACC.last)hostSave(ACC.last);if(ds.sv)hostSave(ds.sv);if(ds.svdel&&confirm('Delete this farm save?'))api('DELETE','/api/saves/'+ds.svdel).then(renderSaves);if(a=='newfarm'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}
  if(a=='start')send({t:'start'});if(a=='leave'){ws&&ws.close();ws=null;showMenu('main')}
- if(a=='paybill')send({t:'paybill'});if(a=='resume')setPause(false);if(a=='cre')openCre('body');if(a=='book'){closeLap();openBook()}if(a=='bkprev')turnBook(-1);if(a=='bknext')turnBook(1);if(a=='closebook')closeBook();if(a=='threads'){closeLap();openCre('store')}if(a=='wardrobe'){closeLap();openCre('fit')}if(a=='close')closeLap();if(a=='tomenu'){endGame();showMenu('main')}});
+ if(a=='paybill')send({t:'paybill'});if(a=='resume')setPause(false);if(a=='cre')openCre('body');if(a=='book'){closeLap();openBook()}if(a=='bkprev')turnBook(-1);if(a=='bknext')turnBook(1);if(a=='closebook')closeBook();if(a=='threads'){closeLap();openCre('store')}if(a=='wardrobe'){closeLap();openCre('fit')}if(a=='close')closeLap();if(a=='tomenu'){endGame();ws&&ws.close();ws=null;acctUI();showMenu('main')}});
 ['sens','qual','vol','inv','vib'].forEach(k=>{$(k).value=settings[k];$(k).onchange=()=>{settings[k]=+$(k).value;localStorage.bt_set=JSON.stringify(settings);setVol(settings.vol/10);if(k=='qual')location.reload()}});
 const endSplash=()=>{if(!$('splash').classList.contains('on'))return;$('splash').classList.remove('on');if(!game)showMenu('main');if(!hasLook())openCre('body',true)};
 function openCre(t,first){const wasP=paused;setFocus(null);openCreator({tab:t,mode:first?'create':'edit',money:()=>W&&game?W.money:null,spend:(n,why)=>{if(!W||W.money<n)return false;send({t:'spend',n,why});W.money-=n;return true},
@@ -461,3 +462,23 @@ const dlp=prop({type:'light',data:{}});dlp.position.set(-.5,0,-3.1);demo.add(dlp
 frame();
 window.__bt={tpHold(pid,t){const o=OTH.get(pid);if(!o)return;const h=o.g.userData.hold;h.clear();if(!t)return;const g=prop({id:-1,type:t,data:SHOP[t]?.uses?{uses:SHOP[t].uses}:{g:10,s:'owl'}});gripFit(g,t,false);h.add(g)},openBook,turnBook,closeBook,get bookP(){return bookP},fake(m){if(m.t=='roster+'){roster.push(m.p);return}ws.onmessage({data:JSON.stringify(m)})},get W(){return W},get game(){return game},get frames(){return frames},send,look(y,p){yaw=y;pitch=p},tp(x,z){me.pos.set(x,0,z)},lookAt(x,y,z){const dx=x-me.pos.x,dz=z-me.pos.z;yaw=Math.atan2(-dx,-dz);pitch=Math.atan2(y-1.62,Math.hypot(dx,dz))},interact,drop,openLap,closeLap,tab:t=>{tab=t;renderLap()},
  target:()=>{syncCam();const t=target();return t&&(t.fx||t.e.type)},cre:()=>creatorState(),state:()=>({root:creatorOpen()?'cre':uiRoot()?.id||null,focus:fEl?(fEl.dataset.a||fEl.dataset.buy||fEl.dataset.tab||fEl.dataset.k||fEl.id||fEl.className):null,tab,lapOpen,paused,padMode,held:carried()?.type||null,book:bookOpen?bookP:null,alert:$('alert').textContent,pouring:drops.visible,meter:meter.style.display!='none'?$('mtxt').textContent:null,checks:checks.length,bag:bag().map(e=>e.type),yaw,pitch,x:me.pos.x,z:me.pos.z,y:me.y,ch:me.ch,invOpen,mapOpen,sprint:sprintOn,binds:{...binds},rum:rumN,prompt:$('prompt').textContent,padInd:$('padind').classList.contains('c'),money:W?.money,code:$('code').value,sens:settings.sens,qty:{...qty}})};
+
+// ---------- accounts: profile sync + farm saves ----------
+const ACC={tok:localStorage.bt_tok||'',user:localStorage.bt_user||'',last:localStorage.bt_lastsave||''};
+const NOSYNC=new Set(['bt_tok','bt_user','bt_lastsave']);
+function api(meth,url,body){return fetch(url,{method:meth,headers:{'content-type':'application/json','x-bt-token':ACC.tok},body:body?JSON.stringify(body):undefined,keepalive:meth!='GET'}).then(async r=>{const j=await r.json().catch(()=>({}));if(r.status==401&&ACC.tok&&url!='/api/login'){acctClear()}if(!r.ok)throw new Error(j.e||'Error');return j})}
+function profBlob(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(/^bt_/.test(k)&&!NOSYNC.has(k))o[k]=localStorage.getItem(k)}return o}
+let lastProf='';function pushProf(force){if(!ACC.tok)return;const b=profBlob(),s=JSON.stringify(b);if(!force&&s==lastProf)return;lastProf=s;api('PUT','/api/profile',b).catch(()=>{})}
+setInterval(pushProf,30000);addEventListener('beforeunload',()=>pushProf(true));addEventListener('pagehide',()=>pushProf(true));
+function acctClear(){ACC.tok=ACC.user=ACC.last='';['bt_tok','bt_user','bt_lastsave'].forEach(k=>localStorage.removeItem(k));acctUI()}
+function acctLogout(){pushProf(true);api('POST','/api/logout').catch(()=>{});acctClear()}
+async function acctAuth(kind){$('aerr').textContent='';try{const j=await api('POST','/api/'+kind,{user:$('au').value,pass:$('ap').value});ACC.tok=j.token;ACC.user=j.user;localStorage.bt_tok=j.token;localStorage.bt_user=j.user;
+  if(kind=='signup'){await api('PUT','/api/profile',profBlob());acctUI();showMenu('main');return}
+  const p=await api('GET','/api/profile');if(Object.keys(p).length){for(const[k,v]of Object.entries(p))localStorage.setItem(k,v);location.reload();return}await api('PUT','/api/profile',profBlob());acctUI();showMenu('main')}catch(e){$('aerr').textContent=e.message}}
+let SAVES=[];
+async function acctUI(){$('bacct').textContent=ACC.tok?'Log Out ('+ACC.user+')':'Log In / Sign Up';$('bsaves').style.display=ACC.tok?'':'none';$('acctline').textContent=ACC.tok?'Signed in as '+ACC.user+' — farms autosave':'Guest — log in to save your farm';
+ SAVES=[];if(ACC.tok)SAVES=await api('GET','/api/saves').catch(()=>[]);if(SAVES.length&&!SAVES.find(s=>s.id==ACC.last))ACC.last=SAVES[0].id;$('bcont').style.display=SAVES.length?'':'none';if(SAVES[0])$('bcont').textContent='Continue — '+(SAVES.find(s=>s.id==ACC.last)||SAVES[0]).name}
+async function renderSaves(){await acctUI();$('svl').innerHTML=SAVES.length?SAVES.map(s=>`<div class="svr"><button class="btn" data-sv="${s.id}">${s.name.replace(/</g,'')} · Day ${s.day} · $${s.money} · ${s.plants} plant${s.plants==1?"":"s"}</button><button class="btn b svd" data-svdel="${s.id}">✕</button></div>`).join(''):'<p>No farms yet — start one below.</p>';setFocus(defFocus($('m-saves')))}
+function hostSave(id){pendingSolo=false;net(()=>send({t:'host',name:nm2(),look:myLook(),token:ACC.tok,save:id}))}
+const nm2=()=>($('nm').value||localStorage.bt_nm||ACC.user||'Grower').toUpperCase();
+acctUI();if(!ACC.tok&&!localStorage.bt_seenacct){localStorage.bt_seenacct=1;setTimeout(()=>{if(!game){showMenu('acct');oskT=$('au');setTgt()}},50)}
