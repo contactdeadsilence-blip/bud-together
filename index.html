@@ -1,0 +1,53 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/logo.svg"><title>BUD TOGETHER — DEAD SILENCE Studios</title>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:Nunito,sans-serif;color:#fff;user-select:none}
+canvas{display:block}.scr{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column}.on{display:flex}
+#splash{background:#000;z-index:60}#splash img{width:min(46vw,420px);opacity:0;animation:sp 2.8s ease forwards}
+#splash p{opacity:0;animation:sp 2.8s .4s ease forwards;letter-spacing:.5em;font-size:13px;color:#aaa}
+@keyframes sp{0%{opacity:0;transform:scale(.94)}30%,75%{opacity:1;transform:scale(1)}100%{opacity:0}}
+.col{display:flex;flex-direction:column;align-items:center}
+#menu{z-index:20;background:linear-gradient(180deg,rgba(30,60,20,.2),rgba(10,20,10,.6))}
+h1{font-family:'Lilita One',cursive;font-size:clamp(54px,9vw,120px);margin:0;line-height:.9;text-align:center;color:#eaffd0;text-shadow:0 6px 0 #3fae4a,0 12px 0 #1d5a2a,0 22px 30px rgba(0,0,0,.5);transform:rotate(-3deg)}
+.sub{margin:22px 0 30px;font-weight:900;letter-spacing:.3em;color:#d9ffa8;text-shadow:0 2px 6px #000}
+.btn{font-family:'Lilita One';font-size:24px;padding:11px 34px;margin:6px;min-width:280px;border:0;border-radius:18px;cursor:pointer;color:#12320a;background:linear-gradient(#b8f56a,#5fcf3a);box-shadow:0 6px 0 #2f7a1e,0 10px 20px rgba(0,0,0,.35);transition:.12s}
+.btn:hover{transform:translateY(-3px) scale(1.04);filter:brightness(1.1)}.btn.b{background:linear-gradient(#ffe08a,#ffb03a);box-shadow:0 6px 0 #a8641a,0 10px 20px rgba(0,0,0,.35);color:#3a2306}
+.f{outline:5px solid #fff!important;outline-offset:3px;box-shadow:0 0 0 9px #ffcf3a,0 10px 24px #0008!important;transform:scale(1.04)}
+.panel{background:rgba(15,30,20,.82);backdrop-filter:blur(6px);padding:26px 38px;border-radius:24px;text-align:center;border:3px solid rgba(255,255,255,.15)}
+input{font:900 28px Nunito;text-align:center;width:220px;padding:8px;border-radius:12px;border:0;text-transform:uppercase;margin:8px}input.tgt{box-shadow:0 0 0 4px #ffcf3a}
+#osk{display:grid;grid-template-columns:repeat(9,44px);gap:6px;justify-content:center;margin:8px auto}.key{font:22px 'Lilita One';height:44px;border:0;border-radius:10px;background:#fff2;color:#fff;cursor:pointer}.key.w{grid-column:span 2;background:#5fcf3a66}
+.code{font:64px 'Lilita One';letter-spacing:.2em;color:#b8f56a}.pl{font-weight:900;font-size:20px;margin:4px}
+#hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:10}
+#cross{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;border-radius:50%;background:#fff;box-shadow:0 0 4px #000}
+#prompt{position:absolute;left:50%;top:56%;transform:translateX(-50%);font-weight:900;font-size:19px;text-shadow:0 2px 4px #000;white-space:nowrap;text-align:center}
+.g{display:inline-block;min-width:26px;padding:1px 7px;margin:0 3px;border-radius:8px;background:#fff;color:#111;font-family:'Lilita One';font-size:16px}.g.a{background:#5fcf3a;color:#fff;border-radius:50%}.g.b{background:#ff5a4a;color:#fff;border-radius:50%}
+#stats{position:absolute;left:20px;top:16px;font:30px 'Lilita One';text-shadow:0 3px 0 #0006;line-height:1.15}#stats small{font:900 15px Nunito;opacity:.9}
+#clock{position:absolute;right:20px;top:16px;font:30px 'Lilita One';text-align:right;text-shadow:0 3px 0 #0006}
+#hold{position:absolute;right:20px;bottom:20px;font-weight:900;text-shadow:0 2px 4px #000;text-align:right}
+#toast{position:absolute;top:18%;width:100%;text-align:center;font:30px 'Lilita One';color:#eaffd0;text-shadow:0 3px 0 #1d5a2a,0 6px 14px #0008;opacity:0;transition:opacity .4s}
+#feed{position:absolute;left:20px;bottom:20px;font-weight:900;font-size:14px;text-shadow:0 2px 3px #000;line-height:1.5}
+#help{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font-size:12px;opacity:.75;text-shadow:0 1px 3px #000}
+#laptop{z-index:30;background:rgba(0,0,0,.45)}#lap{width:min(920px,94vw);height:min(600px,88vh);background:#1d2733;border:10px solid #0e141b;border-radius:18px;display:flex;flex-direction:column;box-shadow:0 20px 60px #000a}
+#lap .bar{display:flex;gap:8px;padding:10px;background:#0e141b;align-items:center}#lap .bar b{margin-left:auto;font:22px 'Lilita One';color:#b8f56a}
+.tab{font:900 16px Nunito;padding:8px 18px;border-radius:10px;border:0;background:#2c3a4a;color:#fff;cursor:pointer}.tab.sel{background:#5fcf3a;color:#12320a}
+#lbody{flex:1;overflow:auto;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;align-content:start}
+.card{background:#2c3a4a;border-radius:14px;padding:12px;border:0;color:#fff;text-align:left;font:700 14px Nunito;cursor:pointer}.card h3{margin:0 0 4px;font:20px 'Lilita One'}.card .p{color:#b8f56a;font:900 18px Nunito}
+#pause{z-index:25;background:rgba(10,20,10,.6);backdrop-filter:blur(4px)}
+#brand{position:absolute;bottom:16px;right:20px;opacity:.7;display:flex;gap:8px;align-items:center;font-weight:900;letter-spacing:.2em;font-size:11px}#brand img{height:26px}
+.tag{position:fixed;transform:translate(-50%,-100%);font-weight:900;font-size:14px;text-shadow:0 2px 3px #000;pointer-events:none;z-index:9}
+</style></head><body>
+<div id="splash" class="scr on"><img src="/logo.svg" alt="DEAD SILENCE Studios"><p>DEAD SILENCE STUDIOS PRESENTS</p></div>
+<div id="menu" class="scr">
+ <div id="m-main" class="col"><h1>BUD<br>TOGETHER</h1><div class="sub">GROW · DRY · PACK · DELIVER · 1–4 PLAYERS</div>
+ <button class="btn" data-a="solo">Play Solo</button><button class="btn" data-a="host">Host Co-op</button><button class="btn b" data-a="join">Join Code</button><button class="btn b" data-a="set">Settings</button></div>
+ <div id="m-join" class="panel" style="display:none"><h2>ENTER ROOM CODE</h2><input id="code" maxlength="4"><br><input id="nm" placeholder="NAME" maxlength="10" style="font-size:20px"><div id="osk"></div><button class="btn" data-a="dojoin">Join</button><button class="btn b" data-a="back">Back</button><p id="jerr" style="color:#ff8a7a"></p></div>
+ <div id="m-lobby" class="panel" style="display:none"><div>ROOM CODE</div><div class="code" id="lcode">----</div><div id="lpl"></div><button class="btn" data-a="start" id="bstart">Start Growing</button><button class="btn b" data-a="leave">Leave</button></div>
+ <div id="m-set" class="panel" style="display:none"><h2>SETTINGS</h2><p>Look sensitivity <input type="range" id="sens" min="1" max="10" style="width:180px"></p><p>Quality <select id="qual" style="font:900 18px Nunito"><option value="2">High</option><option value="1">Medium</option><option value="0">Low</option></select></p><p>Volume <input type="range" id="vol" min="0" max="10" style="width:180px"></p><button class="btn b" data-a="back">Back</button></div>
+ <div id="brand"><img src="/logo.svg">DEAD SILENCE STUDIOS</div>
+</div>
+<div id="hud"><div id="cross"></div><div id="prompt"></div><div id="stats"></div><div id="clock"></div><div id="hold"></div><div id="toast"></div><div id="feed"></div>
+<div id="help">Move WASD / L-stick · Look mouse / R-stick · Use <span class="g">E</span><span class="g a">A</span> · Drop <span class="g">G</span><span class="g b">B</span> · Pause Esc / Start</div></div>
+<div id="laptop" class="scr"><div id="lap"><div class="bar"><button class="tab" data-tab="shop">Shop</button><button class="tab" data-tab="contracts">Contracts</button><button class="tab" data-tab="upg">Upgrades</button><b id="lmoney"></b><button class="tab" data-a="close">✕ Close</button></div><div id="lbody"></div></div></div>
+<div id="pause" class="scr"><h1>PAUSED</h1><div class="sub">START / ESC TO RESUME</div><button class="btn" data-a="resume">Resume</button><button class="btn b" data-a="set">Settings</button><button class="btn b" data-a="tomenu">Quit to Menu</button></div>
+<script type="module" src="/src/main.js"></script></body></html>
