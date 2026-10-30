@@ -39,7 +39,7 @@ function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e
  if(m.t==='buy'){const it=SHOP[m.item];if(!it)return;const n=Math.max(1,Math.min(10,m.n|0||1));if(w.money<it.p*n)return say('Not enough money');w.money-=it.p*n;for(let i=0;i<n;i++)w.pending.push({type:m.item,t:4+i*.5});w.sound='buy';return say(`Ordered ${n}× ${it.n} — arriving at the door`)}
  if(m.t==='upgrade'){if(w.room>1)return;if(w.rep<5)return say('Need 5 reputation');if(w.money<500)return say('Need $500');w.money-=500;w.room=2;return say('Grow room expanded!')}
  if(m.t==='drop'){if(!c)return;c.by=0;c.bi=0;c.x=+m.x||0;c.z=+m.z||0;c.y=+m.y||0;c.ry=+m.ry||0;return}
- if(m.t==='cycle'){if(bag.length<2)return;const L=bag.length,d=m.d<0?1:L-1;for(const e of bag)e.bi=((e.bi||0)+d)%L;return}
+ if(m.t==='cycle'){if(bag.length<2)return;const L=bag.length;if(m.sel!=null){const k=+m.sel;if(k>0&&k<L)for(const e of bag)e.bi=((e.bi||0)-k+L)%L;return}const d=m.d<0?1:L-1;for(const e of bag)e.bi=((e.bi||0)+d)%L;return}
  if(m.t!=='use')return;
  if(m.target==='bin'){if(!c||c.type!=='trash')return say('Dumpster — bring bagged dead plants here');w.ents=w.ents.filter(e=>e!==c);w.sound='drop';return say('Trash disposed')}
  if(m.target==='drop'){if(!c||c.type!=='packed')return say('Pack product into a jar first');const {s,g}=c.data;w.ents=w.ents.filter(e=>e!==c);

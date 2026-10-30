@@ -40,27 +40,56 @@ await ev(()=>__pad.axes[2]=1);await sl(500);await ev(()=>__pad.axes[2]=0);await 
 // interact
 const W=await ev(()=>__bt.W);const soil=W.ents.find(e=>e.type=='soil'),seed=W.ents.find(e=>e.type=='seed_haze'),pot=W.ents.find(e=>e.type=='pot');
 const aim=async(e,y=.2)=>{await ev((x,z,y)=>{__bt.tp(x,z+1.1);__bt.lookAt(x,y,z)},e.x,e.z,y);await frames(2)};
-await aim(soil);await press(A);await sl(400);s=await st();ok('A picks up soil',s.held=='soil',s.held);
-await aim(seed);await press(RT);await sl(400);s=await st();ok('RT picks up seeds (bag of 2)',s.held=='seed_haze'&&s.bag.length==2,s.bag);
+const LT=6,VIEW=8,LS=10,RS=11;
+ok('connection indicator shown',s.padInd);
+const r0=s.rum;await aim(soil);s=await st();ok('contextual prompt shows A + X',/A\s.*Pick up/.test(s.prompt)&&/X\s+Pick up/.test(s.prompt),s.prompt);
+await press(A);await sl(400);s=await st();ok('A picks up soil',s.held=='soil',s.held);ok('vibration fired on pickup',s.rum>r0,r0+'->'+s.rum);
+await aim(seed);await press(X);await sl(400);s=await st();ok('X picks up seeds (bag of 2)',s.held=='seed_haze'&&s.bag.length==2,s.bag);
 await press(LB);await sl(400);s=await st();ok('LB cycles held item',s.held=='soil',s.held);
 await press(RB);await sl(400);s=await st();ok('RB cycles back',s.held=='seed_haze',s.held);
-await press(LB);await sl(300);await aim(pot,.45);await press(X);await sl(400);let w=await ev(()=>__bt.W);ok('X uses held soil on pot',w.ents.find(e=>e.id==pot.id).data.soil==1);
-await press(B);await sl(400);s=await st();ok('B drops held item',s.bag.length==1,s.bag);
+await press(RIGHT);await sl(400);s=await st();ok('D-pad cycles quick bar',s.held=='soil',s.held);
+await aim(pot,.45);s=await st();ok('prompt offers X use held',/X\s+Fill with soil/.test(s.prompt),s.prompt);await press(X);await sl(400);let w=await ev(()=>__bt.W);ok('X uses held soil on pot',w.ents.find(e=>e.id==pot.id).data.soil==1);
+await press(LT);await sl(400);s=await st();ok('LT drops held item',s.bag.length==1,s.bag);
+// jump / crouch / sprint / camera
+await ev(()=>{__bt.tp(0,9.5);__bt.look(0,.2)});await frames(2);await set(A,true);await frames(3);s=await st();await set(A,false);ok('A jumps (no target)',s.y>0.05,s.y);await sl(900);s=await st();ok('lands',s.y==0);
+await set(B,true);await sl(500);s=await st();ok('B held = crouch',s.ch>.3,s.ch);await set(B,false);await sl(500);s=await st();ok('stand up',s.ch<.1,s.ch);
+await ev(()=>__pad.axes[1]=-1);await frames(2);await press(LS);s=await st();ok('LS click sprints',s.sprint);await ev(()=>__pad.axes[1]=0);await frames(3);s=await st();ok('sprint ends when stopping',!s.sprint);
+const sv=s.sens;await press(RS);s=await st();ok('RS click cycles sensitivity preset',s.sens!=sv,sv+'->'+s.sens);
+// inventory
+await ev(()=>__bt.send({t:'dbg',give:'water'}));await sl(400);await press(Y);s=await st();ok('Y opens inventory w/ focus',s.root=='invs'&&s.invOpen&&!!s.focus,s.root+' '+s.focus);
+await P.screenshot({path:'/workspace/ui-shots/grow/v4-inventory.png'});
+const h0=s.held;await press(RIGHT);console.log('inv',JSON.stringify(await ev(()=>[document.querySelector('.slot.f')?.outerHTML,__bt.state().bag])));await press(A);await sl(500);s=await st();ok('A selects other slot to hold',s.held!=h0,h0+'->'+s.held);
+await press(Y);s=await st();ok('Y closes inventory',!s.invOpen&&s.root==null);await press(Y);await press(B);s=await st();ok('B closes inventory',!s.invOpen);
+// map
+await press(VIEW);s=await st();ok('View opens map',s.mapOpen&&s.root=='mapv');await frames(3);await P.screenshot({path:'/workspace/ui-shots/grow/v4-map.png'});await press(B);s=await st();ok('B closes map',!s.mapOpen);
 // pause
-await press(START);s=await st();ok('Start pauses w/ focus',s.root=='pause'&&s.focus=='resume',s.focus);
+await press(START);s=await st();ok('Menu pauses w/ focus',s.root=='pause'&&s.focus=='resume',s.focus);
 await press(DOWN);s=await st();ok('pause nav',s.focus!='resume',s.focus);await press(B);s=await st();ok('B resumes',s.root==null&&!s.paused);
 // laptop
-await ev(()=>{__bt.tp(-2.6,-2);__bt.lookAt(-3.6,1.05,-2)});await frames(2);await press(A);s=await st();ok('A opens laptop, focus on first shop item',s.lapOpen&&s.focus=='soil',s.focus);
+await ev(()=>{__bt.tp(-2.6,-2);__bt.lookAt(-3.6,1.05,-2)});await frames(2);s=await st();ok('laptop prompt shows A',/A\s+Use Laptop/.test(s.prompt),s.prompt);await P.screenshot({path:'/workspace/ui-shots/grow/v4-prompts.png'});
+await press(A);s=await st();ok('A opens laptop, focus on first shop item',s.lapOpen&&s.focus=='soil',s.focus);
 await press(DOWN);s=await st();ok('down -> next item',s.focus=='pot',s.focus);
 await press(RIGHT);await press(RIGHT);s=await st();ok('right = quantity +',s.qty.pot==3,JSON.stringify(s.qty));await press(LEFT);s=await st();ok('left = quantity -',s.qty.pot==2);
 const m0=s.money;await press(A);await sl(500);s=await st();ok('A buys 2 pots',s.money==m0-20,m0+'->'+s.money);
-await P.screenshot({path:'/workspace/ui-shots/grow/v2-laptop-controller.png'});
 await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
 await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
 const held0=(await st()).bag.length;await press(B);await frames(4);s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
-await press(Y);s=await st();ok('Y opens contracts',s.lapOpen&&s.tab=='contracts');await press(START);s=await st();ok('Start closes laptop',!s.lapOpen);
-// reconnect
-await ev(()=>{__pad.connected=false;window.dispatchEvent(new Event('gamepaddisconnected'))});await frames(3);await ev(()=>{__pad.connected=true;__pad.index=1});await frames(3);
-await press(START);s=await st();ok('reconnected pad works',s.paused);await press(B);
+await press(A);await press(START);s=await st();ok('Menu closes laptop',!s.lapOpen);
+// remap via controller
+await press(START);let g=0;while((await st()).focus!='set'&&g++<5)await press(DOWN);await press(A);s=await st();ok('pause -> Settings',s.root=='m-set',s.root);
+g=0;while((await st()).focus!='remap'&&g++<8){await press(DOWN);console.log('f',(await st()).root,(await st()).focus)}await press(A);s=await st();ok('Remap screen opens w/ focus',s.root=='m-remap'&&/rm/.test(s.focus),s.focus);
+await P.screenshot({path:'/workspace/ui-shots/grow/v4-remap.png'});
+await press(A);await press(Y);s=await st();ok('remap jump -> Y (swaps inventory -> A)',s.binds.jump==3&&s.binds.inventory==0,JSON.stringify(s.binds));
+let ls=await ev(()=>JSON.parse(localStorage.bt_binds||'{}'));ok('remap saved to localStorage',ls.jump==3);
+await press(B);await press(B);await press(B);s=await st();ok('back out to game',s.root==null,s.root);
+await press(A);s=await st();ok('remapped A now opens inventory',s.invOpen);await press(B);
+// hot-switch
+await ev(()=>{__bt.tp(-2.6,-2);__bt.lookAt(-3.6,1.05,-2)});await P.keyboard.press('KeyW');await frames(3);s=await st();ok('keyboard hot-switch: prompts show E',!s.padMode&&/E\s+Use Laptop/.test(s.prompt),s.prompt);
+await press(DOWN);await frames(2);s=await st();ok('pad hot-switch back: prompts show (remapped) Y',s.padMode&&/Y\s+Use Laptop/.test(s.prompt),s.prompt);
+// disconnect / reconnect
+await ev(()=>{__pad.connected=false;window.dispatchEvent(new Event('gamepaddisconnected'))});await frames(3);s=await st();ok('disconnect auto-pauses + hides indicator',s.paused&&!s.padInd);
+await ev(()=>{__pad.connected=true;__pad.index=1});await frames(3);await press(B);s=await st();ok('reconnected pad resumes',!s.paused&&s.padInd);
 ok('no page errors',errs.length==0,errs.join(' | '));
+await P.reload({waitUntil:'networkidle0'});await sl(500);s=await st();ok('remap persists after reload',s.binds.jump==3,JSON.stringify(s.binds));
+await ev(()=>{localStorage.bt_binds=JSON.stringify({});});
 const f=res.filter(r=>r[0]=='FAIL').length;console.log(`\n${res.length-f}/${res.length} passed`);await b.close();srv.kill();process.exit(f?1:0)})();
