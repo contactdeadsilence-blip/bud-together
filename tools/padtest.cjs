@@ -40,7 +40,7 @@ await press(B);s=await st();ok('B from settings -> title',s.root=='m-main',s.roo
 await press(DOWN);await press(A);await frames(10);await sl(500);s=await st();ok('Host Co-op -> lobby',s.root=='m-lobby',s.root+' '+s.focus);
 await press(B);s=await st();ok('B leaves lobby',s.root=='m-main',s.root);
 await press(UP);s=await st();ok('focus back to Solo',s.focus=='solo',s.focus);
-await press(A,4);await sl(1500);await frames(5);s=await st();ok('Solo starts game',s.root==null&&s.money==150,s.root+' $'+s.money);
+await press(A,4);await sl(1500);await frames(5);s=await st();ok('Solo starts game',s.root==null&&s.money==1000,s.root+' $'+s.money);
 ok('no A bleed into game',s.held==null,s.held);
 // movement & look
 let x0=s.x,z0=s.z,y0=s.yaw;await ev(()=>__pad.axes[1]=-1);await sl(700);await ev(()=>__pad.axes[1]=0);await frames(2);s=await st();ok('L-stick moves',Math.hypot(s.x-x0,s.z-z0)>.5,(Math.hypot(s.x-x0,s.z-z0)).toFixed(2));
@@ -57,13 +57,13 @@ await aim(seed);await press(X);await sl(400);s=await st();ok('X picks up seeds (
 await press(LB);await sl(400);s=await st();ok('LB cycles held item',s.held=='soil',s.held);
 await press(RB);await sl(400);s=await st();ok('RB cycles back',s.held=='seed_haze',s.held);
 await press(DOWN);await sl(400);s=await st();ok('D-pad up/down cycles quick bar',s.held=='soil',s.held);
-await aim(pot,.45);s=await st();ok('prompt offers X use held',/X\s+Fill with soil/.test(s.prompt),s.prompt);await press(X);await sl(400);let w=await ev(()=>__bt.W);ok('X uses held soil on pot',w.ents.find(e=>e.id==pot.id).data.soil==1);
+await aim(pot,.45);s=await st();ok('prompt offers X use held',/X\s+Fill with (fresh )?soil/.test(s.prompt),s.prompt);await press(X);await sl(400);let w=await ev(()=>__bt.W);ok('X uses held soil on pot',w.ents.find(e=>e.id==pot.id).data.soil==1);
 await press(LT);await sl(400);s=await st();ok('LT drops held item',s.bag.length==1,s.bag);
 // jump / crouch / sprint / camera
 await ev(()=>{__bt.tp(0,9.5);__bt.look(0,.2)});await frames(2);await set(A,true);await frames(3);s=await st();await set(A,false);ok('A jumps (no target)',s.y>0.05,s.y);await sl(900);s=await st();ok('lands',s.y==0);
 await set(B,true);await sl(500);s=await st();ok('B held = crouch',s.ch>.3,s.ch);await set(B,false);await sl(500);s=await st();ok('stand up',s.ch<.1,s.ch);
 await ev(()=>__pad.axes[1]=-1);await frames(2);await press(LS);s=await st();ok('LS click sprints',s.sprint);await ev(()=>__pad.axes[1]=0);await frames(3);s=await st();ok('sprint ends when stopping',!s.sprint);
-const sv=s.sens;await press(RS);s=await st();ok('RS click cycles sensitivity preset',s.sens!=sv,sv+'->'+s.sens);
+await press(RS);await sl(200);let dd=await ev(()=>__bt.decor());ok('RS click enters decorate mode',dd.on,JSON.stringify(dd));await press(Y);await sl(200);dd=await ev(()=>__bt.decor());s=await st();ok('Y opens decor catalog w/ focus',dd.cat&&s.root=='decocat'&&!!s.focus,s.root+' '+s.focus);await press(B);await sl(200);dd=await ev(()=>__bt.decor());ok('B closes catalog',!dd.cat);await press(RS);await sl(200);dd=await ev(()=>__bt.decor());ok('RS click exits decorate mode',!dd.on);
 // inventory
 await ev(()=>__bt.send({t:'dbg',give:'water'}));await sl(400);await press(Y);s=await st();ok('Y opens inventory w/ focus',s.root=='invs'&&s.invOpen&&!!s.focus,s.root+' '+s.focus);
 await P.screenshot({path:'/workspace/ui-shots/grow/v4-inventory.png'});

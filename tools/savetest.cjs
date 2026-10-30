@@ -18,9 +18,9 @@ await api('PUT','/api/profile',prof,T);const P=(await api('GET','/api/profile',n
 const raw=fs.readFileSync(DATA,'utf8');ok('password stored hashed',!raw.includes('weed420')&&raw.includes('"salt"'));
 // host a farm, mutate world, save
 const H=await cl();tx(H,{t:'host',name:'G',token:T});await sl(200);ok('logged-in host gets a save slot',H.save&&H.save.owner=='gumprr');tx(H,{t:'start'});await sl(400);
-tx(H,{t:'dbg',money:777,spawn:{x:0,z:-2,s:'haze',age:300,water:60},give:'shelf'});await sl(400);
+tx(H,{t:'dbg',money:777,spawn:{x:0,z:-2,s:'haze',age:300,water:60},give:'shelf'});await sl(400);tx(H,{t:'dstyle',k:'paint',v:'sage'});tx(H,{t:'dstyle',k:'floor',v:'tile'});tx(H,{t:'dplace',k:'rug',x:0,y:0,z:0,ry:1.57});await sl(400);ok('decor applied before save',H.w.decor.paint=='sage'&&H.w.decor.items.length==1,H.w.money);
 const pot=H.w.ents.find(e=>e.type=='pot'&&e.data.plant?.age>=300);tx(H,{t:'save'});await sl(400);
-let S=(await api('GET','/api/saves',null,T)).j;ok('saves list',S.length==1&&S[0].money==927&&S[0].plants==1,JSON.stringify(S));
+let S=(await api('GET','/api/saves',null,T)).j;ok('saves list',S.length==1&&S[0].money==1622&&S[0].plants==1,JSON.stringify(S));
 const sid=S[0].id;const age0=pot.data.plant.age;H.ws.close();await sl(500);
 // restart server — file store persists
 srv.kill('SIGTERM');await sl(500);srv=await up();
@@ -29,11 +29,11 @@ S=(await api('GET','/api/saves',null,T)).j;ok('save survives restart',S.length==
 ok('profile survives restart',JSON.stringify((await api('GET','/api/profile',null,T)).j)==JSON.stringify(prof));
 await sl(3000);// offline time must not drain or grow plants
 const H2=await cl();tx(H2,{t:'host',name:'G',token:T,save:sid});await sl(200);const F=await cl();tx(F,{t:'join',code:H2.code,name:'FRIEND',look:{sex:'m',skin:1}});await sl(200);tx(H2,{t:'start'});await sl(400);
-const p2=H2.w.ents.find(e=>e.id==pot.id);ok('co-op host loads farm (money, plant, shelf)',H2.w.money==927&&p2&&H2.w.ents.some(e=>e.type=='shelf'),H2.w.money);
+const p2=H2.w.ents.find(e=>e.id==pot.id);ok('co-op host loads farm (money, plant, shelf)',H2.w.money==1622&&p2&&H2.w.ents.some(e=>e.type=='shelf'),H2.w.money);{const D=H2.w.decor;ok('decor persists through save/load (paint, floor, placed rug, owned)',D&&D.paint=='sage'&&D.floor=='tile'&&D.items.length==1&&D.items[0].k=='rug'&&Math.abs(D.items[0].ry-1.57)<.01&&D.own.includes('paint:sage'),JSON.stringify(D))}
 ok('plant paused while offline (alive, not drained)',p2&&!p2.data.plant.dead&&p2.data.plant.age-age0<5&&p2.data.moist>50,p2&&JSON.stringify([p2.data.plant.age,age0,p2.data.moist]));
 ok('held items dropped back into world',H2.w.ents.filter(e=>e.by).length==0);
 ok('friend keeps own character',F.pl&&F.pl.find(p=>p.name=='FRIEND')?.look?.sex=='m');
-tx(H2,{t:'dbg',money:3});await sl(1600);ok('autosave',(await api('GET','/api/saves',null,T)).j[0].money==930);
+tx(H2,{t:'dbg',money:3});await sl(1600);ok('autosave',(await api('GET','/api/saves',null,T)).j[0].money==1625);
 ok('bad save id rejected',await (async()=>{const X=await cl();tx(X,{t:'host',token:T,save:'nope'});await sl(200);return X.err=='Save not found'})());
 const G=await cl();tx(G,{t:'host',name:'guest'});await sl(200);ok('guest mode hosts without a save',G.code&&!G.save);
 await api('POST','/api/logout',null,T);ok('logout kills session',(await api('GET','/api/me',null,T)).s==401);
