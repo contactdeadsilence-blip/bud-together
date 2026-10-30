@@ -31,7 +31,7 @@ tx(B,{t:'dbg',give:'water'});tx(A,{t:'dbg',set:{id:P,d:{moist:10}}});await step(
 let last=10,mono=true;for(let i=0;i<22&&last<100;i++){tx(B,{t:'use',target:P});await sl(110);const m=pot(B,P).data.moist;if(m<last-1)mono=false;last=m}
 await step();ok('pouring raises moisture progressively',mono&&last>=95,last);for(let i=0;i<3;i++){tx(B,{t:'use',target:P});await sl(120)}await step();
 tx(A,{t:'dbg',set:{id:P,d:{moist:100}}});await step();ok('moisture reaches 100 and caps',pot(B,P).data.moist>=99,pot(B,P).data.moist+' fx '+JSON.stringify(B.fx)+B.toasts.slice(-2));ok('green check fx sent once (seen by both)',B.fx.filter(f=>f.k=='full').length==1&&A.fx.some(f=>f.k=='full'));ok('check sound',B.sounds.includes('check'));
-ok('overwater spills, no effect',B.fx.some(f=>f.k=='spill'));ok('water uses consumed',B.w.ents.find(e=>e.by==B.id&&e.type=='water').data.uses<12);
+ok('overwater spills, no effect',B.fx.some(f=>f.k=='spill'));ok('can water level consumed',B.w.ents.find(e=>e.by==B.id&&e.type=='water').data.w<100);
 
 // forgiving-growth checks
 const spawnP=async(x,o)=>{tx(A,{t:'dbg',spawn:{x,z:-2,s:'owl',age:100,water:100,...o}});await step();return A.w.ents.at(-1).id};

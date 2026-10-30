@@ -56,7 +56,7 @@ await press(A);await sl(400);s=await st();ok('A picks up soil',s.held=='soil',s.
 await aim(seed);await press(X);await sl(400);s=await st();ok('X picks up seeds (bag of 2)',s.held=='seed_haze'&&s.bag.length==2,s.bag);
 await press(LB);await sl(400);s=await st();ok('LB cycles held item',s.held=='soil',s.held);
 await press(RB);await sl(400);s=await st();ok('RB cycles back',s.held=='seed_haze',s.held);
-await press(RIGHT);await sl(400);s=await st();ok('D-pad cycles quick bar',s.held=='soil',s.held);
+await press(DOWN);await sl(400);s=await st();ok('D-pad up/down cycles quick bar',s.held=='soil',s.held);
 await aim(pot,.45);s=await st();ok('prompt offers X use held',/X\s+Fill with soil/.test(s.prompt),s.prompt);await press(X);await sl(400);let w=await ev(()=>__bt.W);ok('X uses held soil on pot',w.ents.find(e=>e.id==pot.id).data.soil==1);
 await press(LT);await sl(400);s=await st();ok('LT drops held item',s.bag.length==1,s.bag);
 // jump / crouch / sprint / camera
@@ -81,7 +81,7 @@ await press(DOWN);s=await st();ok('down -> next item',s.focus=='pot',s.focus);
 await press(RIGHT);await press(RIGHT);s=await st();ok('right = quantity +',s.qty.pot==3,JSON.stringify(s.qty));await press(LEFT);s=await st();ok('left = quantity -',s.qty.pot==2);
 const m0=s.money;await press(A);await sl(500);s=await st();ok('A buys 2 pots',s.money==m0-20,m0+'->'+s.money);
 await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
-await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
+await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
 const held0=(await st()).bag.length;await press(B);await frames(4);s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
 await press(A);await press(START);s=await st();ok('Menu closes laptop',!s.lapOpen);
 // remap via controller

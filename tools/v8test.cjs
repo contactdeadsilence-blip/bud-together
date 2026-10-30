@@ -1,0 +1,30 @@
+// v8: shelf storage, pallets, sink refills, utility bills (server-side, co-op)
+const WS=require('ws'),{spawn}=require('child_process');const sl=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{const PORT=3208;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1},stdio:'ignore'});await sl(700);
+const cl=()=>new Promise(r=>{const ws=new WS(`ws://localhost:${PORT}/ws`);const c={ws,w:null,toasts:[]};ws.on('message',d=>{const m=JSON.parse(d);if(m.t=='joined')c.code=m.code,c.id=m.id;if(m.t=='w'){c.w=m.w;m.w.toast&&c.toasts.push(m.w.toast.t)}});ws.on('open',()=>r(c))});
+const A=await cl(),B=await cl();const tx=(c,m)=>c.ws.send(JSON.stringify(m));const st=()=>sl(350);
+tx(A,{t:'host',name:'A'});await sl(200);tx(B,{t:'join',code:A.code,name:'B'});await sl(200);tx(A,{t:'start'});await sl(500);
+const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i)};const E=(c,f)=>c.w.ents.find(f);const held=c=>c.w.ents.filter(e=>e.by==c.id);
+ok('starts with sink + watering can',E(A,e=>e.type=='sink')&&E(A,e=>e.type=='water'&&e.data.w==100));
+tx(A,{t:'buy',item:'water'});await st();ok('watering can not sold',A.toasts.at(-1).includes('Not sold'));
+tx(A,{t:'dbg',money:200});await st();tx(A,{t:'buy',item:'shelf'});tx(A,{t:'buy',item:'pal_soil'});await sl(5600);const sh=E(A,e=>e.type=='shelf'),pl=E(A,e=>e.type=='pallet');ok('shelf + pallet delivered',sh&&pl&&pl.data.n==8&&pl.data.it=='soil');ok('pallet discounted',A.w.money==350-45-136,A.w.money);
+for(let i=0;i<3;i++){tx(A,{t:'use',target:pl.id});await st()}ok('take one bag at a time off pallet',E(A,e=>e.id==pl.id).data.n==5&&held(A).length==3);
+tx(A,{t:'use',target:sh.id,ry:1.2});await st();let s=E(A,e=>e.id==sh.id);ok('store item on shelf (with rotation)',s.data.slots.filter(Boolean).length==1&&s.data.slots[0].ry==1.2&&held(A).length==2);
+tx(A,{t:'use',target:sh.id});tx(A,{t:'use',target:sh.id});await st();ok('B sees shelf contents (co-op)',E(B,e=>e.id==sh.id).data.slots.filter(Boolean).length==3);
+tx(B,{t:'use',target:sh.id});await st();ok('B takes item off shelf',E(B,e=>e.id==sh.id).data.slots.filter(Boolean).length==2&&held(B).length==1);
+tx(B,{t:'use',target:sh.id,only:true});await st();ok('take while holding (alt)',held(B).length==2);
+tx(B,{t:'use',target:sh.id});await st();// B holds soil -> stores
+tx(A,{t:'use',target:sh.id,only:true});await st();
+tx(A,{t:'use',target:sh.id});await st();ok('cannot pick up a loaded shelf',!held(A).some(e=>e.type=='shelf'));
+tx(A,{t:'dbg',pallet:{x:0,z:1,it:'nutr'}});await st();const p2=A.w.ents.filter(e=>e.type=='pallet').at(-1);tx(A,{t:'dbg',set:{id:p2.id,d:{n:0}}});await st();
+held(A).forEach(()=>tx(A,{t:'drop',x:1,z:1}));await st();held(A).forEach(()=>tx(A,{t:'drop',x:1,z:1}));await st();
+tx(A,{t:'use',target:p2.id});await st();tx(A,{t:'use',target:'bin'});await st();ok('empty pallet disposed in dumpster',!E(A,e=>e.id==p2.id));
+const can=E(A,e=>e.type=='water'),sink=E(A,e=>e.type=='sink');tx(A,{t:'use',target:can.id});tx(A,{t:'dbg',spawn:{x:0,z:0,s:'owl',age:50,water:0}});await st();const pot=A.w.ents.at(-1).id;
+for(let i=0;i<10;i++){tx(A,{t:'use',target:pot});await sl(40)}await st();let cw=E(A,e=>e.type=='water').data.w;ok('pouring uses can water',cw==50,cw);
+for(let i=0;i<30;i++){tx(A,{t:'use',target:pot});await sl(30)}await st();ok('empty can refuses to pour',E(A,e=>e.type=='water').data.w==0&&A.toasts.some(t=>/empty/.test(t)));
+for(let i=0;i<5;i++){tx(A,{t:'use',target:sink.id});await sl(40)}await st();cw=E(A,e=>e.type=='water').data.w;ok('sink refills can (hold)',cw==50,cw);ok('water metered',A.w.util.gal>.9,A.w.util.gal);
+tx(A,{t:'dbg',place:{type:'light',x:-1,z:-2}});tx(A,{t:'dbg',ff:60});await st();ok('power metered for lights',A.w.util.kwh>0,A.w.util.kwh.toFixed(2));
+tx(A,{t:'dbg',bill:1});await st();const b=A.w.util.bills[0];ok('bill generated',b&&b.amt>=2,JSON.stringify(b));
+tx(A,{t:'dbg',overdue:1});await st();tx(A,{t:'use',target:sink.id});await st();ok('overdue: water off at sink',/shut off/.test(A.toasts.at(-1)));
+tx(A,{t:'paybill'});await st();ok('paying restores service',A.w.util.off==0&&!A.w.util.bills.length);
+const pass=res.filter(Boolean).length;console.log(`${pass}/${res.length} passed`);srv.kill();process.exit(pass==res.length?0:1)})();
