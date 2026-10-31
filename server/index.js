@@ -34,10 +34,10 @@ const SHOPS=['Green Leaf Co.','Pacific Buds','Dead Calm Dispensary','High Tide',
 const PAD={x:2.4,z:7.2};
 function newWorld(){const w={money:START_CASH,rep:0,day:1,min:8*60,room:1,ents:[],nid:1,contracts:[],pending:[],log:[],util:{gal:0,kwh:0,bills:[],off:0},decor:defDecor()};
  const add=(type,x,z,data={})=>w.ents.push({id:w.nid++,type,x,y:0,z,ry:0,by:0,data:{...data,...(SHOP[type]?.uses?{uses:SHOP[type].uses}:{})}});
- add('pot',-1,-3);add('pot',0,-3);add('soil',2.5,-3.8);add('seed_haze',1.5,-3.9);add('sink',3.55,-1.2,{fixed:1});w.ents.at(-1).ry=-Math.PI/2;add('water',3.3,-.45,{w:CAN});add('light',-.5,-3.9);add('gbag',3.3,-3.7);addV11(w);
+ add('pot',-1,-3);add('pot',0,-3);add('soil',2.5,-3.8);add('seed_haze',1.5,-3.9);add('sink',3.55,-1.2,{});w.ents.at(-1).ry=-Math.PI/2;add('water',3.3,-.45,{w:CAN});add('light',-.5,-3.9);add('gbag',3.3,-3.7);addV11(w);
  for(let i=0;i<3;i++)newContract(w);return w}
 function addV11(w){const has=t=>w.ents.some(e=>e.type===t);const add=(type,x,z,data={},ry=0)=>w.ents.push({id:w.nid++,type,x,y:0,z,ry,by:0,data});
- if(!has('desk'))add('desk',-3.6,-2,{fixed:1,items:[]});if(!has('bed'))add('bed',-3.05,3.6,{},Math.PI/2);if(!has('tcan'))add('tcan',-2.9,-4.55);if(!has('papers'))add('papers',-3.45,-1.55,{uses:10})}
+ if(!has('desk'))add('desk',-3.6,-2,{items:[]});if(!has('bed'))add('bed',-3.05,3.6,{},Math.PI/2);if(!has('tcan'))add('tcan',-2.9,-4.55);if(!has('papers'))add('papers',-3.45,-1.55,{uses:10})}
 function newContract(w,sp){const ks=BASE,s=ks[Math.random()*ks.length|0],big=w.rep>=5&&Math.random()<.5;const g=(big?14:5)+Math.round(Math.random()*(big?20:8))+w.rep;
  const pre=w.rep>=1&&Math.random()<.35,mins=w.rep>=6?['B','A','A+']:w.rep>=2?['C','B','A']:['D','C','B'],min=mins[Math.random()*3|0],gm=GRADES.find(x=>x[0]==min)[2];w.contracts.push({id:w.nid++,shop:SHOPS[Math.random()*SHOPS.length|0],s,g,min,got:0,pay:Math.round(g*STRAINS[s].ppg*(1.4+Math.min(w.rep,20)*.04)*(pre?1.25:1)*(.6+.4*gm)),due:w.day+(sp?2:6),...(pre?{pre:1}:{})});if(sp){const c=w.contracts.pop(),gi=GRADES.findIndex(x=>x[0]==c.min);c.min=GRADES[Math.max(0,gi-1)][0];c.pay=Math.round(c.pay*1.7);c.sp=1;(w.offers||(w.offers=[])).push(c)}}
 const ent=(w,id)=>w.ents.find(e=>e.id===id);
@@ -76,7 +76,7 @@ function surf(w,t,c,m,bag,give,full,say){const S=SURFS[t.type],it=t.data.items??
   if(!pp&&onT<0)return say('Need Rolling Papers (in hand or on this table)'),1;const n=c.data.g;c.type='joints';c.data={s:c.data.s,n};if(pp){if(--pp.data.uses<=0)w.ents=w.ents.filter(e=>e!==pp)}else if(--it[onT].data.uses<=0)it.splice(onT,1);w.sound='cash';w.fx={k:'roll',id:t.id};return say(`Rolled ${n} ${STRAINS[c.data.s].name} pre-rolls`),1}
  if(c&&!m.only){if(BIG.includes(c.type))return say("That's too big for the table"),1;if(it.length>=S.max)return say('Table is full'),1;it.push({type:c.type,data:c.data,x:+clampN(m.lx,S.w/2-.08).toFixed(2),z:+clampN(m.lz,S.d/2-.08).toFixed(2),ry:+(+m.ry||0).toFixed(2)});w.ents=w.ents.filter(e=>e!==c);w.sound='drop';return say('Set '+(SHOP[c.type]?.n||c.type)+' on the '+(t.type==='desk'?'desk':'table')),1}
  if(it.length){if(full())return 1;let i=it.length-1;if(m.lx!=null){let b=1e9;it.forEach((x,k)=>{const d=Math.hypot(x.x-m.lx,x.z-m.lz);if(d<b){b=d;i=k}})}const x=it.splice(i,1)[0];give({id:w.nid++,type:x.type,x:0,y:0,z:0,ry:0,data:x.data});w.sound='pick';return say('Took '+(SHOP[x.type]?.n||x.type)),1}
- if(t.type==='desk')return say('Desk — set items on it to store them'),1;if(t.data.items.length)return 1;return undefined}
+ if(t.type==='desk'&&!m.only)return say('Desk — set items on it to store them (pick up to move it)'),1;if(t.data.items.length)return 1;return undefined}
 function sleepReq(w,pid,m,say){const S=w.sleepers??=[];const i=S.indexOf(pid);if(m.on===false||m.on==null&&i>=0){if(i>=0)S.splice(i,1);return say('You got out of bed')}
  if(!canSleep(w.min))return say("You're not tired — you can sleep after 7 PM");if(i<0)S.push(pid);return say('In bed — waiting for everyone to sleep…')}
 // skip to next morning: run the sim in 1s steps; plants that were watered can't die or wilt from the skip
@@ -109,9 +109,9 @@ function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e
  if(!t)return;
  const mkIt=(type,data)=>({id:w.nid++,type,x:0,y:0,z:0,ry:0,data});
  if(t&&t.type==='tcan'&&c&&!m.only)return trash(w,c,say);
- if(t&&t.type==='bed'&&!c)return sleepReq(w,pid,{on:!(w.sleepers||[]).includes(pid)},say);
+ if(t&&t.type==='bed'&&!c&&!m.only)return sleepReq(w,pid,{on:!(w.sleepers||[]).includes(pid)},say);
  if(t&&(t.type==='table'||t.type==='desk')){const r=surf(w,t,c,m,bag,give,full,say);if(r!==undefined)return}
- if(t&&t.type==='sink'){if(!c||c.type!=='water')return say('Sink — hold the watering can here to fill it');if(!wet(w))return say('Water is shut off — pay the utility bill');const lv=c.data.w??0;if(lv>=CAN)return say('Can is full');const a=Math.min(FILL,CAN-lv);c.data.w=lv+a;w.util.gal+=a/CAN*GAL;if(c.data.w>=CAN){w.fx={k:'full',id:t.id};w.sound='check'}return}
+ if(t&&t.type==='sink'&&!(m.only&&!c)){if(!c||c.type!=='water')return say('Sink — hold the watering can here to fill it');if(!wet(w))return say('Water is shut off — pay the utility bill');const lv=c.data.w??0;if(lv>=CAN)return say('Can is full');const a=Math.min(FILL,CAN-lv);c.data.w=lv+a;w.util.gal+=a/CAN*GAL;if(c.data.w>=CAN){w.fx={k:'full',id:t.id};w.sound='check'}return}
  if(t&&t.type==='seedrack'){const sl=t.data.sl=t.data.sl||[];const k=Math.max(0,Math.min(5,m.slot|0));if(c&&!m.only){if(!c.type.startsWith('seed_'))return say('Only seed packets go in the seed rack');let i=sl[k]&&sl[k].k===c.type&&sl[k].n.length<RACKN?k:sl.findIndex(s=>s&&s.k===c.type&&s.n.length<RACKN);if(i<0)i=!sl[k]?k:[0,1,2,3,4,5].find(j=>!sl[j]);if(i==null||i<0)return say('Seed rack is full');sl[i]=sl[i]||{k:c.type,n:[]};sl[i].n.push(c.data);w.ents=w.ents.filter(e=>e!==c);w.sound='drop';return say(`Stored ${SHOP[c.type]?.n||'seeds'} in slot ${i+1} (${sl[i].n.length}/${RACKN})`)}
   const s=sl[k];if(m.slot<0||!s?.n?.length){if(m.only||c)return say('That rack slot is empty');if(t.by||full())return;give(t);w.sound='pick';const n=sl.reduce((a,x)=>a+(x?.n?.length||0),0);return say(n?`Picked up the seed rack (${n} packets stay stored in it)`:'Picked up the seed rack')}if(full())return;give(mkIt(s.k,s.n.pop()));const left=s.n.length;if(!left)sl[k]=null;w.sound='pick';return say(`Took ${SHOP[s.k]?.n||'seeds'} (${left} left)`)}
  if(t&&t.type==='shelf'){const sl=t.data.slots=t.data.slots||[];if(c&&!m.only){if(['seedrack','shelf','pallet','trash','sink','dirtbag','table','bed','tcan'].includes(c.type))return say("That doesn't fit on a shelf");if(sl.filter(Boolean).length>=SLOTS)return say('Shelf is full');let i=sl.findIndex(x=>!x);if(i<0)i=sl.length;sl[i]={type:c.type,data:c.data,ry:+m.ry||0};w.ents=w.ents.filter(e=>e!==c);w.sound='drop';return say('Stored '+(SHOP[c.type]?.n||c.type)+' on the shelf')}
@@ -143,7 +143,7 @@ function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e
  if(t.type==='pot'&&t.data.plant?.dead)return say('Dead plant — use a Garbage Bag on it (laptop shop)');
  if(t.type==='rack'){const sl=t.data.slots||[];const i=sl.findIndex(s=>s.t<=0);if(i>=0){if(full())return;const s=sl.splice(i,1)[0];give({id:w.nid++,type:'drybud',x:0,y:0,z:0,ry:0,data:{s:s.s,g:s.g,q:s.q??70}});return say(`Took ${s.g}g dried bud — pack it at the scale`)}
   if(sl.length)return say('Still drying…')}
- if(t.by||t.data.fixed||full())return;if(t.type==='shelf'&&t.data.slots?.some(Boolean))return say('Empty the shelf before moving it');give(t);w.sound='pick'}
+ if(t.by||full())return;if(t.data.fixed)delete t.data.fixed;if(t.type==='shelf'&&t.data.slots?.some(Boolean))return say('Empty the shelf before moving it');give(t);w.sound='pick'}
 // ---------- shed decor (server-authoritative: money, bounds, ownership) ----------
 function decor(w,m,say){const D=w.decor??=defDecor();const B=ROOMB(w.room),num=v=>Math.round((+v||0)*100)/100;
  if(m.t==='dstyle'){const cat=STYLE[m.k],o=cat?.[m.v];if(!o)return say('Unknown style');if(D[m.k]===m.v)return say('Already applied');const key=m.k+':'+m.v;
