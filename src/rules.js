@@ -56,3 +56,18 @@ export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Fu
 export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
 export const MAXORD=10;// max units per line in one order
 export function harvQ(p){const b=p.qt?p.qs/p.qt*100:60;return Math.max(15,Math.min(92,Math.round(b*.9+(p.sq||0)*4+(p.ty==='f'?4:0)+((p.ph||1)-1)*8)))}
+// v13a: light-weight item collisions — per-object support shapes; dropped items settle on the highest surface under them
+// (sink basin = bottom + walls that keep items inside, tables/desk tops, shelf boards, pallets, decor tops, else floor)
+const SINKB={W:.72,D:.56,T:.045,bot:.585,rim:.905};
+export function shapesOf(w){const S=[];for(const e of w.ents||[]){if(e.by)continue;const t=e.type;
+  if(t==='sink')S.push({e,w:SINKB.W,d:SINKB.D,tops:[SINKB.bot],basin:1});
+  else if(SURFS[t])S.push({e,w:SURFS[t].w,d:SURFS[t].d,tops:[SURFS[t].h]});
+  else if(t==='shelf')S.push({e,w:1.26,d:.46,tops:[.098,.568,1.268]});
+  else if(t==='pallet')S.push({e,w:1.1,d:1,tops:[.16]});}
+ for(const it of w.decor?.items||[]){const D=DECOR[it.k];if(D&&D.h>.05&&D.s!=='wall')S.push({e:it,w:D.w,d:D.d,tops:[(it.y||0)+D.h]})}return S}
+export function settle(w,x,z,yh=9,r=.1){let best={x,z,y:0,on:null};
+ for(const s of shapesOf(w)){const e=s.e,ry=e.ry||0,c=Math.cos(ry),sn=Math.sin(ry),dx=x-e.x,dz=z-e.z;let lx=dx*c-dz*sn,lz=dx*sn+dz*c;
+  if(Math.abs(lx)>s.w/2||Math.abs(lz)>s.d/2)continue;const top=s.tops.filter(t=>t<=yh+.08).pop();if(top==null||top<best.y)continue;
+  if(s.basin){const ix=s.w/2-SINKB.T-r,iz=s.d/2-SINKB.T-r;lx=Math.max(-ix,Math.min(ix,lx));lz=Math.max(-iz,Math.min(iz,lz))}
+  best={x:+(e.x+lx*c+lz*sn).toFixed(3),z:+(e.z-lx*sn+lz*c).toFixed(3),y:+top.toFixed(3),on:e.type||e.k}}
+ return best}
