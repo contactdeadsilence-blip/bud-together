@@ -81,7 +81,7 @@ await press(DOWN);s=await st();ok('down -> next item',s.focus=='pot',s.focus);
 await press(RIGHT);await press(RIGHT);s=await st();ok('right = quantity +',s.qty.pot==3,JSON.stringify(s.qty));await press(LEFT);s=await st();ok('left = quantity -',s.qty.pot==2);
 const m0=s.money;await press(A);await sl(500);s=await st();ok('A buys 2 pots',s.money==m0-20,m0+'->'+s.money);
 await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
-await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
+await press(RB);s=await st();ok('RB -> Board tab',s.tab=='board');await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
 const held0=(await st()).bag.length;await press(B);await frames(4);s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
 await press(A);await press(START);s=await st();ok('Menu closes laptop',!s.lapOpen);
 // remap via controller

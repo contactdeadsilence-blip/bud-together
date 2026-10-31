@@ -36,7 +36,7 @@ ok('roll dried bud into pre-rolls (desk, nearby papers)',h?.type=='joints'&&h.da
 tx(A,{t:'dbg',give:'drybud'});await st();tx(A,{t:'use',target:T.id,roll:1});await st();A.toasts=[];ok('no papers near table → refused',held(A)[0]?.type=='drybud');tx(A,{t:'trash'});await st();
 // deliver: pre-roll contract
 A.w.contracts.length;tx(A,{t:'dbg',contract:'owl'});await st();
-{const m0=A.w.money,k=A.w.contracts[0];if(k.pre){tx(A,{t:'use',target:'drop'});await st();ok('pre-roll contract accepts joints',A.w.contracts.find(x=>x.id==k.id)?.got>0||A.w.money>m0)}else{tx(A,{t:'use',target:'drop'});await st();ok('loose pre-rolls sell at the drop box ($6 each)',A.w.money==m0+12*6,m0+'->'+A.w.money)}}
+{const m0=A.w.money,k=A.w.contracts[0];if(k.pre){tx(A,{t:'use',target:'drop'});await st();ok('pre-roll contract accepts joints',A.w.contracts.find(x=>x.id==k.id)?.got>0||A.w.money>m0)}else{tx(A,{t:'use',target:'drop'});await st();ok('loose pre-rolls sell at the drop box ($6 each x rarity)',A.w.money>=m0+12*6&&A.w.money<=m0+12*6*2,m0+'->'+A.w.money)}}
 ok('pre-roll contracts exist in generator',/pre:1/.test(require('fs').readFileSync('server/index.js','utf8')));
 // sleep
 tx(A,{t:'dbg',min:600});await st();A.toasts=[];tx(A,{t:'use',target:E('bed').id});await st();ok("can't sleep at 10 AM",!(A.w.sleepers||[]).length&&A.toasts.some(x=>/7 PM/.test(x)));

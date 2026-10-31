@@ -16,6 +16,32 @@ export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35
  pal_soil:{n:'Pallet · 8 Soil Bags',p:136,pal:'soil',k:8},pal_nutr:{n:'Pallet · 6 Nutrients',p:72,pal:'nutr',k:6},pal_pot:{n:'Pallet · 10 Pots',p:80,pal:'pot',k:10},pal_jars:{n:'Pallet · 6 Jar Boxes',p:61,pal:'jars',k:6}};
 for(const k of ['soil_p','soil_s','pot_s','pot_l','gbed','nutr_g','nutr_b','pal_soil','pal_nutr','pal_pot','pal_jars']){const v=SHOP[k];delete SHOP[k];SHOP[k]=v}
 for(const s in STRAINS)for(const t in SEEDT)SHOP['seed_'+s+(t=='r'?'':'_'+t)]={n:STRAINS[s].name+(t=='r'?' Seeds':' '+SEEDT[t].n+' Seeds'),p:Math.round(SEEDBASE[s]*SEEDT[t].m),uses:3};
+// v13 section 2: strain collection & genetics
+export const RAR=[['Common','#b8b8b8'],['Uncommon','#5fd36a'],['Rare','#4a8cff'],['Epic','#b45aff'],['Legendary','#ffb030'],['Mythical','#ff4a9a']];
+const LK={kush:[2,'w','chunky'],haze:[0,'n','spear'],owl:[1,'s','fox'],lemon:[0,'n','spear'],blue:[1,'w','fox'],og:[3,'s','chunky']};
+for(const k in LK){STRAINS[k].rar=LK[k][0];STRAINS[k].look.lf=LK[k][1];STRAINS[k].look.st=LK[k][2]}
+export const BASE=Object.keys(STRAINS);
+Object.assign(STRAINS,{mint:{name:'Mint Static',rar:2,speed:1.05,g:12,ppg:15,diff:2,col:'#5ae8d0',look:{pis:'#f4f4f4',frost:.95,cal:'#7ad8c8',lf:'s',st:'fox'}},
+ ember:{name:'Ember Queen',rar:3,speed:.9,g:14,ppg:19,diff:2,col:'#ff6a3a',look:{pis:'#ff3a1a',frost:.7,cal:'#c8502a',lf:'w',st:'chunky'}},
+ aurora:{name:'Aurora Byte',rar:4,speed:.85,g:15,ppg:24,diff:3,col:'#7af0ff',look:{pis:'#ff7af0',frost:1,cal:'#6ab8ff',lf:'n',st:'spear'}},
+ phantom:{name:'Phantom Mint',rar:3,hid:1,speed:1,g:14,ppg:20,diff:2,col:'#c8fff0',look:{pis:'#ffffff',frost:1,cal:'#b8f0e0',lf:'s',st:'spear'}},
+ sol:{name:'Solar Flare',rar:4,hid:1,speed:1.2,g:13,ppg:25,diff:2,col:'#ffb020',look:{pis:'#ff5a00',frost:.85,cal:'#ffc040',lf:'n',st:'fox'}},
+ void:{name:'Violet Void',rar:5,hid:1,speed:.8,g:17,ppg:32,diff:3,col:'#5a1aa0',look:{pis:'#ff3ad0',frost:1,cal:'#2a0a5a',lf:'w',st:'chunky'}}});
+export const pairKey=(a,b)=>[a,b].sort().join('+');
+export const HIDDEN={'blue+kush':'void','ember+lemon':'sol','mint+og':'phantom'};
+export const MUTS={vari:{n:'Variegated',rar:2,q:3,d:'marbled white-green leaves · +3 quality'},albino:{n:'Albino',rar:3,q:6,d:'ghost-white leaves · +6 quality'},twin:{n:'Twin Cola',rar:3,y:1.3,d:'double top cola · +30% yield'},gold:{n:'Golden Trichomes',rar:5,q:12,y:1.1,d:'gold frost · +12 quality'}};
+export function rollMut(ch=.04,rng=Math.random){if(rng()>=ch)return null;const r=rng();return r<.4?'vari':r<.7?'albino':r<.92?'twin':'gold'}
+export const PACKW=[60,30,14,6,2,1];
+export function rollPack(rng=Math.random){const ks=Object.keys(STRAINS).filter(k=>!STRAINS[k].hid&&!STRAINS[k].x),wt=ks.map(k=>PACKW[STRAINS[k].rar||0]);let t=rng()*wt.reduce((a,b)=>a+b,0);for(let i=0;i<ks.length;i++)if((t-=wt[i])<0)return ks[i];return ks[0]}
+export const JOURNAL=()=>[...Object.keys(STRAINS).filter(k=>!STRAINS[k].x),...Object.keys(MUTS).map(k=>'mu:'+k)];
+export const collPct=w=>{const J=JOURNAL(),d=w.disc||{};return Math.round(J.filter(k=>d[k]).length/J.length*100)};
+export const MILES=[[25,150,1],[50,400,1],[75,900,2],[100,2500,3]];// [% collected, $, ★]
+export function regGen(gen){for(const k in gen||{})STRAINS[k]=gen[k]}
+export const NW1=['Midnight','Neon','Cosmic','Frosty','Royal','Wild','Golden','Shadow','Electric','Velvet','Lucky','Crimson'],NW2=['Dream','Haze','Kush','Cookie','Fire','Glitch','Diesel','Breath','Nova','Runtz','Thunder','Gelato'];
+const mixc=(x,y)=>'#'+[1,3,5].map(i=>Math.round((parseInt(x.slice(i,i+2),16)+parseInt(y.slice(i,i+2),16))/2).toString(16).padStart(2,'0')).join('');
+export function makeCross(w,a,b){const pk=pairKey(a,b);if(HIDDEN[pk])return HIDDEN[pk];const G=w.gen??={};for(const k in G)if(G[k].pk==pk)return k;const A=STRAINS[a],B=STRAINS[b],av=f=>(A[f]+B[f])/2;
+ const k='x'+(w.nid++);G[k]={name:A.name.split(' ')[0]+' × '+B.name.split(' ')[0],x:1,pk,par:[a,b],rar:Math.min(5,Math.max(A.rar||0,B.rar||0)+(Math.random()<.35?1:0)),speed:Math.round(av('speed')*100)/100,g:Math.round(av('g'))+1,ppg:Math.round(av('ppg'))+2,diff:Math.max(A.diff,B.diff),col:mixc(A.col,B.col),look:{pis:A.look.pis,frost:Math.max(A.look.frost,B.look.frost),cal:mixc(A.look.cal,B.look.cal),lf:A.look.lf,st:B.look.st}};regGen(G);return k}
+SHOP.seed_pack={n:'Mystery Seed Pack',p:60,uses:1};SHOP.brush={n:'Pollen Brush',p:25,uses:3};SHOP.seed_x={n:'Bred Seeds',p:0,uses:3,hide:1};
 export const GH={x0:-11,x1:-6.2,z0:-2.6,z1:2.6};// greenhouse footprint (west of the shed)
 export const inGH=e=>e.x>GH.x0&&e.x<GH.x1&&e.z>GH.z0&&e.z<GH.z1;
 // shelves / sink / utilities

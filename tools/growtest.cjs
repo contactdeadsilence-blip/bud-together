@@ -8,7 +8,7 @@ const tx=(c,m)=>c.ws.send(JSON.stringify(m));const st=()=>sl(350);
 // ---- rules
 const S=R.STRAINS;ok('6+ strains with time/yield/difficulty/color/look',Object.keys(S).length>=6&&Object.values(S).every(s=>s.speed&&s.g&&s.diff&&s.col&&s.look),Object.keys(S).join());
 ok('kush strongly purple',/5a1fb0/i.test(S.kush.look.cal));
-const seeds=Object.keys(R.SHOP).filter(k=>k.startsWith('seed_'));ok('regular/feminized/auto seeds for every strain',Object.keys(S).every(s=>['','_f','_a'].every(x=>R.SHOP['seed_'+s+x])),seeds.length);
+const seeds=Object.keys(R.SHOP).filter(k=>k.startsWith('seed_'));ok('regular/feminized/auto seeds for every strain',(R.BASE||Object.keys(S)).every(s=>['','_f','_a'].every(x=>R.SHOP['seed_'+s+x])),seeds.length);
 ok('seedOf parses types',R.seedOf('seed_og_a').ty=='a'&&R.seedOf('seed_kush_f').ty=='f'&&R.seedOf('seed_haze').ty=='r'&&R.seedOf('seed_og_a').s=='og',JSON.stringify(R.seedOf('seed_og_a')));
 ok('pots S/M/L, garden bed, soil tiers, grow+bloom nutrients sold',['pot_s','pot','pot_l','gbed','soil','soil_p','soil_s','nutr_g','nutr_b'].every(k=>R.SHOP[k]));
 ok('six stages',['germination','seedling','veg','pre-flower','flower','ripe'].every((n,i)=>R.stage6({age:[1,30,100,200,R.READY-1,R.READY][i]})==n));
