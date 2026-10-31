@@ -11,7 +11,7 @@ export function bizOf(w){const b=w.biz??=defBiz();const d=defBiz();for(const k i
 export const staffOf=(w,i)=>i?bizOf(w).locs[i].staff:(w.staff||{});
 const lv=(w,i,k)=>bizOf(w).locs[i]?.upg?.[k]|0;
 export function markOf(w,it,cs){const b=bizOf(w),k=pkey(it);return MARK[b.prices[k]??cs?.pm??1]??1}
-const fairOf=it=>fairPrice(it.d.s,it.q,STRAINS,GRADES)*(it.t==='joints'?1.3:1);
+const fairOf=it=>fairPrice(it.d.s,it.q,STRAINS,GRADES)*(it.t==='joints'?1.3:it.t==='conc'||it.d.cc?4:1);
 export function itemPrice(w,it,cs){return Math.max(1,Math.round(fairOf(it)*markOf(w,it,cs)*it.u))}
 export function fairTotal(it){return Math.max(1,Math.round(fairOf(it)*it.u))}
 export function homeOpen(w){return !!bizOf(w).opened}

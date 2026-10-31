@@ -33,7 +33,7 @@ export function trimGame(bud,send,sfx){const N=9,T=20;mgOpen({title:'✂ Trim th
 export function packGame(it,o,send,sfx){const cc=it.type=='conc',T=cc?[.5,1,2]:[3.5,7,14,28],ok=T.filter(v=>v<=it.data.g);if(!ok.length){sfx?.('ui');return false}
  mgOpen({title:`📦 Package ${cc?'rosin':'bud'} — fill, seal, label`,btns:[['t','Target (X/F)']],
  init:s=>{s.T=ok;s.ti=ok.length-1;s.w=0;s.ph='fill';s.pour=0;s.sx=0;s.acc=0;s.seal=o.vac?1:0},
- tick:(s,dt)=>{if(s.ph=='fill'&&s.pour){s.w+=dt*s.T[s.ti]*.55*(o.dg?1:.8+Math.random()*.6)}if(s.ph=='seal')s.sx=(Math.sin(s.t*3.2)+1)/2;if(s.ph=='done'&&s.t-s.dt0>.6){send({t:'use',target:o.id,pack:{tg:s.T[s.ti],acc:+s.acc.toFixed(3),seal:+s.seal.toFixed(3)}});mgClose()}},
+ tick:(s,dt)=>{if(s.ph=='fill'&&s.pour){s.w+=dt*s.T[s.ti]*.55*(o.dg?1:.8+Math.random()*.6)}if(s.ph=='seal')s.sx=(Math.sin(s.t*3.2)+1)/2;if(s.ph=='done'&&s.t-s.dt0>.6){send({t:'use',target:o.id,...(o.sub!=null?{sub:o.sub}:{}),pack:{tg:s.T[s.ti],acc:+s.acc.toFixed(3),seal:+s.seal.toFixed(3)}});mgClose()}},
  act:s=>{if(s.ph=='fill'){s.pour=1}else if(s.ph=='seal'){s.seal=Math.max(0,1-Math.abs(s.sx-.5)*2.5);sfx?.('check');s.ph=o.pr?'done':'label';s.dt0=s.t}else if(s.ph=='label'){sfx?.('pick');s.ph='done';s.dt0=s.t}},
  rel:s=>{if(s.ph=='fill'&&s.pour){s.pour=0;if(s.w>0){const tg=s.T[s.ti];s.acc=Math.max(0,1-Math.abs(s.w-tg)/tg);s.ph=o.vac?(o.pr?'done':'label'):'seal';s.dt0=s.t;sfx?.('pick')}}},
  btn:(s,k)=>{if((k=='t'||k=='x')&&s.ph=='fill'&&!s.w){s.ti=(s.ti+1)%s.T.length;sfx?.('ui')}},
@@ -46,7 +46,7 @@ export function packGame(it,o,send,sfx){const cc=it.type=='conc',T=cc?[.5,1,2]:[
 // ---- Press: lock temperature, pressure and time in the green (A / click) for the best rosin yield and quality.
 export function pressGame(it,o,send,sfx){const N=['🌡 Temperature','⚙ Pressure','⏱ Time'];mgOpen({title:`🍯 Rosin press — ${it.type=='trim'?'trim':'dried bud'} ${it.data.g}g`,
  init:s=>{s.i=0;s.a=[];s.id=N.map(()=>.35+Math.random()*.3);s.v=0},
- tick:s=>{s.v=(Math.sin(s.t*(2.2+s.i*.6))+1)/2;if(s.i>=3&&s.t-s.dt0>.6){send({t:'use',target:o.id,press:{a:s.a}});mgClose()}},
+ tick:s=>{s.v=(Math.sin(s.t*(2.2+s.i*.6))+1)/2;if(s.i>=3&&s.t-s.dt0>.6){send({t:'use',target:o.id,...(o.sub!=null?{sub:o.sub}:{}),press:{a:s.a}});mgClose()}},
  act:s=>{if(s.i>=3)return;s.a.push(+Math.max(0,1-Math.abs(s.v-s.id[s.i])*4).toFixed(3));s.i++;sfx?.('check');if(s.i>=3)s.dt0=s.t},
  draw:(s,g)=>{g.textAlign='center';N.forEach((n,i)=>{const y=60+i*75;g.fillStyle='#fff';g.font='bold 15px sans-serif';g.fillText(n+(s.a[i]!=null?' ✔ '+Math.round(s.a[i]*100)+'%':''),210,y-8);g.fillStyle='#333';g.fillRect(40,y,340,18);g.fillStyle='#3a9a4a';g.fillRect(40+(s.id[i]-.12)*340,y,.24*340,18);g.fillStyle='#7dff9a';g.fillRect(40+(s.id[i]-.04)*340,y,.08*340,18);
   const v=s.a[i]!=null?null:i==s.i?s.v:null;if(v!=null){g.fillStyle='#fff';g.fillRect(40+v*340-3,y-4,6,26)}});g.fillStyle='#ffd23f';g.font='bold 14px sans-serif';g.fillText(s.i<3?'Press A / click when the needle is in the green':'Pressing…',210,285)},

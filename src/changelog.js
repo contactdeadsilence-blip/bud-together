@@ -1,5 +1,14 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.5',date:'Oct 31, 2026',title:'Beta v1.7.5 — Packaging Hotfix',notes:[
+'Fixed: the Scale, Rosin Press, Vacuum Sealer, Label Printer and bag boxes now work when they sit on a Work Table or desk, not only on the floor.',
+'Fixed: packing into Mylar Bags at the scale works again, including straight from dried bud.',
+'Fixed: pressing rosin on the press works again.',
+'New: Concentrate Jars ×10 ($12). After pressing, hold the rosin at the Scale or Press with the box nearby to fill detailed 1g glass jars with a label and amber rosin inside. You can sell them, deliver them to contracts and stock them in your dispensary.',
+'New: Grove Bags now have their own bag model and label instead of a jar.',
+'New: a packed Mylar Bag now looks like a filled, heat-sealed pouch with a label. Vacuum-sealed bags look tighter.',
+'Fixed: the Label Printer now prints a barcode label onto packed product you hold. The Vacuum Sealer now seals the Mylar or Grove bag you hold.',
+'Fixed: the Harvester takes dry buds off full drying racks before harvesting more. It no longer gets stuck when every rack is full. It then trims and packs the buds into Jars, Grove Bags or Mylar Bags, whichever is available.']},
 {v:'1.7.4',date:'Oct 31, 2026',title:'Beta v1.7.4 — Hotfix',notes:[
 'Fixed: items in your shed (seed rack, furniture and more) could disappear after reloading a save. It happened after a Shelf Stocker took the last item from a shelf. Saves that were affected now load correctly.',
 'Fixed lag when AI workers are on the farm. Workers no longer cause constant autosaves, name tags are no longer rebuilt every few seconds, and far-away characters animate more cheaply.',

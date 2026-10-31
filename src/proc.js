@@ -20,14 +20,15 @@ Object.assign(SHOP,{
  ccab:{n:'Curing Cabinet',p:220,lv:4,cat:'equip',d:'Holds 8 jars/bags, cures 60% faster and burps jars automatically.'},
  sbin:{n:'Storage Bin',p:30,cat:'furn',d:'Plastic tote that holds 12 products. Contents stay sealed.'},
  stash:{n:'Stash Cabinet',p:160,lv:2,cat:'furn',d:'Locking cabinet that holds 24 products.'},
- mylar:{n:'Mylar Bags ×10',p:10,uses:10,cat:'equip',d:'Retail bags for the packaging minigame at the scale.'},
+ mylar:{n:'Mylar Bags ×10',p:10,uses:10,cat:'equip',d:'Retail bags for the packaging minigame at the scale. Works with dried bud or cured jars.'},
+ cjars:{n:'Concentrate Jars ×10',p:12,uses:10,cat:'equip',d:'1-gram glass concentrate jars with lids. Place next to the press or scale and use it while holding rosin to fill them.'},
  hseal:{n:'Hand Sealer',p:0,hide:1,d:'Built into every Mylar box — time the heat bar.'},hlabel:{n:'Hand Labels',p:0,hide:1,d:'Handwritten sticker labels.'},
  dscale:{n:'Digital Scale',p:90,lv:2,ent:'scale',dat:{dg:1},cat:'equip',d:'0.1 g precision: steadier pouring in the packaging minigame (+5% accuracy).'},
  vseal:{n:'Vacuum Sealer',p:150,lv:3,cat:'equip',d:'Perfect seals every time; vacuum-sealed packs sell for +10%.'},
  lprint:{n:'Label Printer',p:110,lv:2,cat:'equip',d:'Prints clean labels automatically; printed packs sell for +5%.'},
  trimmer:{n:'Trim Machine',p:260,lv:4,cat:'equip',d:'Bowl trimmer: every trim counts as full speed.'},
  radio:{n:'Boombox Radio',p:45,cat:'furn',d:'Portable radio with 5 generated music stations. E/A on/off, R/RT next station, [ ]/◀▶ volume.'},
- press:{n:'Hand Rosin Press',p:80,cat:'equip',d:'Press dried bud (~20%) or trim (~10%) into rosin concentrate.'},
+ press:{n:'Hand Rosin Press',p:80,cat:'equip',d:'Press dried bud (~20%) or trim (~10%) into rosin concentrate. Fill 1g Concentrate Jars at the press or scale.'},
  hpress:{n:'Hydraulic Press',p:350,lv:5,ent:'press',dat:{hy:1},cat:'equip',d:'Hydraulic rosin press: +5% yield and +5 quality.'},
  conc:{n:'Rosin',p:0,hide:1},pkg:{n:'Retail Pack',p:0,hide:1}});
 SHOP.scale.n='Pocket Scale';
