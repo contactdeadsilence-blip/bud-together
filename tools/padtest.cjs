@@ -98,6 +98,16 @@ await press(DOWN);await frames(2);s=await st();ok('pad hot-switch back: prompts 
 // disconnect / reconnect
 await ev(()=>{__pad.connected=false;window.dispatchEvent(new Event('gamepaddisconnected'))});await frames(3);s=await st();ok('disconnect auto-pauses + hides indicator',s.paused&&!s.padInd);
 await ev(()=>{__pad.connected=true;__pad.index=1});await frames(3);await press(B);s=await st();ok('reconnected pad resumes',!s.paused&&s.padInd);
+{const LT=6;const clear=async()=>{for(let i=0;i<4&&await ev(()=>__bt.W.ents.some(e=>e.by));i++){await press(B);await press(LT,3);await sl(400);await frames(3)}};
+await clear();await ev(()=>__bt.send({t:'dplace',k:'clock',x:1,y:1.9,z:-4.95,ry:0}));await sl(500);
+const where=ty=>ev(ty=>{if(ty=='dropbox'||ty=='dumpster'){const F=__bt.W.fixp||{drop:{x:-2.8,z:7.6},bin:{x:5,z:8.6}},f=F[ty=='dropbox'?'drop':'bin'];return f&&{x:f.x,z:f.z,y:.9}}if(ty=='clock'){const i=__bt.W.decor.items.find(i=>i.k=='clock');return i&&{x:i.x,z:i.z,y:i.y,dz:1.6}}const e=__bt.W.ents.find(e=>e.type==ty&&!e.by);return e&&{x:e.x,z:e.z,y:.8}},ty);
+for(const ty of ['sink','desk','bed','dumpster','dropbox','clock']){await clear();const p=await where(ty);if(!p){ok('pad X picks up '+ty,false,'not found');continue}
+ await ev(p=>{let dx=-p.x,dz=-p.z;if(p.dz){dx=0;dz=1}const l=Math.hypot(dx,dz)||1;const d=p.dz||1.3;__bt.tp(p.x+dx/l*d,p.z+dz/l*d);__bt.lookAt(p.x,p.y,p.z)},p);await frames(12);
+ const pr=await ev(()=>document.getElementById('prompt').innerText);await press(X);await sl(500);await frames(4);
+ const held=ty=='clock'?await ev(()=>/CARRYING/.test(document.getElementById('decohud').innerText)):await ev(ty=>__bt.W.ents.some(e=>e.by&&e.type==ty),ty);ok('pad X picks up '+ty,held,pr.replace(/\n/g,' ').slice(0,90)+(held?'':' :: '+await ev(()=>JSON.stringify([__bt.W.fixp,__bt.W.ents.filter(e=>e.by).map(e=>e.type),__bt.W.msg||__bt.W.log?.slice(-2)]))));
+ if(ty=='clock'){await press(RIGHT);await press(X);await sl(500);await frames(4);ok('pad X places carried clock',!/CARRYING/.test(await ev(()=>document.getElementById('decohud').innerText||''))&&await ev(()=>getComputedStyle(document.getElementById('decohud')).display=='none'))}
+ else if(held){await ev(()=>__bt.lookAt(0,0,0));await press(RIGHT,6);await press(LT,3);await sl(500);await frames(4);ok('pad LT places '+ty,!await ev(ty=>__bt.W.ents.some(e=>e.by&&e.type==ty),ty))}}
+{const p=await where('clock');await ev(p=>{__bt.tp(p.x,p.z+1.6);__bt.lookAt(p.x,p.y,p.z)},p);await frames(12);await press(X);await sl(300);await frames(3);await press(B);await frames(4);ok('pad B cancels carried decor',await ev(()=>getComputedStyle(document.getElementById('decohud')).display=='none'))}}
 ok('no page errors',errs.length==0,errs.join(' | '));
 await P.reload({waitUntil:'networkidle0'});await sl(500);s=await st();ok('remap persists after reload',s.binds.jump==3,JSON.stringify(s.binds));
 await ev(()=>{localStorage.bt_binds=JSON.stringify({});});
