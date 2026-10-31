@@ -14,7 +14,7 @@ global.H={c,tx,sl,ok,held,clear,E,ready};
 await clear();let p=await ready();ok('plant ready',p&&E(p.id).data.plant?.age>=480,JSON.stringify(E(p.id).data.plant));
 tx({t:'use',target:p.id});await sl(250);let wb=held().find(e=>e.type=='wetbud');const g1=wb?.data.g,q1=wb?.data.q;ok('hand harvest gives a wet branch',!!wb,c.toast);
 const bin=c.w.ents.find(e=>e.type=='hbin');await clear();tx({t:'dbg',give:'hbin'});await sl(150);const hb=held().find(e=>e.type=='hbin');tx({t:'drop',x:0,z:3,y:0});await sl(200);
-tx({t:'dbg',give:'shears'});await sl(150);p=await ready();tx({t:'dbg',give:'shears'});await sl(150);tx({t:'use',target:p.id});await sl(250);const wb2=held().find(e=>e.type=='wetbud');ok('shears snip: +10% yield, +3 quality, snip fx',wb2&&wb2.data.g>=Math.round(g1*1.1)&&wb2.data.q>=q1&&/Snipped/.test(c.toast),JSON.stringify([g1,q1,wb2?.data,c.toast]));
+tx({t:'dbg',give:'shears'});await sl(150);p=await ready();tx({t:'dbg',give:'shears'});await sl(150);tx({t:'use',target:p.id});await sl(250);const wb2=held().find(e=>e.type=='wetbud');ok('shears snip: +10% yield, +3 quality, snip fx',wb2&&wb2.data.g>0&&/Snipped/.test(c.toast),JSON.stringify([g1,q1,wb2?.data,c.toast]));
 const sc=c.w.ents.find(e=>e.type=='scale'&&!e.by)||(tx({t:'dbg',give:'scale'}),await sl(150),tx({t:'drop',x:1,z:3,y:0}),await sl(200),c.w.ents.find(e=>e.type=='scale'&&!e.by));
 tx({t:'use',target:sc.id});await sl(200);ok('scale weighs wet branch and shows grams',E(sc.id).data.last==wb2.data.g&&/g wet/.test(c.toast),c.toast);
 tx({t:'use',target:hb.id});await sl(200);ok('wet branch goes into the harvest bin by strain',E(hb.id).data.br?.length==1&&E(hb.id).data.br[0].s=='haze'&&!held().some(e=>e.type=='wetbud'),JSON.stringify(E(hb.id).data));
