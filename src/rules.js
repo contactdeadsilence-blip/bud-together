@@ -81,8 +81,8 @@ export const BIG=['dropbox','dumpster','seedrack','shelf','pallet','sink','table
 export const ROLL=1.6,JOINT=6;// seconds to roll; $ per pre-roll on the spot (vs $4/g jar)
 export const WAKE=7*60,canSleep=min=>min>=19*60||min<5*60;
 // v12: shared catalog categories (laptop shop + Quick Bud phone app)
-export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Furniture',bulk:'Bulk Pallets'};
-export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf','seedrack'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
+export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Furniture',bulk:'Bulk Pallets',build:'Furniture & Construction'};
+export function catOf(k){if(k.startsWith('b_'))return 'build';if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf','seedrack'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
 export const MAXORD=10;// max units per line in one order
 export function harvQ(p){const b=p.qt?p.qs/p.qt*100:60;return Math.max(15,Math.min(92,Math.round(b*.9+(p.sq||0)*4+(p.ty==='f'?4:0)+((p.ph||1)-1)*8)))}
 // v13a: light-weight item collisions — per-object support shapes; dropped items settle on the highest surface under them
@@ -100,3 +100,22 @@ export function settle(w,x,z,yh=9,r=.1){let best={x,z,y:0,on:null};
   if(s.basin){const ix=s.w/2-SINKB.T-r,iz=s.d/2-SINKB.T-r;lx=Math.max(-ix,Math.min(ix,lx));lz=Math.max(-iz,Math.min(iz,lz))}
   best={x:+(e.x+lx*c+lz*sn).toFixed(3),z:+(e.z-lx*sn+lz*c).toFixed(3),y:+top.toFixed(3),on:e.type||e.k}}
  return best}
+// ---------- v18: Section 5 building & decorating (shared by client + server) ----------
+export const BP={wall:{n:'Wall Panel',p:30,c:'w'},door:{n:'Door',p:60,c:'w'},window:{n:'Glass Window Wall',p:55,c:'w'},gdoor:{n:'Garage Door',p:120,c:'w'},floor:{n:'Floor Tile',p:20,c:'f'},roof:{n:'Roof Panel',p:25,c:'r'}};
+export const BMAT=[['wood','Wood','#b88250'],['brick','Brick','#b5563a'],['metal','Metal','#9aa3ab'],['glass','Glass','#cfefff'],['paint','White Paint','#f2efe8'],['paint','Sage Paint','#8fae8b'],['paint','Navy Paint','#2f4466'],['paint','Barn Red Paint','#9b2f2a'],['paint','Sunny Yellow Paint','#e8c547']];
+export const PAINTP=5;
+// prefab = list of [piece, tileX, tileZ, rot(0..3), mat] in a grid of 2m tiles; walls sit on tile edges
+function boxPF(W,D,m,o={}){const L=[],rf=o.roof!==false;for(let i=0;i<W;i++)for(let j=0;j<D;j++){L.push(['floor',2*i,2*j,0,o.fm??0]);if(rf)L.push(['roof',2*i,2*j,0,o.rm??m])}
+ for(let i=0;i<W;i++){const mid=i==(W-1>>1);if(!o.openBack)L.push([o.backWin&&mid?'window':'wall',2*i,-1,0,m]);L.push([mid?(o.front||'door'):(o.win&&i!=mid?'window':'wall'),2*i,2*D-1,0,m])}
+ for(let j=0;j<D;j++){const w=o.win&&j==(D-1>>1)?'window':'wall';L.push([w,-1,2*j,1,m]);L.push([w,2*W-1,2*j,1,m])}return L}
+export const BPF={room:{n:'Room Kit (4×4m)',p:420,L:()=>boxPF(2,2,0,{win:1})},greenhouse:{n:'Greenhouse Kit (6×4m)',p:560,L:()=>boxPF(3,2,3,{rm:3,fm:2,front:'door'})},garage:{n:'Garage Kit (6×6m)',p:780,L:()=>boxPF(3,3,2,{front:'gdoor',win:1,fm:2})},shed:{n:'Storage Shed Kit (2×4m)',p:220,L:()=>boxPF(1,2,0,{front:'door'})},ext:{n:'Room Extension (4×4m, open back)',p:300,L:()=>boxPF(2,2,0,{openBack:1,win:1})}};
+export const bSlot=(k,x,z,r,y=0)=>BP[k].c+':'+x+','+z+(BP[k].c=='w'?':'+(r&1):'');
+// expand a placement (piece or prefab) to absolute pieces; origin snapped to even tile centers
+export function bExpand(k,x,z,r){r=((r|0)%4+4)%4;if(BP[k])return [{k,x,z,r}];const P=BPF[k];if(!P)return [];const c=[1,0,-1,0][r],s=[0,1,0,-1][r];
+ return P.L().map(([pk,tx,tz,pr,m])=>({k:pk,x:x+tx*c-tz*s,z:z+tx*s+tz*c,r:(pr+r)%4,m}))}
+export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2&&!(x>-5.2&&x<12.2&&z>-6.2&&z<7.6)&&!(x>-11.8&&x<-5.4&&z>-3.4&&z<3.4);
+export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.05&&Math.abs(p.z-z)<=1.05);
+// shop listings for construction stock (bought items go to your build inventory, saved with the farm)
+for(const [k,v] of Object.entries(BP))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
+for(const [k,v] of Object.entries(BPF))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Prefab building kit — walls, door, floor and roof snap together in one placement. Goes to your Build inventory; place it in Build mode (B / D-pad ▲).'};
+for(const [k,v] of Object.entries(DECOR))SHOP['b_f_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Furniture — goes to your Build inventory. Place it in Build mode (B / D-pad ▲) inside your shed or on any floor you have built.'};
