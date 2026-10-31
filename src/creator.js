@@ -1,3 +1,4 @@
+import {thumbCloth,img} from './thumbs.js';
 // Character creator + Threads clothing store + outfit slots. Fully pad/keyboard navigable.
 import * as THREE from 'three';
 import {TONES,EYES,HAIRC,HAIRS,FHAIR,BROWS,FACES,TATS,SCARS,COLORS,PATS,CLOTH,SLOTS,OPTIONAL,STARTER,defLook,cleanLook,makeHuman,setLook,animateAvatar,ready} from './human.js';
@@ -68,7 +69,7 @@ function render(){const R=rows();if(C.row>=R.length)C.row=R.length-1;while(R[C.r
  $('crer').innerHTML=R.map((r,i)=>{if(r.h!=null)return `<div class="cr h">${r.h}</div>`;let v='';
   if(r.done)v='';else if(r.buy!=null)v=r.own?'<i>OWNED · wear</i>':`<i>$${CLOTH[r.buy].p}</i>`;else if(r.save!=null||r.wear!=null)v=r.dis?'—':'<i>A</i>';
   else if(r.rng){const x=((val(r)||0)-r.rng[0])/(r.rng[1]-r.rng[0]);v=`<i>◀</i><span class="bar"><u style="left:${x*114}px"></u></span><i>▶</i>`}else v=`<i>◀</i>${r.fmt(val(r))}<i>▶</i>`;
-  return `<div class="cr${i==C.row?' f':''}" data-i="${i}"><span>${r.lab}</span><span class="v">${v}</span></div>`}).join('');
+  return `<div class="cr${i==C.row?' f':''}" data-i="${i}"><span>${r.buy!=null?img(thumbCloth(r.buy,()=>{if(creatorOpen())render()}),'th'):''}${r.lab}</span><span class="v">${v}</span></div>`}).join('');
  $('crer').querySelector('.f')?.scrollIntoView({block:'nearest'});const m=C.money?.();$('crm').textContent=m!=null?'$'+m:'';
  $('crtt').textContent=C.mode=='create'?'CREATE YOUR GROWER':C.t=='store'?'THREADS — CLOTHING STORE':'WARDROBE';
  $('crh').innerHTML=(document.body.classList.contains('pad')?'D-pad/LS ▲▼ select · ◀▶ change · A choose · LB/RB tabs · RS rotate · B done':'↑↓ select · ←→ change · Enter choose · Q/E tabs · Z/C rotate · Esc done')}

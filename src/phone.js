@@ -1,5 +1,5 @@
 // v12: cell phone + "Quick Bud" shopping app. Same catalog (SHOP) and same server order path as the laptop shop.
-import {SHOP,CATS,catOf,MAXORD} from './rules.js';
+import {SHOP,CATS,catOf,MAXORD} from './rules.js';import {thumb,img} from './thumbs.js';
 const $=id=>document.getElementById(id);
 const P={on:false,scr:'home',tab:'shop',cat:'all',q:'',cart:JSON.parse(localStorage.bt_cart||'{}'),lastOrd:0};
 let D=null;// deps from main.js
@@ -42,7 +42,7 @@ function render(keep,reset){const W=D.W(),pad=D.padMode(),g=D.bglyph;const f=D.f
   h=`<div class="ph-hd ph-qbh"><button class="ph-bk" data-ph="home" data-pk="home">‹</button><b>quick<span>bud</span></b><small>${pad?g(4)+g(5):'Q/E'}</small></div>${tabs}`;
   if(P.tab=='shop'){const q=P.q.trim().toLowerCase();const L=ITEMS().filter(([k,v])=>(P.cat=='all'||catOf(k)==P.cat)&&(!q||v.n.toLowerCase().includes(q)||catOf(k).includes(q)));
    h+=`<button class="ph-search" data-ph="search" data-pk="search">🔍 ${P.q?esc(P.q):'Search everything'}</button><div class="ph-cats">${[['all','All'],...Object.entries(CATS)].map(([k,n])=>`<button class="ph-cat${P.cat==k?' sel':''}" data-ph="cat" data-v="${k}" data-pk="c${k}">${n}</button>`).join('')}</div>
-   <div class="ph-list">${L.length?L.map(([k,v])=>`<button class="ph-it" data-ph="add" data-v="${k}" data-pk="a${k}"><i class="ph-ic c-${catOf(k)}"></i><span><b>${esc(v.n)}</b><small>${CATS[catOf(k)]}${v.uses?' · '+v.uses+' uses':''}</small></span><em>$${v.p}${P.cart[k]?`<small>🛒${P.cart[k]}</small>`:''}</em></button>`).join(''):'<p class="ph-empty">No matches. Try another word.</p>'}</div>`}
+   <div class="ph-list">${L.length?L.map(([k,v])=>`<button class="ph-it" data-ph="add" data-v="${k}" data-pk="a${k}">${img(thumb(k),'ph-th')}<span><b>${esc(v.n)}</b><small>${CATS[catOf(k)]}${v.uses?' · '+v.uses+' uses':''}</small></span><em>$${v.p}${P.cart[k]?`<small>🛒${P.cart[k]}</small>`:''}</em></button>`).join(''):'<p class="ph-empty">No matches. Try another word.</p>'}</div>`}
   if(P.tab=='cart'){const L=Object.entries(P.cart).filter(([k])=>SHOP[k]);const t=cartT();
    h+=`<div class="ph-list">${L.length?L.map(([k,n])=>`<div class="ph-line"><button class="ph-lq" data-ph="dec" data-v="${k}" data-pk="d${k}">−</button><button class="ph-ln" data-line="${k}" data-ph="rm" data-v="${k}" data-pk="l${k}"><b>${esc(SHOP[k].n)}</b><small>${n} × $${SHOP[k].p} = $${n*SHOP[k].p} · ${pad?g(0)+' remove · ◀▶ qty':'click to remove'}</small></button><button class="ph-lq" data-ph="inc" data-v="${k}" data-pk="i${k}">+</button></div>`).join(''):'<p class="ph-empty">Your cart is empty.</p>'}</div>
    ${L.length?`<div class="ph-tot">Total <b>$${t}</b>${W&&W.money<t?' <span class="bad">not enough cash</span>':''}</div><button class="ph-co" data-ph="checkout" data-pk="co">Place order · same-day delivery</button>`:''}`}
