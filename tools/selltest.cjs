@@ -1,0 +1,26 @@
+// v22: remove-to-inventory vs sell (pieces, whole prefab, furniture), lights on/off + outdoor placement, style items in shop, co-op sync
+const WS=require('ws'),{spawn}=require('child_process');const sl=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{const PORT=3231;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(800);
+const cl=()=>new Promise(r=>{const ws=new WS(`ws://localhost:${PORT}/ws`);const c={ws,w:null,toasts:[]};ws.on('message',d=>{const m=JSON.parse(d);if(m.t=='joined')c.code=m.code,c.id=m.id;if(m.t=='w'){c.w=m.w;if(m.w.toast&&m.w.toast.pid==c.id)c.toasts.push(m.w.toast.t)}});ws.on('open',()=>r(c))});
+const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i)};const tx=(c,m)=>c.ws.send(JSON.stringify(m));const st=()=>sl(350);
+const A=await cl(),B=await cl();tx(A,{t:'host',name:'A'});await sl(200);tx(B,{t:'join',code:A.code,name:'B'});await sl(200);tx(A,{t:'start'});await sl(500);
+tx(A,{t:'dbg',money:20000});await st();
+tx(A,{t:'bplace',k:'wall',x:20,z:-20,r:0,m:0});await st();let w=A.w.build.find(p=>p.k=='wall'&&p.x==20&&p.z==-20);ok('wall built',!!w);
+tx(A,{t:'bdel',id:w.id});await st();ok('remove → inventory',!A.w.build.some(p=>p.id==w.id)&&A.w.bstock.wall==1);
+tx(A,{t:'bplace',k:'wall',x:20,z:-20,r:0,m:0});await st();w=A.w.build.find(p=>p.k=='wall'&&p.x==20&&p.z==-20);let m0=A.w.money;
+tx(A,{t:'bsell',id:w.id});await st();ok('sell piece +50%',!A.w.build.some(p=>p.id==w.id)&&A.w.money==m0+15&&!A.w.bstock.wall,m0+'→'+A.w.money);
+tx(A,{t:'bplace',k:'room',x:24,z:-20,r:0,m:0});await st();const R=A.w.build.filter(p=>p.gk=='room');ok('prefab pieces grouped',R.length>4&&R.every(p=>p.g==R[0].g),R.length);
+m0=A.w.money;tx(A,{t:'bsell',id:R[0].id});await st();ok('sell one prefab piece',A.w.build.filter(p=>p.gk=='room').length==R.length-1);
+const v=R.slice(1).reduce((a,p)=>a+Math.floor({wall:30,door:60,window:55,gdoor:120,floor:20,roof:25,roofs:35,roofr:35}[p.k]/2),0);m0=A.w.money;
+tx(A,{t:'bsell',id:R[1].id,whole:1});await st();ok('sell whole building',!A.w.build.some(p=>p.gk=='room')&&A.w.money==m0+v,v);
+ok('co-op sees sale',B.w.money==A.w.money&&!B.w.build.some(p=>p.gk=='room'));
+tx(A,{t:'dplace',k:'floorlamp',x:0,y:0,z:1,ry:0});await st();const L=A.w.decor.items.find(i=>i.k=='floorlamp');ok('floor lamp placed',!!L);
+tx(A,{t:'dlight',id:L.id});await st();ok('light off',A.w.decor.items.find(i=>i.id==L.id).off==1&&B.w.decor.items.find(i=>i.id==L.id).off==1);
+tx(A,{t:'dplace',k:'flood',x:30,y:0,z:30,ry:0});await st();ok('floodlight outdoors',A.w.decor.items.some(i=>i.k=='flood'));
+A.toasts=[];tx(A,{t:'dplace',k:'couch',x:30,y:0,z:30,ry:0});await st();ok('couch outdoors refused',!A.w.decor.items.some(i=>i.k=='couch'));
+tx(A,{t:'dstow',id:L.id});await st();ok('furniture → inventory',!A.w.decor.items.some(i=>i.id==L.id)&&A.w.bstock.f_floorlamp==1);
+const fl=A.w.decor.items.find(i=>i.k=='flood');m0=A.w.money;tx(A,{t:'drem',id:fl.id});await st();ok('sell furniture 50%',A.w.money==m0+55);
+m0=A.w.money;tx(A,{t:'order',items:[{k:'b_s_paint_sage',n:3}]});await st();ok('buy shed paint from shop applies',A.w.decor.paint=='sage'&&A.w.money==m0-25&&A.w.decor.own.includes('paint:sage'));
+tx(A,{t:'dstyle',k:'paint',v:'cream'});await st();m0=A.w.money;tx(A,{t:'order',items:[{k:'b_s_paint_sage',n:1}]});await st();ok('owned style re-applies free',A.w.decor.paint=='sage'&&A.w.money==m0);
+m0=A.w.money;tx(A,{t:'order',items:[{k:'b_f_pendant',n:2}]});await st();ok('buy pendant → inventory',A.w.bstock.f_pendant==2&&A.w.money==m0-130);
+console.log(res.filter(x=>x).length+'/'+res.length+' passed');srv.kill();process.exit(res.every(x=>x)?0:1)})();

@@ -65,8 +65,8 @@ function tick(w,dt){const U=w.util;if(!(U.off&2))U.kwh+=w.ents.filter(e=>e.type=
 function msg(w,t){w.log.push(t)}
 // v12: one order path for the laptop shop and the Quick Bud phone app (validated, priced and delivered server-side)
 function order(w,m,say){const L=[];for(const x of Array.isArray(m.items)?m.items.slice(0,40):[]){const it=SHOP[x?.k];if(!it)return say('Unknown item');if(it.hide)return say('Not sold — fill your can at the sink');const n=Math.max(1,Math.min(MAXORD,x.n|0||1));const o=L.find(l=>l.k===x.k);if(o)o.n=Math.min(MAXORD,o.n+n);else L.push({k:x.k,n})}
- if(!L.length)return say('Cart is empty');const tot=L.reduce((a,l)=>a+SHOP[l.k].p*l.n,0);if(w.money<tot)return say(`Not enough money — need $${tot}`);w.money-=tot;const oid=w.nid++,os=w.orders??=[];let i=0;
- for(const l of L){if(SHOP[l.k].bld){const S=w.bstock??={};S[l.k.slice(2)]=(S[l.k.slice(2)]||0)+l.n;continue}for(let k=0;k<l.n;k++)w.pending.push({type:l.k,t:4+(i++)*.5,oid})}os.unshift({id:oid,via:m.via==='phone'?'phone':'laptop',day:w.day,min:Math.round(w.min),items:L,tot,n:i});os.length=Math.min(os.length,12);w.sound='buy';if(L.every(l=>SHOP[l.k].bld))return say(`Bought ${L.map(l=>l.n+'× '+SHOP[l.k].n).join(', ')} — added to your Build inventory (press B to build)`);
+ if(!L.length)return say('Cart is empty');const D0=w.decor??=defDecor();const lp=l=>{const st=SHOP[l.k].style;if(st){l.n=1;return D0.own.includes(st[0]+':'+st[1])?0:SHOP[l.k].p}return SHOP[l.k].p*l.n};const tot=L.reduce((a,l)=>a+lp(l),0);if(w.money<tot)return say(`Not enough money — need $${tot}`);w.money-=tot;const oid=w.nid++,os=w.orders??=[];let i=0;
+ for(const l of L){const st=SHOP[l.k].style;if(st){const key=st[0]+':'+st[1];if(!D0.own.includes(key))D0.own.push(key);D0[st[0]]=st[1];continue}if(SHOP[l.k].bld){const S=w.bstock??={};S[l.k.slice(2)]=(S[l.k.slice(2)]||0)+l.n;continue}for(let k=0;k<l.n;k++)w.pending.push({type:l.k,t:4+(i++)*.5,oid})}os.unshift({id:oid,via:m.via==='phone'?'phone':'laptop',day:w.day,min:Math.round(w.min),items:L,tot,n:i});os.length=Math.min(os.length,12);w.sound='buy';if(L.every(l=>SHOP[l.k].style))return say(`Applied ${L.map(l=>SHOP[l.k].n).join(', ')} to your shed`+(tot?` (-$${tot})`:' (already owned — free)'));if(L.every(l=>SHOP[l.k].bld||SHOP[l.k].style))return say(`Bought ${L.map(l=>l.n+'× '+SHOP[l.k].n).join(', ')} — added to your Build inventory (press B to build)`);
  const units=L.reduce((a,l)=>a+l.n,0);return say(L.length===1?`Ordered ${L[0].n}× ${SHOP[L[0].k].n} — arriving at the door`:`Order #${oid} placed: ${units} items, $${tot} — arriving at the door`)}
 const orderView=w=>(w.orders||[]).map(o=>{const P=w.pending.filter(p=>p.oid===o.id);return{...o,left:P.length,eta:P.length?Math.ceil(Math.max(...P.map(p=>p.t))):0}});
 function trash(w,c,say){if(c.type==='dropbox'||c.type==='dumpster')return say&&say("Can't throw that away");w.ents=w.ents.filter(e=>e!==c);w.sound='drop';if(c.type==='water'&&!w.ents.some(e=>e.type==='water'))w.ents.push({id:w.nid++,type:'water',x:3.3,y:0,z:-.45,ry:0,by:0,data:{w:0}});
@@ -104,8 +104,8 @@ function act0(w,pid,m){fixHeal(w);const bag=w.ents.filter(e=>e.by===pid);const c
  if(m.t==='upgrade'){if(w.room>1)return;if(w.rep<5)return say('Need 5 reputation');if(w.money<500)return say('Need $500');w.money-=500;w.room=2;return say('Grow room expanded!')}
  if(m.t==='drop'){if(!c)return;c.by=0;c.bi=0;const P=settle(w,+m.x||0,+m.z||0,(+m.y||0)+.1);c.x=P.x;c.z=P.z;c.y=P.y;c.ry=+m.ry||0;if(c.type!=='scale'){const sc=w.ents.find(e=>e.type==='scale'&&!e.by&&e!==c&&Math.hypot(e.x-c.x,e.z-c.z)<.3);if(sc){const a=Math.atan2(c.z-sc.z,c.x-sc.x)||0;const Q=settle(w,sc.x+Math.cos(a)*.35,sc.z+Math.sin(a)*.35,(+m.y||0)+.1);c.x=Q.x;c.z=Q.z;c.y=Q.y}}{const k=c.type==='dropbox'?'drop':c.type==='dumpster'?'bin':null;if(k){w.fixp[k]={x:c.x,z:c.z,ry:c.ry};w.ents=w.ents.filter(e=>e!==c);return}}if(c.type==='seedrack'){const S=rackSnap(ROOMB(w.room),c.x,c.z);c.x=S.x;c.z=S.z;c.ry=S.ry;c.y=0}return}
  if(m.t==='cycle'){if(bag.length<2)return;const L=bag.length;if(m.sel!=null){const k=+m.sel;if(k>0&&k<L)for(const e of bag)e.bi=((e.bi||0)-k+L)%L;return}const d=m.d<0?1:L-1;for(const e of bag)e.bi=((e.bi||0)+d)%L;return}
- if(m.t==='bplace'||m.t==='bdel'||m.t==='bpaint'||m.t==='bdoor')return build(w,m,say);
- if(m.t==='dstyle'||m.t==='dplace'||m.t==='dmove'||m.t==='drem')return decor(w,m,say);
+ if(m.t==='bplace'||m.t==='bdel'||m.t==='bsell'||m.t==='bpaint'||m.t==='bdoor')return build(w,m,say);
+ if(m.t==='dstyle'||m.t==='dplace'||m.t==='dmove'||m.t==='drem'||m.t==='dlight'||m.t==='dstow')return decor(w,m,say);
  if(m.t==='trash'){if(!c)return;return trash(w,c,say)}
  if(m.t==='sleep')return sleepReq(w,pid,m,say);
  if(m.t!=='use')return;
@@ -162,21 +162,26 @@ function build(w,m,say){const B=w.build??=[],S=w.bstock??={},sn=v=>Math.round(+v
   const used=new Set(B.map(p=>bSlot(p.k,p.x,p.z,p.r))),L=bExpand(k,x,z,r).filter(p=>!used.has(bSlot(p.k,p.x,p.z,p.r)));
   if(!L.length)return say('Something is already built there');if(L.some(p=>!bAllowed(p.x,p.z)))return say("Can't build there — too close to the shed/greenhouse or off the lot");if(B.length+L.length>400)return say('Build limit reached (400 pieces)');
   const pr=(BP[k]||BPF[k]).p;if(S[k]>0)S[k]--;else{if(w.money<pr)return say(`Need $${pr} for ${(BP[k]||BPF[k]).n} — or buy it in budsupply.shop`);w.money-=pr}
-  for(const p of L)B.push({id:w.nid++,k:p.k,x:p.x,z:p.z,r:p.r,m:BPF[k]?p.m:mi,o:0});w.sound='drop';return say(`Built ${(BP[k]||BPF[k]).n}`+(L.length>1?` (${L.length} pieces)`:''))}
+  const gid=BPF[k]?w.nid++:0;for(const p of L)B.push({id:w.nid++,k:p.k,x:p.x,z:p.z,r:p.r,m:BPF[k]?p.m:mi,o:0,...(gid?{g:gid,gk:k}:{})});w.sound='drop';return say(`Built ${(BP[k]||BPF[k]).n}`+(L.length>1?` (${L.length} pieces)`:''))}
  const p=B.find(e=>e.id===m.id);if(!p)return say('Piece not found');
+ if(m.t==='bsell'){const grp=m.whole&&p.g?B.filter(e=>e.g===p.g):[p],v=grp.reduce((a,e)=>a+bSellP(e.k),0);w.build=B.filter(e=>!grp.includes(e));w.money+=v;w.sound='cash';
+  return say(grp.length>1?`Sold ${BPF[p.gk]?.n||'building'} (${grp.length} pieces) for $${v}`:`Sold ${BP[p.k].n} for $${v}`)}
  if(m.t==='bdel'){w.build=B.filter(e=>e!==p);S[p.k]=(S[p.k]||0)+1;w.sound='pick';return say(`Removed ${BP[p.k].n} — back in your Build inventory`)}
  if(m.t==='bpaint'){const mi=m.m|0;if(!BMAT[mi])return;if(p.m===mi)return say('Already '+BMAT[mi][1]);if(w.money<PAINTP)return say(`Need $${PAINTP}`);w.money-=PAINTP;p.m=mi;w.sound='ui';return say(`${BP[p.k].n} → ${BMAT[mi][1]} (-$${PAINTP})`)}
  if(m.t==='bdoor'){if(p.k!=='door'&&p.k!=='gdoor')return;p.o=p.o?0:1;w.sound='ui';return}}
+const bSellP=k=>Math.floor(((BP[k]||BPF[k])?.p||0)/2);
 // ---------- shed decor (server-authoritative: money, bounds, ownership) ----------
 function decor(w,m,say){const D=w.decor??=defDecor();const B=ROOMB(w.room),num=v=>Math.round((+v||0)*100)/100;
  if(m.t==='dstyle'){const cat=STYLE[m.k],o=cat?.[m.v];if(!o)return say('Unknown style');if(D[m.k]===m.v)return say('Already applied');const key=m.k+':'+m.v;
   if(o.p&&!D.own.includes(key)){if(w.money<o.p)return say(`Need $${o.p}`);w.money-=o.p;D.own.push(key)}D[m.k]=m.v;w.sound='buy';return say(`${o.n} applied`+(o.p?'':''))}
- const fits=(k,x,y,z)=>{const it=DECOR[k];const r=Math.max(it.w,it.d)/2*.7;if(it.s==='wall')return x>=B.x0-.1&&x<=B.x1+.1&&z>=B.z0-.1&&z<=B.z1+.1&&y>=.3&&y<=2.8;return (x-r>=B.x0-.05&&x+r<=B.x1+.05&&z-r>=B.z0-.05&&z+r<=B.z1+.05||it.s!=='wall'&&onBFloor(w.build,x,z))&&y>=0&&y<=1.2};
- if(m.t==='dplace'){const it=DECOR[m.k];if(!it)return say('Unknown item');if(D.items.length>=60)return say('Decor limit reached (60)');const x=num(m.x),y=num(m.y),z=num(m.z);if(!fits(m.k,x,y,z))return say("Can't place that there");
+ const fits=(k,x,y,z)=>{const it=DECOR[k];if(it.out&&Math.abs(x)<=42&&Math.abs(z)<=42&&y>=0&&y<=1.2&&it.s!=='wall')return true;const r=Math.max(it.w,it.d)/2*.7;if(it.s==='wall')return x>=B.x0-.1&&x<=B.x1+.1&&z>=B.z0-.1&&z<=B.z1+.1&&y>=.3&&y<=2.8;return (x-r>=B.x0-.05&&x+r<=B.x1+.05&&z-r>=B.z0-.05&&z+r<=B.z1+.05||it.s!=='wall'&&onBFloor(w.build,x,z))&&y>=0&&y<=1.2};
+ if(m.t==='dplace'){const it=DECOR[m.k];if(!it)return say('Unknown item');if(D.items.length>=80)return say('Decor limit reached (80)');const x=num(m.x),y=num(m.y),z=num(m.z);if(!fits(m.k,x,y,z))return say("Can't place that there");
   const S=w.bstock??={},sk='f_'+m.k;if(S[sk]>0)S[sk]--;else{if(w.money<it.p)return say(`Need $${it.p} for ${it.n}`);w.money-=it.p}D.items.push({id:w.nid++,k:m.k,x,y,z,ry:num(m.ry)});w.sound='drop';return say(`Placed ${it.n} (-$${it.p})`)}
  const i=D.items.find(e=>e.id===m.id);if(!i)return say('Item not found');
  if(m.t==='dmove'){const x=num(m.x),y=num(m.y),z=num(m.z);if(!fits(i.k,x,y,z))return say("Can't place that there");Object.assign(i,{x,y,z,ry:num(m.ry)});w.sound='drop';return say('Moved '+DECOR[i.k].n)}
- if(m.t==='drem'){const back=Math.floor(DECOR[i.k].p/2);D.items=D.items.filter(e=>e!==i);w.money+=back;w.sound='pick';return say(`Removed ${DECOR[i.k].n} (+$${back} back)`)}}
+ if(m.t==='dlight'){if(!DECOR[i.k].lt)return;i.off=i.off?0:1;w.sound='ui';return say(`${DECOR[i.k].n} ${i.off?'off':'on'}`)}
+ if(m.t==='dstow'){D.items=D.items.filter(e=>e!==i);const S=w.bstock??={};S['f_'+i.k]=(S['f_'+i.k]||0)+1;w.sound='pick';return say(`Removed ${DECOR[i.k].n} — back in your Build inventory`)}
+ if(m.t==='drem'){const back=Math.floor(DECOR[i.k].p/2);D.items=D.items.filter(e=>e!==i);w.money+=back;w.sound='pick';return say(`Sold ${DECOR[i.k].n} for $${back}`)}}
 let nid=1;
 wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  const send=m=>ws.send(JSON.stringify(m));

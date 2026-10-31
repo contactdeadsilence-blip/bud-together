@@ -1,5 +1,12 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'0.22',date:'Oct 31, 2026',title:'Sell Builds & New Lights',notes:[
+'Build mode: aim at any wall, floor, roof, door, window or furniture to Remove it (back to your Build inventory) or Sell it for half its price.',
+'Prefab buildings can be sold piece by piece or all at once (hold Y on controller, or Ctrl+Shift+X and press again to confirm).',
+'Keyboard: X / Delete removes, Shift+X sells. Controller: tap Y removes, hold Y sells. Mouse: click the buttons on the build bar.',
+'10 new lights in budsupply.shop → Furniture & Construction: ceiling pendant, LED strip, floor lamp, wall sconce, fairy lights, floodlight, neon OPEN sign, outdoor path lights, lantern and desk lamp. They really light up the room — switch them on/off with L or the right stick click.',
+'Floodlights, path lights and lanterns can be placed outdoors anywhere on your lot.',
+'The laptop Decorate tab is gone: shed paint, wall panels, flooring, light colors and fixtures are now sold in the shop. Styles you already own stay owned and re-apply free.']},
 {v:'0.21',date:'Oct 31, 2026',title:"What's New",notes:[
 "New What's New screen: see what changed in every update from the main menu or pause menu.",
 "The game version is now shown on the main menu."]},

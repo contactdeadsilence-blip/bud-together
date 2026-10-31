@@ -65,7 +65,12 @@ export const STYLE={
 export const DECOR={rug:{n:'Woven Rug',p:40,w:1.6,d:2.2,h:.02,s:'floor'},rugr:{n:'Round Jute Rug',p:35,w:1.5,d:1.5,h:.02,s:'floor'},couch:{n:'Leather Couch',p:220,w:1.9,d:.85,h:.85,s:'floor',solid:1},beanbag:{n:'Bean Bag',p:60,w:.8,d:.8,h:.6,s:'floor',solid:1},
  table:{n:'Coffee Table',p:70,w:1.1,d:.6,h:.42,s:'floor',solid:1,top:.42},wtable:{n:'Work Table',p:95,w:1.4,d:.7,h:.9,s:'floor',solid:1,top:.9},bookcase:{n:'Bookcase',p:110,w:.9,d:.35,h:1.8,s:'floor',solid:1},fridge:{n:'Mini Fridge',p:140,w:.5,d:.5,h:.85,s:'floor',solid:1,top:.85},
  fan:{n:'Standing Fan',p:45,w:.45,d:.45,h:1.3,s:'floor',solid:1},plant:{n:'Monstera Plant',p:35,w:.5,d:.5,h:1.1,s:'top'},cactus:{n:'Desk Cactus',p:15,w:.18,d:.18,h:.25,s:'top'},lamp:{n:'Table Lamp',p:30,w:.3,d:.3,h:.5,s:'top'},
- poster:{n:'Strain Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},poster2:{n:'Retro Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},neon:{n:'Neon Leaf Sign',p:120,w:.9,d:.06,h:.6,s:'wall'},clock:{n:'Wall Clock',p:25,w:.4,d:.05,h:.4,s:'wall'},shelfw:{n:'Floating Shelf',p:30,w:1,d:.25,h:.3,s:'wall'}};
+ poster:{n:'Strain Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},poster2:{n:'Retro Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},neon:{n:'Neon Leaf Sign',p:120,w:.9,d:.06,h:.6,s:'wall'},clock:{n:'Wall Clock',p:25,w:.4,d:.05,h:.4,s:'wall'},shelfw:{n:'Floating Shelf',p:30,w:1,d:.25,h:.3,s:'wall'},
+ // v22 lighting: lt=[color,intensity,range]; out=1 may be placed outdoors anywhere on the lot
+ pendant:{n:'Ceiling Pendant Light',p:65,w:.4,d:.4,h:.1,s:'floor',lt:['#ffd49a',3,6]},ledstrip:{n:'LED Light Strip',p:40,w:1.6,d:.08,h:.03,s:'floor',lt:['#b48cff',1.6,3.5]},floorlamp:{n:'Floor Lamp',p:85,w:.45,d:.45,h:1.7,s:'floor',solid:1,lt:['#ffd8a0',2.6,5.5]},
+ sconce:{n:'Wall Sconce',p:45,w:.22,d:.16,h:.3,s:'wall',lt:['#ffcf8a',1.8,4]},fairy:{n:'String Fairy Lights',p:35,w:1.8,d:.05,h:.25,s:'wall',lt:['#ffe2a8',1.2,3.5]},flood:{n:'LED Floodlight',p:110,w:.4,d:.4,h:.6,s:'floor',out:1,lt:['#f2f6ff',6,14]},
+ neonsign:{n:'Neon "OPEN" Sign',p:95,w:.8,d:.06,h:.4,s:'wall',lt:['#ff4fa8',1.4,3.5]},pathlt:{n:'Outdoor Path Light',p:25,w:.18,d:.18,h:.5,s:'floor',out:1,lt:['#ffd49a',1.2,3]},lantern:{n:'Camping Lantern',p:30,w:.22,d:.22,h:.38,s:'top',out:1,lt:['#ffb85a',1.6,4]},desklamp:{n:'Desk Lamp',p:40,w:.3,d:.3,h:.5,s:'top',lt:['#fff0dc',1.5,3]}};
+DECOR.lamp.lt=['#ffcf8a',1.4,3];DECOR.neon.lt=['#7dff9a',1.2,3];
 export const defDecor=()=>({paint:'cream',panel:'plank',floor:'oak',light:'warm',fix:'shade',own:[],items:[]});
 // interior bounds the decor must fit in (room 1 / with the expansion)
 export const FXB={kush:['relax','😌','Relaxed',60],haze:['speed','⚡','Speed boost',40],owl:['nv','🦉','Night vision',60],lemon:['jump','🍋','Jump boost',30],blue:['wobble','🌀','Glitch vision',45],og:['fog','👻','Ghostly fog',50]};const FXMAP={mint:'lemon',ember:'haze',aurora:'owl',phantom:'og',sol:'haze',void:'kush'};
@@ -118,4 +123,7 @@ export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.
 // shop listings for construction stock (bought items go to your build inventory, saved with the farm)
 for(const [k,v] of Object.entries(BP))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
 for(const [k,v] of Object.entries(BPF))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Prefab building kit — walls, door, floor and roof snap together in one placement. Goes to your Build inventory; place it in Build mode (B / D-pad ▲).'};
+// v22: wall paint / panels / floors / light color / fixtures — formerly the laptop Decorate tab; buying applies it to your shed (owned styles re-apply free)
+const STN={paint:'Shed Paint',panel:'Shed Wall Panels',floor:'Shed Flooring',light:'Shed Light Color',fix:'Shed Light Fixture'};
+for(const [c,O] of Object.entries(STYLE))for(const [v,o] of Object.entries(O))if(o.p)SHOP['b_s_'+c+'_'+v]={n:STN[c]+': '+o.n,p:o.p,cat:'build',style:[c,v],d:'Shed style — applied to your grow shed right away. Already own it? Buying again re-applies it for free.'};
 for(const [k,v] of Object.entries(DECOR))SHOP['b_f_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Furniture — goes to your Build inventory. Place it in Build mode (B / D-pad ▲) inside your shed or on any floor you have built.'};
