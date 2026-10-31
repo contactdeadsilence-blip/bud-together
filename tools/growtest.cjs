@@ -61,11 +61,11 @@ const jid=jar.id;tx(A,{t:'dbg',ff:120});await st();jar=A.w.ents.find(e=>e.id==ji
 // ---- contracts with min grade
 ok('contracts list a minimum grade',A.w.contracts.every(k=>R.GRADES.some(g=>g[0]==k.min)),A.w.contracts.map(k=>k.min).join());
 await clear();tx(A,{t:'dbg',give:'packed',gd:{s:'owl',g:10,q:30,cure:0}});await st();tx(A,{t:'dbg',contract:'owl',cmin:'A'});await st();
-const c0=A.w.contracts[0];
+const c0=A.w.contracts.find(k=>!k.cc);
 const m0=A.w.money;A.toasts=[];tx(A,{t:'use',target:'drop'});await st();ok('low grade jar refused with warning first',held().some(e=>e.type=='packed')&&A.w.money==m0&&A.toasts.some(t=>/grade/.test(t)),A.toasts.join('|'));
 tx(A,{t:'use',target:'drop'});await st();ok('second drop sells it at lower grade price',!held().some(e=>e.type=='packed')&&A.w.money>m0,A.w.money-m0);
-tx(A,{t:'dbg',give:'packed',gd:{s:'owl',g:10,q:96,cure:1}});await st();tx(A,{t:'dbg',contract:'owl'});await st();const k=A.w.contracts[0];const m1=A.w.money;A.toasts=[];tx(A,{t:'use',target:'drop'});await st();
-ok('A+ jar accepted for contract',(A.w.money>m1||A.w.contracts[0]?.got>=10)&&!held().some(e=>e.type=='packed'),k.min+' '+(A.w.money-m1)+' '+A.toasts.join('|'));
+tx(A,{t:'dbg',give:'packed',gd:{s:'owl',g:10,q:96,cure:1}});await st();tx(A,{t:'dbg',contract:'owl'});await st();const k=A.w.contracts.find(k=>!k.cc);const m1=A.w.money;A.toasts=[];tx(A,{t:'use',target:'drop'});await st();
+ok('A+ jar accepted for contract',(A.w.money>m1||A.w.contracts.find(k=>!k.cc)?.got>=10)&&!held().some(e=>e.type=='packed'),k.min+' '+(A.w.money-m1)+' '+A.toasts.join('|'));
 // ---- old save compat: plant without new fields
 tx(A,{t:'dbg',spawn:{x:2.6,z:2,s:'kush',age:R.READY+1}});await st();const Old=A.w.ents.at(-1);delete Old.data.sz;await clear();tx(A,{t:'use',target:Old.id});await st();const ow=held().find(e=>e.type=='wetbud');
 ok('old-style plant (no type/soil/q) still harvests',ow&&ow.data.g>0&&ow.data.q>0,JSON.stringify(ow?.data));

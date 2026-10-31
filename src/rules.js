@@ -8,7 +8,7 @@ export const SOILQ=['Basic Soil','Premium Soil','Super Soil'];
 export const CURE=240,GRADES=[['A+',92,1.5],['A',85,1.3],['B',72,1.1],['C',58,.9],['D',0,.7]];
 export const grade=q=>GRADES.find(g=>q>=g[1]);
 export const gradeOk=(q,min)=>!min||GRADES.findIndex(g=>g[0]==grade(q)[0])<=GRADES.findIndex(g=>g[0]==min);
-export const prodQ=d=>Math.min(100,Math.round((d.q??70)+(d.cure||0)*8));
+export const prodQ=d=>Math.max(0,Math.min(100,Math.round((d.q??70)+(d.cure||0)*(d.ct==='grove'?10:8)+(d.bq||0)-(d.pen||0))));
 export function stage6(p){if(!p)return '';if(p.dead)return 'dead';const a=p.age;return a<15?'germination':a<60?'seedling':a<170?'veg':a<230?'pre-flower':a<READY?'flower':'ripe'}
 export const STAGE6=['germination','seedling','veg','pre-flower','flower','ripe'];
 export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35,uses:4,ent:'soil',dat:{sq:1}},soil_s:{n:'Super Soil',p:55,uses:4,ent:'soil',dat:{sq:2}},pot:{n:'Pot',p:10},pot_s:{n:'Small Pot',p:6,ent:'pot',dat:{sz:.7}},pot_l:{n:'Large Pot',p:18,ent:'pot',dat:{sz:1.4}},gbed:{n:'Garden Bed',p:45,ent:'pot',dat:{sz:2,bed:1}},nutr_g:{n:'Grow Nutrients (N)',p:18,uses:8,ent:'nutr',dat:{f:'g'}},nutr_b:{n:'Bloom Nutrients (P-K)',p:18,uses:8,ent:'nutr',dat:{f:'b'}},

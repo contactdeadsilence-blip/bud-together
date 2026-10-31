@@ -16,7 +16,7 @@ await ev(()=>window.dispatchEvent(new Event('gamepadconnected')));
 let s=await st();if(s.root=='splash'){await press(A);await frames(4)}if(await ev(()=>__bt.cre?.()))await press(B);await frames(3);
 await press(A,4);await sl(1500);await frames(5);s=await st();ok('solo game started',s.root==null,s.root);
 const W2=f=>ev(f);const SH=async n=>{if(process.env.SHOTS){await P.setViewport({width:1280,height:720});await frames(3);await P.screenshot({path:'/workspace/ui-shots/grow/v15-'+n+'.png'});await P.setViewport({width:960,height:540});await frames(2)}};const fcls=()=>ev(()=>{const e=__bt2.fk();return e?(e.dataset.bs||e.dataset.a||e.className):null});
-await W2(()=>__bt2.openLap('shop'));await frames(3);
+await ev(()=>__bt.send({t:'dbg',earned:99999}));await sl(300);await W2(()=>__bt2.openLap('shop'));await frames(3);
 ok('laptop shop is full screen',await ev(()=>{const r=document.getElementById('lap').getBoundingClientRect();return r.width>=innerWidth-2&&r.height>=innerHeight-2}));
 ok('URL bar shows www.budsupply.shop',(await ev(()=>document.getElementById('wurl').textContent)).includes('www.budsupply.shop'));
 ok('browser chrome: back/forward/refresh + logo + search + cart + categories',await ev(()=>!!(document.querySelector('[data-a=wback]')&&document.querySelector('[data-a=wfwd]')&&document.querySelector('[data-a=wref]')&&document.querySelector('.wlogo')&&document.getElementById('wsq')&&document.querySelector('.wcart')&&document.querySelectorAll('.wcat').length>=6)));
