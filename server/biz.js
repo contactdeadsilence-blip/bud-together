@@ -30,7 +30,7 @@ export function custDone(w,u,o){const b=bizOf(w),bt=w.staff?.budtender;let s=62,
  const wt=Math.max(0,(o.wait||0)-4);s-=cl(wt*2,0,30);if(wt>8&&!why)why='Waited forever at the register.';
  s+=(b.clean-70)/3;if(b.clean<45&&!why)why='Store could be cleaner.';s+=Math.min(15,decorScore(w)*1.5)-5;if(bt)s+=8*SKILL[bt.sk|0].f;
  b.clean=cl(b.clean-1.2,0,100);return addSat(w,s,u.n,why,0)}
-export function sale(w,pr){const b=bizOf(w);b.today.rev+=pr;b.today.sales++;w.stats&&(w.stats.disp=(w.stats.disp||0)+pr)}
+export function sale(w,pr){const C=w.cnt??={};C.jars=(C.jars||0)+1;C.drev=(C.drev||0)+pr;const b=bizOf(w);b.today.rev+=pr;b.today.sales++;w.stats&&(w.stats.disp=(w.stats.disp||0)+pr)}
 export function bizTick(w,dt){const b=bizOf(w),st=w.staff?.stocker;if(st)b.clean=cl(b.clean+dt*.05*SKILL[st.sk|0].f,0,100);
  const h=Math.floor(w.min/60);if(h===b._h)return;b._h=h;if(h<8||h>=22)return;
  b.locs.forEach((L,i)=>{if(!i||!L.inv.length)return;const S=L.staff,meta=LOCS.find(x=>x.id===L.id)||LOCS[1];let n=(meta.tr||1)*(.6+b.rep*.3)*(1+.2*(L.upg.sig|0))*(S.cashier?SKILL[S.cashier.sk|0].f:.3)*(S.budtender?1.2:1);n=Math.floor(n+Math.random());

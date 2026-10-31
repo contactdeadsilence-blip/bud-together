@@ -41,8 +41,8 @@ const before=(await bz()).logo.fg;await ev(()=>{const e=document.querySelector('
 await shot('logo-maker');
 await clk('[data-bzs=front]');await clk('[data-bz^="front|aw"]');await clk('[data-bz^="front|lt"]');await clk('[data-bz^="front|lt"]');await clk('[data-bz^="front|sc"]');bb=await bz();ok('storefront options saved',bb.front.aw==2&&bb.front.lt==3&&bb.front.sc==1,JSON.stringify(bb.front));
 // staff + upgrades
-await clk('[data-bzs=staff]');await clk('[data-bz="hire|cashier|2"]');await clk('[data-bz="hire|stocker|1"]');await clk('[data-bz="hire|budtender|0"]');w=await W();ok('hire 3 roles w/ skill',w.staff.cashier?.sk==2&&w.staff.stocker?.sk==1&&w.staff.budtender?.sk==0,JSON.stringify(w.staff));
-await clk('[data-bz="fire|budtender"]');w=await W();ok('fire',!w.staff.budtender);await clk('[data-bz="hire|budtender|1"]');
+await ev(()=>__bt.openLap('staff'));await sl(300);await clk('[data-bz="lhire|0|cashier:2"]');await sl(400);await clk('[data-bz="lhire|0|stocker:1"]');await sl(400);await clk('[data-bz="lhire|0|budtender:0"]');await sl(1500);w=await W();ok('hire 3 roles w/ skill',w.staff.cashier?.sk==2&&w.staff.stocker?.sk==1&&w.staff.budtender?.sk==0,JSON.stringify(w.staff));
+await clk('[data-bz="lfire|0|budtender"]');w=await W();ok('fire',!w.staff.budtender);await clk('[data-bz="lhire|0|budtender:1"]');await P.screenshot({path:'/workspace/ui-shots/grow/v180-staff-tab.png'});ok('staff tab shows payroll',await ev(()=>/payroll \$\d+\/day/.test(document.getElementById('lbody').textContent)));await ev(()=>__bt.openLap('biz'));await sl(300);
 await clk('[data-bzs=upg]');const m0=(await W()).money;await clk('[data-bz="upg|floor"]');await clk('[data-bz="upg|reg"]');await clk('[data-bz="upg|sec"]');await clk('[data-bz="upg|sig"]');w=await W();ok('upgrades bought',w.biz.locs[0].upg.floor==1&&w.biz.locs[0].upg.reg==1&&w.money==m0-600-450-500-300,m0-w.money);
 // stock: shelves in stock room, then restock from laptop
 const sh=PK('dshelf');for(let i=0;i<10;i++){await send({t:'dbg',give:'packed',gd:{q:80}});await sl(200);await send({t:'dstock',id:sh[i%sh.length].id});await sl(200)}
@@ -64,7 +64,7 @@ await ev(()=>__bt2.openLap('biz'));await frames(3);await clk('[data-bzs=pl]');ok
 await clk('[data-bzs=rev]');await shot('reviews');
 // locations
 await clk('[data-bzs=loc]');await clk('[data-bz="buyloc|downtown"]');bb=await bz();ok('bought downtown, switched',bb.locs.length==2&&bb.cur==1);
-await clk('[data-bzs=staff]');await clk('[data-bz="hire|cashier|1"]');bb=await bz();ok('branch staff separate',bb.locs[1].staff.cashier?.sk==1);
+await ev(()=>__bt.openLap('staff'));await sl(300);await clk('[data-bz="lhire|1|cashier:1"]');await ev(()=>__bt.openLap('biz'));await sl(300);bb=await bz();ok('branch staff separate',bb.locs[1].staff.cashier?.sk==1);
 for(let i=0;i<4;i++){await send({t:'dbg',give:'packed',gd:{q:80}});await sl(200);await send({t:'dstock',id:sh[0].id});await sl(200)}
 await clk('[data-bzs=inv]');await clk('[data-bz="send|4"]');bb=await bz();ok('ship stock to branch',bb.locs[1].inv.length>0,bb.locs[1].inv.length);
 await clk('[data-bzs=loc]');await clk('[data-bz="switch|0"]');bb=await bz();ok('switch back home',bb.cur==0);await shot('locations');

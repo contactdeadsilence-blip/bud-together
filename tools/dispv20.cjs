@@ -29,7 +29,7 @@ await shot('B-stockroom-door-closed');await press(A);await sl(500);w=await W();o
 c=await ev((x,z)=>__bt.collide(x,z),ru.x,ru.z-.05);ok('open roll-up passable',Math.abs(c[1]-(ru.z-.05))<.05,JSON.stringify(c));await shot('B-stockroom-door-open');
 // stock a case
 const cs=PK('dcase').find(p=>p.r==0);await send({t:'dbg',give:'packed',gd:{q:80}});await sl(300);
-await ev((x,z)=>__bt.warp(x,z,0,-.55),cs.x,cs.z+1.5);await frames(10);t=await pr();ok('stock prompt',/^Stock/.test(t),t);await press(A);await sl(500);
+await ev((x,z)=>__bt.warp(x,z,0,-.55),cs.x,cs.z+1.5);await frames(10);t=await pr();ok('stock prompt',/(^|A )Stock/.test(t),t);await press(A);await sl(500);
 w=await W();let cc=w.build.find(p=>p.id==cs.id);ok('case stocked',cc.st?.length==1,JSON.stringify(cc.st?.length));
 await frames(5);t=await pr();ok('price prompt when empty-handed',/price/i.test(t),t);await press(A);await sl(400);w=await W();ok('price cycles',w.build.find(p=>p.id==cs.id).pm==2);
 await press(X);await sl(400);w=await W();ok('X takes product back',w.build.find(p=>p.id==cs.id).st.length==0&&w.ents.some(e=>e.by&&e.type=='packed'));
@@ -41,8 +41,8 @@ await ev(()=>__bt.warp(-25,-18,.75,-.12));await frames(30);await shot('B-exterio
 // sign
 await ev(()=>__bt.send({t:'biz',op:'open',name:'Test Buds'}));await sl(300);const sg=PK('dsign')[0];await ev((x,z)=>__bt.warp(x,z-1.4,Math.PI,-.05),sg.x,sg.z);await frames(10);t=await pr();ok('sign prompt',/OPEN/.test(t),t);await press(A);await sl(400);w=await W();ok('sign opens shop',w.build.find(p=>p.id==sg.id).o==1);
 // cashier
-const rg=PK('dcount')[0];await ev((x,z)=>__bt.warp(x,z+1.3,0,-.4),rg.x,rg.z);await frames(10);t=await pr();ok('register prompt',/Hire cashier/.test(t),t);await press(A);await sl(400);w=await W();ok('cashier hired',w.staff?.cashier?.sk==1&&w.crew?.length==1);
-await press(X);await sl(400);w=await W();ok('stocker hired (X)',w.staff?.stocker?.sk==1);
+const rg=PK('dcount')[0];await ev((x,z)=>__bt.warp(x,z+1.3,0,-.4),rg.x,rg.z);await frames(10);t=await pr();ok('register prompt',/manage staff/.test(t),t);await press(A);await sl(400);ok('register opens Staff tab',await ev(()=>__bt2.lapOpen()&&document.querySelector('.tab.sel')?.dataset.tab=='staff'));await ev(()=>document.querySelector('[data-bz="lhire|0|cashier:1"]').click());await sl(500);w=await W();ok('cashier hired',w.staff?.cashier?.sk==1&&w.crew?.length==1);
+await ev(()=>document.querySelector('[data-bz="lhire|0|stocker:1"]').click());await sl(500);w=await W();ok('floor stocker hired from Staff tab',w.staff?.stocker?.sk==1);await press(B,3);await sl(300);
 // stock-room shelf → stocker refills
 const sh=PK('dshelf').find(p=>p.z==Z0);for(let i=0;i<3;i++){await send({t:'dbg',give:'packed',gd:{q:75}});await sl(200);await send({t:'dstock',id:sh.id});await sl(200)}
 await ev(()=>__bt.warp(-30,-25,.3,-.1));

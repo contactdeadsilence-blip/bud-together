@@ -1,5 +1,15 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.8.0',date:'Oct 31, 2026',title:'Beta v1.8.0 — Profiles, Leaderboard & Lobbies',notes:[
+'👤 Public profiles: display name, avatar preview, bio and join date. View anyone from the room screen, Pause → 👥 Players, the leaderboard, or by looking at them and pressing A / E.',
+'📊 Lifetime stats saved on the server: plants grown, grams harvested, jars sold, money earned, playtime, dispensary revenue, best reputation and businesses owned.',
+'🏆 Leaderboard: top 25 for every stat, from the main menu.',
+'🌐 Public & private games: hosts choose who can find them. Browse Games shows the host, players, day and ping, with Join, Refresh and Quick Join. Private games still use the room code.',
+'👥 One Staff tab on the laptop for everyone you employ: farm AI workers, and dispensary staff for each location. It shows every employee, their wage and your total daily payroll, with hire and fire buttons that all work on the controller. The old Business → Staff page and the hire/fire shortcuts on the register are gone (pressing A at the register now opens the Staff tab). Existing hires carry over from your save.',
+'🧾 Workers now buy their own supplies. When they run out of seeds, soil, nutrients or jar boxes, they order more at shop prices with farm money, always keeping a day of wages in reserve. They then walk to the delivery pad, collect the order and use it. Every purchase is logged in the Staff tab.',
+'🧪 Growers now feed nutrients to hungry plants as well as watering them.',
+'📦 The dispensary Stocker is now called the Floor Stocker (works inside the store). The farm Shelf Stocker is the one who carries jars from your farm to the store.',
+'🎮 Everything works with an Xbox controller. Rate limits and input checks keep things fair.']},
 {v:'1.7.6',date:'Oct 31, 2026',title:'Beta v1.7.6 — Performance Hotfix',notes:[
 'Big farms run much smoother: about half as many draw calls and triangles per frame on a busy 70-item save.',
 'Props now share geometry and materials, and each item\'s static parts are merged, so tables with jars and bags are much cheaper to draw.',

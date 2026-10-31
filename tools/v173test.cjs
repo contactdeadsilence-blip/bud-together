@@ -21,7 +21,7 @@ let w=await W();console.log(JSON.stringify(w.ents.filter(e=>!e.by).map(e=>[e.typ
 const give=async(k,x,z)=>{await send({t:'dbg',give:k});await sl(250);await send({t:'drop',x,z});await sl(250)};
 const wk=()=>W().then(w=>w.workers||[]);
 // 1) pad hire UI
-const mPre=(await W()).money;await ev(()=>__bt.openLap('gen'));await frames(5);await press(RB,3);await frames(5);let tb=await ev(()=>document.querySelector('.tab.sel')?.dataset.tab);ok('RB cycles to 👷 Workers tab',tb=='work',tb);
+const mPre=(await W()).money;await ev(()=>__bt.openLap('gen'));await frames(5);await press(RB,3);await frames(5);let tb=await ev(()=>document.querySelector('.tab.sel')?.dataset.tab);ok('RB cycles to 👥 Staff tab',tb=='staff',tb);
 ok('hire cards render',await ev(()=>document.querySelectorAll('[data-bz^="whire|"]').length==9));
 const fz=()=>ev(()=>document.querySelector('#laptop .f')?.dataset.bz||'');for(let i=0;i<14&&!(await fz()).startsWith('whire|grower');i++)await press(DOWN,2);await press(RIGHT,2);ok('D-pad reaches Hire Skilled Grower',(await fz())=='whire|grower|1',await fz());await press(A,3);await sl(600);
 let L=await wk();const m0=(await W()).money;ok('grower hired with pad A (fee charged)',L.length==1&&L[0].k=='grower'&&L[0].sk==1&&m0==mPre-55,JSON.stringify(L)+' $'+m0);

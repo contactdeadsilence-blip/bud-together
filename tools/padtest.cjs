@@ -34,7 +34,7 @@ await press(RIGHT);await press(A);await press(A);s=await st();ok('OSK types (B,B
 await press(B);s=await st();ok('B on OSK = backspace',s.code=='B',s.code);
 await press(B);await press(B);s=await st();ok('B on empty OSK returns to field',s.focus=='code',s.focus);
 await press(B);s=await st();ok('B backs out to title',s.root=='m-main',s.root);
-await press(DOWN);await press(DOWN);await press(DOWN);s=await st();ok('navigate to Settings',s.focus=='set',s.focus);
+for(let i=0;i<8;i++){s=await st();if(s.focus=='set')break;await press(DOWN)}s=await st();ok('navigate to Settings',s.focus=='set',s.focus);
 await press(A);s=await st();ok('Settings opens w/ focus',s.root=='m-set'&&!!s.focus,s.focus);
 const s0=s.sens;await press(RIGHT);s=await st();ok('D-pad right changes slider',s.sens==s0+1,s0+'->'+s.sens);await press(LEFT);
 await press(B);s=await st();ok('B from settings -> title',s.root=='m-main',s.root);
@@ -81,8 +81,8 @@ await press(A);s=await st();let fc=await ev(()=>__bt2.fk()?.className||'');ok('A
 await press(A);await frames(2);let WSs=await ev(()=>({...__bt2.WS.S}));ok('A opens product page',WSs.pg=='item',WSs.pg);
 await ev(()=>document.querySelector('[data-bs=q][data-v="1"]').click());WSs=await ev(()=>({...__bt2.WS.S}));ok('quantity + on product page',WSs.qty==2,WSs.qty);await ev(()=>__bt.focusEl(document.querySelector('[data-bs=buynow]')));
 const m0=s.money;await press(A);await frames(2);await ev(()=>__bt.focusEl(document.querySelector('[data-bs=checkout]')));await press(A);await sl(500);s=await st();ok('A on Buy now, A on Checkout buys 2',s.money<m0,m0+'->'+s.money);
-await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
-await press(RB);s=await st();ok('RB -> Board tab',s.tab=='board');await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
+await press(RB);s=await st();ok('RB -> Business tab',s.tab=='biz',s.tab);await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
+await press(RB);s=await st();ok('RB -> Board tab',s.tab=='board');await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');for(const t of ['threads','book','gen','staff']){await press(RB);s=await st();ok('RB -> '+t+' tab',s.tab==t,s.tab)}await press(RB);s=await st();ok('RB wraps to Shop',s.tab=='shop',s.tab);await press(LB);s=await st();ok('LB wraps to Staff',s.tab=='staff',s.tab);await press(RB);await st();for(let i=0;i<5;i++){await press(RB);await st()}for(let i=0;i<5;i++){await press(LB);await st()}s=await st();ok('LB back to Shop',s.tab=='shop',s.tab);
 const held0=(await st()).bag.length;for(let i=0;i<5&&(await st()).lapOpen;i++){await press(B);await frames(4)}s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
 await press(A);await press(START);s=await st();ok('Menu closes laptop',!s.lapOpen);
 // remap via controller

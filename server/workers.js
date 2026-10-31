@@ -1,6 +1,7 @@
 // v1.7.3 AI farm workers: server-authoritative NPCs that walk to targets and reuse the normal player actions (act) so every rule stays identical.
 import {WORKT,WORK_MAX,WORK_HOURS,SKILL} from '../src/bizdata.js';
-import {CAN,THIRSTY,DCAP,stage} from '../src/rules.js';import {findEq,packBox} from './proc.js';import {PACKT} from '../src/proc.js';
+import {CAN,THIRSTY,DCAP,stage,SHOP} from '../src/rules.js';import {findEq,packBox} from './proc.js';import {PACKT} from '../src/proc.js';
+const PAD={x:2.4,z:7.2},LOGMAX=20;
 const SPD=1.6,HOME={x:1.2,z:6.4};
 const wage=v=>Math.round(WORKT[v.k].wage*SKILL[v.sk].m);
 export const wkWage=wage;
@@ -16,8 +17,18 @@ function mk(w,v,type,data){const e={id:w.nid++,type,x:v.x,y:0,z:v.z,ry:0,by:v.id
 function drop(w,v,e,x,z){e.by=0;e.bi=0;e.x=(x??v.x)+(Math.random()-.5)*.3;e.z=(z??v.z)+(Math.random()-.5)*.3;e.y=0;w._svw=1}
 const canSell=e=>e&&e.data&&e.data.s&&!['drybud','wetbud','trim','seed'].includes(e.type)&&!e.type.startsWith('seed_')&&(e.data.g||e.data.n);
 const seedSrc=(w,v)=>{const L=w.ents.filter(e=>free(e)&&e.type.startsWith('seed_')&&!claimed(w,v,e.id));const r=w.ents.filter(e=>e.type==='seedrack'&&!e.by&&(e.data.sl||[]).some(s=>s&&s.n?.length)&&!claimed(w,v,e.id));return nearest(v,[...L,...r])};
+// v1.8.0: workers restock their own supplies from the shop (farm money, shop prices, keeps a day of payroll in reserve), then collect the delivery at the pad
+const ent=k=>SHOP[k]?.ent||k;
+const cheapSeed=w=>{const own=w.ents.find(e=>e.type.startsWith('seed_')&&SHOP[e.type]&&!SHOP[e.type].hide);if(own)return own.type;return Object.keys(SHOP).filter(k=>/^seed_[a-z]+$/.test(k)&&k!=='seed_pack'&&k!=='seed_x'&&!SHOP[k].hide).sort((a,b)=>SHOP[a].p-SHOP[b].p)[0]};
+export const payroll=w=>(w.workers||[]).reduce((a,v)=>a+wage(v),0);
+function buy(w,v,k){if(!k||!SHOP[k])return null;if(v.buy)return null;const pr=SHOP[k].p,res=payroll(w);if(w.money-pr<res){if(v.nb!==k){v.nb=k;v.say=`Can't afford ${SHOP[k].n} ($${pr}) — keeping $${res} for wages`}return null}
+ w.money-=pr;w.pending.push({type:k,t:4,wk:v.id});v.buy={k,type:ent(k)};v.nb=null;v.say=`Ordered ${SHOP[k].n} ($${pr})`;
+ (w.wbuys??=[]).unshift({d:w.day,min:Math.round(w.min),who:WORKT[v.k].n,k,n:SHOP[k].n,p:pr});w.wbuys.length=Math.min(w.wbuys.length,LOGMAX);w.sound='buy';w._sv=1;return true}
+function collect(w,v){const b=v.buy;if(!b)return null;if(w.pending.some(p=>p.wk===v.id))return near(v,PAD.x,PAD.z)>1.2?{x:PAD.x,z:PAD.z,d:1,go:null}:{wait:1};
+ const e=nearest(v,w.ents.filter(e=>free(e)&&e.type===b.type&&near(e,PAD.x,PAD.z)<2.5));v.buy=null;if(!e)return null;return {id:e.id,x:e.x,z:e.z,d:.8,go:()=>{if(free(e)){pickUp(w,v,e);v.say=`Collected ${SHOP[b.k]?.n||b.type}`}}}}
 // returns the next goal {id,x,z,go:fn} or null
 function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!e.by),go=(t,fn,d=.9)=>({id:t.id,x:t.x,z:t.z,d,go:fn});
+ if(v.buy)return collect(w,v);
  if(v.k==='grower'){let can=H.find(e=>e.type==='water'&&e.data.wk);if(!can){can=mk(w,v,'water',{w:CAN,wk:1})}
   const seed=H.find(e=>e.type.startsWith('seed_')),soil=H.find(e=>e.type==='soil');
   if(seed){const p=nearest(v,pots.filter(p=>p.data.soil&&!p.data.used&&!p.data.plant&&!claimed(w,v,p.id)));if(p)return go(p,()=>doAct(w,v,act,{t:'use',target:p.id},seed));drop(w,v,seed)}
@@ -25,9 +36,12 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   const thirsty=pots.filter(p=>p.data.soil&&p.data.plant&&!p.data.plant.dead&&(p.data.moist??0)<Math.max(THIRSTY+20,45)&&!claimed(w,v,p.id));
   if(thirsty.length){if((can.data.w??0)<15){const s=nearest(v,w.ents.filter(e=>e.type==='sink'&&!e.by));if(s)return go(s,()=>{for(let i=0;i<12&&(can.data.w??0)<CAN;i++)doAct(w,v,act,{t:'use',target:s.id},can)},1.1);return null}
    const p=nearest(v,thirsty);return go(p,()=>{for(let i=0;i<20&&(p.data.moist??0)<90&&(can.data.w??0)>0;i++)doAct(w,v,act,{t:'use',target:p.id},can)})}
+  const hungry=pots.filter(p=>p.data.soil&&p.data.plant&&!p.data.plant.dead&&(p.data.plant.nutr??100)<25&&!claimed(w,v,p.id));
+  if(hungry.length){const nu=H.find(e=>e.type==='nutr');if(nu){const p=nearest(v,hungry);return go(p,()=>{if((p.data.plant?.nutr??100)<25)doAct(w,v,act,{t:'use',target:p.id},nu)})}
+   if(H.length<3){const s=nearest(v,w.ents.filter(e=>free(e)&&e.type==='nutr'&&!claimed(w,v,e.id)));if(s)return go(s,()=>{if(free(s))pickUp(w,v,s)});if(buy(w,v,'nutr'))return collect(w,v)}}
   const spent=pots.find(p=>p.data.soil&&p.data.used&&!p.data.plant&&!claimed(w,v,p.id));if(spent)return go(spent,()=>{if(spent.data.used&&!spent.data.plant){spent.data.soil=0;spent.data.used=0;spent.data.moist=0;v.say='Cleared spent soil';w._svw=1}});
-  const empty=pots.filter(p=>p.data.soil&&!p.data.used&&!p.data.plant);if(empty.length&&H.length<3){const s=seedSrc(w,v);if(s)return go(s,()=>{if(s.type==='seedrack'){const sl=(s.data.sl||[]).find(x=>x&&x.n?.length);if(sl){mk(w,v,sl.k,sl.n.pop());if(!sl.n.length)s.data.sl[s.data.sl.indexOf(sl)]=null;w._svw=1}}else if(free(s))pickUp(w,v,s)})}
-  const bare=pots.filter(p=>!p.data.soil);if(bare.length&&H.length<3){const s=nearest(v,w.ents.filter(e=>free(e)&&e.type==='soil'&&!claimed(w,v,e.id)));if(s)return go(s,()=>{if(free(s))pickUp(w,v,s)})}
+  const empty=pots.filter(p=>p.data.soil&&!p.data.used&&!p.data.plant);if(empty.length&&H.length<3){const s=seedSrc(w,v);if(s)return go(s,()=>{if(s.type==='seedrack'){const sl=(s.data.sl||[]).find(x=>x&&x.n?.length);if(sl){mk(w,v,sl.k,sl.n.pop());if(!sl.n.length)s.data.sl.splice(s.data.sl.indexOf(sl),1);w._svw=1}}else if(free(s))pickUp(w,v,s)});if(buy(w,v,cheapSeed(w)))return collect(w,v)}
+  const bare=pots.filter(p=>!p.data.soil);if(bare.length&&H.length<3){const s=nearest(v,w.ents.filter(e=>free(e)&&e.type==='soil'&&!claimed(w,v,e.id)));if(s)return go(s,()=>{if(free(s))pickUp(w,v,s)});if(buy(w,v,'soil'))return collect(w,v)}
   return null}
  if(v.k==='trimmer'){const wet=H.find(e=>e.type==='wetbud'),dry=H.find(e=>e.type==='drybud'),trim=H.find(e=>e.type==='trim'),pk=H.find(e=>e.type==='packed'||e.type==='pkg');const scale=findEq(w,v,'scale');
   // target helpers: equipment may sit on a table (virtual table item) — act on the table with sub=index
@@ -37,7 +51,7 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   if(trim){const T=nearest(v,w.ents.filter(e=>e.type==='table'&&!e.by))||scale;if(T)return go(T,()=>drop(w,v,trim,T.x+.3,T.z),1.1);drop(w,v,trim);return null}
   if(pk){const sh=nearest(v,w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).filter(Boolean).length<6));if(sh)return go(sh,()=>doAct(w,v,act,{t:'use',target:sh.id},pk),1.1);if(scale)return tgo(scale,()=>drop(w,v,pk,scale.x+.4,scale.z+.3));drop(w,v,pk);return null}
   if(dry){if(!dry.data.tr){const sk=SKILL[v.sk];doAct(w,v,act,{t:'trim',trim:{acc:Math.min(1,.45+.25*v.sk),spd:Math.min(1,.5+.25*v.sk)}},dry);return{wait:2.5/sk.f}}
-   if(!scale){v.say='Need a Scale to pack dried bud';return null}const box=packBox(w,scale);if(!box){v.say='Need Jars, Grove Bags or Mylar Bags near the scale';return null}
+   if(!scale){v.say='Need a Scale to pack dried bud';return null}const box=packBox(w,scale);if(!box){const jb=H.find(e=>e.type==='jars'||e.type==='mylar'||e.type==='grove');if(jb)return tgo(scale,()=>drop(w,v,jb,scale.x+.5,scale.z));const fj=nearest(v,w.ents.filter(e=>free(e)&&e.type==='jars'&&!claimed(w,v,e.id)));if(fj&&H.length<3)return go(fj,()=>{if(free(fj))pickUp(w,v,fj)});if(buy(w,v,'jars'))return collect(w,v);v.say='Need Jars, Grove Bags or Mylar Bags near the scale';return null}
    if(box.type==='mylar'){const T=PACKT.bud.filter(g=>g<=dry.data.g),tg=T.length?T[T.length-1]:0;if(!tg){v.say='Too little bud for a Mylar bag';drop(w,v,dry,scale.x+.4,scale.z);return null}
     return tgo(scale,()=>doAct(w,v,act,{...um(scale),pack:{tg,acc:Math.min(1,.7+.12*v.sk),seal:Math.min(1,.6+.18*v.sk)}},dry))}
    return tgo(scale,()=>doAct(w,v,act,um(scale),dry))}
