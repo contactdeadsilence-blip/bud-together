@@ -1,6 +1,6 @@
 // v22: remove-to-inventory vs sell (pieces, whole prefab, furniture), lights on/off + outdoor placement, style items in shop, co-op sync
 const WS=require('ws'),{spawn}=require('child_process');const sl=ms=>new Promise(r=>setTimeout(r,ms));
-(async()=>{const PORT=3231;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(800);
+(async()=>{const PORT=+process.env.TPORT||3241;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(800);
 const cl=()=>new Promise(r=>{const ws=new WS(`ws://localhost:${PORT}/ws`);const c={ws,w:null,toasts:[]};ws.on('message',d=>{const m=JSON.parse(d);if(m.t=='joined')c.code=m.code,c.id=m.id;if(m.t=='w'){c.w=m.w;if(m.w.toast&&m.w.toast.pid==c.id)c.toasts.push(m.w.toast.t)}});ws.on('open',()=>r(c))});
 const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i)};const tx=(c,m)=>c.ws.send(JSON.stringify(m));const st=()=>sl(350);
 const A=await cl(),B=await cl();tx(A,{t:'host',name:'A'});await sl(200);tx(B,{t:'join',code:A.code,name:'B'});await sl(200);tx(A,{t:'start'});await sl(500);

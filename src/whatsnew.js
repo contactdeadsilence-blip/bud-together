@@ -11,7 +11,7 @@ const css=`#wn{position:fixed;inset:0;z-index:9999;display:none;align-items:cent
 #wnver{position:fixed;left:12px;bottom:10px;font:900 14px Nunito;color:#fff;opacity:.6;z-index:50;pointer-events:none}`;
 let open=false,mode='latest',foc=0,raf=0,prev=[];
 const entry=(e,i)=>`<div class="wne"><h3>v${e.v} — ${e.title}${i==0?'<span class="wntag">LATEST</span>':''}</h3><div class="d">${e.date}</div><ul>${e.notes.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
-function render(){const all=mode=='all';$('wnp').querySelector('h2').textContent=all?"What's New — All Updates":"What's New in v"+CURRENT_VERSION;
+function render(){const all=mode=='all';$('wnp').querySelector('h2').textContent=all?"What's New — All Updates":"What's New in Beta v"+CURRENT_VERSION;
  $('wnsub').textContent=all?CHANGELOG.length+' updates':CHANGELOG[0].title+' · '+CHANGELOG[0].date;
  $('wnl').innerHTML=(all?CHANGELOG:[CHANGELOG[0]]).map(entry).join('');$('wnl').scrollTop=0;
  $('wnb').innerHTML=(all?'':'<button data-w="all">See All Updates</button>')+'<button data-w="close">'+(all?'Close':'Got it!')+'</button><span id="wnh">D-pad/Stick scroll · A select · B close</span>';foc=0;focus()}
@@ -45,7 +45,7 @@ function init(){const st=document.createElement('style');st.textContent=css;docu
  // Buttons on main menu and pause menu (after How to Play)
  for(const sel of ['#m-main [data-a="howto"]','#pause [data-a="howto"]']){const h=document.querySelector(sel);if(!h)continue;const b=document.createElement('button');b.className='btn b';b.dataset.w='wnbtn';b.textContent="📰 What's New";h.after(b)}
  document.addEventListener('click',e=>{if(e.target.closest('[data-w="wnbtn"]')){e.stopPropagation();openWhatsNew('all')}},true);
- const v=document.createElement('div');v.id='wnver';v.textContent='v'+CURRENT_VERSION;document.body.appendChild(v);
+ const v=document.createElement('div');v.id='wnver';v.textContent='Beta v'+CURRENT_VERSION;document.body.appendChild(v);
  const vis=()=>{v.style.display=$('menu')?.classList.contains('on')&&$('m-main')?.style.display!='none'?'':'none'};setInterval(vis,300);vis();
  // Popup on load if the player hasn't seen this version yet (wait for splash to finish)
  const seen=localStorage.getItem(KEY);if(!seen||cmp(seen,CURRENT_VERSION)<0){const t=setInterval(()=>{if(!$('splash')?.classList.contains('on')){clearInterval(t);setTimeout(()=>openWhatsNew('latest'),400)}},250)}

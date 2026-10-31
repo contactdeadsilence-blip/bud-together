@@ -1,5 +1,11 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.6.0',date:'Oct 31, 2026',title:'Beta v1.6.0 — Bug Fixes & Performance',notes:[
+'Bud Together is now in Beta! New version numbers start at Beta v1.6.0.',
+'Smoother frame rate: the HUD (money, clock, prompts, hands) only redraws when something actually changes instead of every frame.',
+'Fixed a memory leak when aiming at furniture in decorate mode.',
+'Outdoors: fixed dark square shadow patches on the hills around your lot (shadows now cover the whole area).',
+'Test suite fixes.']},
 {v:'0.22',date:'Oct 31, 2026',title:'Sell Builds & New Lights',notes:[
 'Build mode: aim at any wall, floor, roof, door, window or furniture to Remove it (back to your Build inventory) or Sell it for half its price.',
 'Prefab buildings can be sold piece by piece or all at once (hold Y on controller, or Ctrl+Shift+X and press again to confirm).',
