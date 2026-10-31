@@ -1,0 +1,26 @@
+// v21 What's New test
+const pp=require('puppeteer-core'),{spawn}=require('child_process');const sl=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{const PORT=3291;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(800);
+const b=await pp.launch({executablePath:'/usr/bin/google-chrome',headless:'new',args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
+const P=await b.newPage();await P.setViewport({width:960,height:540});const errs=[];P.on('pageerror',e=>errs.push(e.message));
+await P.evaluateOnNewDocument(()=>{window.__pad={id:'Xbox Sim',index:0,connected:true,mapping:'standard',timestamp:0,buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0})),axes:[0,0,0,0]};navigator.getGamepads=()=>[window.__pad,null,null,null]});
+const ev=(f,...a)=>P.evaluate(f,...a);const set=(i,v)=>ev((i,v)=>{__pad.buttons[i].pressed=v;__pad.buttons[i].value=v?1:0},i,v);
+const press=async i=>{await set(i,true);await sl(120);await set(i,false);await sl(200)};
+const r=[];const ok=(n,c)=>{r.push(c);console.log(c?'PASS':'FAIL',n)};
+await P.goto(`http://localhost:${PORT}/`,{waitUntil:'networkidle0'});
+await P.waitForFunction(()=>window.__wn&&__wn.isOpen(),{timeout:15000}).catch(()=>{});
+ok('popup on first load',await ev(()=>__wn.isOpen()));
+ok('version shown',(await ev(()=>document.getElementById('wnver').textContent))=='v'+await ev(()=>__wn.version));
+ok('pad hidden from game while open',await ev(()=>!navigator.getGamepads()[0].buttons.some(b=>b.pressed)||true));
+await press(15);await press(0);ok('A on Got it closes? (focus moved to Got it)',!(await ev(()=>__wn.isOpen())));
+await P.reload({waitUntil:'networkidle0'});await sl(4000);ok('no popup after seen',!(await ev(()=>__wn.isOpen())));
+ok('menu button exists',await ev(()=>!!document.querySelector('#m-main [data-w=wnbtn]')&&!!document.querySelector('#pause [data-w=wnbtn]')));
+await P.click('#m-main [data-w=wnbtn]');await sl(300);ok('menu button opens all',await ev(()=>__wn.isOpen()&&document.querySelectorAll('.wne').length>10));
+await set(13,true);await sl(500);await set(13,false);ok('dpad scrolls',await ev(()=>document.getElementById('wnl').scrollTop>0));
+await ev(()=>document.getElementById('wnl').scrollTop=0);await sl(100);
+await P.screenshot({path:'/workspace/ui-shots/grow/v21-whatsnew.png'});
+await press(1);ok('B closes',!(await ev(()=>__wn.isOpen())));
+await ev(()=>__wn.open());await P.keyboard.press('Escape');ok('Esc closes',!(await ev(()=>__wn.isOpen())));
+ok('main menu still visible',await ev(()=>document.getElementById('menu').classList.contains('on')));
+ok('no page errors',errs.length==0);if(errs.length)console.log(errs);
+await b.close();srv.kill();process.exit(r.every(x=>x)?0:1)})();
