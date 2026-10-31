@@ -12,7 +12,7 @@ export const prodQ=d=>Math.min(100,Math.round((d.q??70)+(d.cure||0)*8));
 export function stage6(p){if(!p)return '';if(p.dead)return 'dead';const a=p.age;return a<15?'germination':a<60?'seedling':a<170?'veg':a<230?'pre-flower':a<READY?'flower':'ripe'}
 export const STAGE6=['germination','seedling','veg','pre-flower','flower','ripe'];
 export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35,uses:4,ent:'soil',dat:{sq:1}},soil_s:{n:'Super Soil',p:55,uses:4,ent:'soil',dat:{sq:2}},pot:{n:'Pot',p:10},pot_s:{n:'Small Pot',p:6,ent:'pot',dat:{sz:.7}},pot_l:{n:'Large Pot',p:18,ent:'pot',dat:{sz:1.4}},gbed:{n:'Garden Bed',p:45,ent:'pot',dat:{sz:2,bed:1}},nutr_g:{n:'Grow Nutrients (N)',p:18,uses:8,ent:'nutr',dat:{f:'g'}},nutr_b:{n:'Bloom Nutrients (P-K)',p:18,uses:8,ent:'nutr',dat:{f:'b'}},
- water:{n:'Watering Can',p:0,hide:1},shelf:{n:'Storage Shelf',p:45},nutr:{n:'Nutrients',p:15,uses:8},light:{n:'Grow Light',p:60},rack:{n:'Drying Rack',p:40},jars:{n:'Jar Box',p:12,uses:10},scale:{n:'Scale',p:35},gbag:{n:'Garbage Bags',p:4,uses:5},papers:{n:'Rolling Papers',p:6,uses:10},table:{n:'Work Table',p:60},bed:{n:'Bed',p:150},tcan:{n:'Trash Can',p:20},
+ water:{n:'Watering Can',p:0,hide:1},shelf:{n:'Storage Shelf',p:45},seedrack:{n:'Wall Seed Rack',p:35},nutr:{n:'Nutrients',p:15,uses:8},light:{n:'Grow Light',p:60},rack:{n:'Drying Rack',p:40},jars:{n:'Jar Box',p:12,uses:10},scale:{n:'Scale',p:35},gbag:{n:'Garbage Bags',p:4,uses:5},papers:{n:'Rolling Papers',p:6,uses:10},table:{n:'Work Table',p:60},bed:{n:'Bed',p:150},tcan:{n:'Trash Can',p:20},
  pal_soil:{n:'Pallet · 8 Soil Bags',p:136,pal:'soil',k:8},pal_nutr:{n:'Pallet · 6 Nutrients',p:72,pal:'nutr',k:6},pal_pot:{n:'Pallet · 10 Pots',p:80,pal:'pot',k:10},pal_jars:{n:'Pallet · 6 Jar Boxes',p:61,pal:'jars',k:6}};
 for(const k of ['soil_p','soil_s','pot_s','pot_l','gbed','nutr_g','nutr_b','pal_soil','pal_nutr','pal_pot','pal_jars']){const v=SHOP[k];delete SHOP[k];SHOP[k]=v}
 for(const s in STRAINS)for(const t in SEEDT)SHOP['seed_'+s+(t=='r'?'':'_'+t)]={n:STRAINS[s].name+(t=='r'?' Seeds':' '+SEEDT[t].n+' Seeds'),p:Math.round(SEEDBASE[s]*SEEDT[t].m),uses:3};
@@ -68,18 +68,19 @@ export const DECOR={rug:{n:'Woven Rug',p:40,w:1.6,d:2.2,h:.02,s:'floor'},rugr:{n
  poster:{n:'Strain Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},poster2:{n:'Retro Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},neon:{n:'Neon Leaf Sign',p:120,w:.9,d:.06,h:.6,s:'wall'},clock:{n:'Wall Clock',p:25,w:.4,d:.05,h:.4,s:'wall'},shelfw:{n:'Floating Shelf',p:30,w:1,d:.25,h:.3,s:'wall'}};
 export const defDecor=()=>({paint:'cream',panel:'plank',floor:'oak',light:'warm',fix:'shade',own:[],items:[]});
 // interior bounds the decor must fit in (room 1 / with the expansion)
+export const RACKN=10;export function rackSnap(B,x,z){const d=[[x-B.x0,B.x0+.06,z,Math.PI/2],[B.x1-x,B.x1-.06,z,-Math.PI/2],[z-B.z0,x,B.z0+.06,0],[B.z1-z,x,B.z1-.06,Math.PI]];const m=d.reduce((a,b)=>Math.abs(b[0])<Math.abs(a[0])?b:a);return m[2]===z&&m[3]!==0&&m[3]!==Math.PI?{x:m[1],z,ry:m[3]}:{x,z:m[2],ry:m[3]}}
 export const ROOMB=r=>({x0:-4.1,x1:r>1?11:4.1,z0:-5,z1:5});
 // v11: day length, surfaces, sleep, pre-rolls
 export const DAYSEC=1800;// real seconds per in-game day (30 min)
 export const MINPS=1440/DAYSEC;// in-game minutes per real second
 export const START_CASH=1000;
 export const SURFS={desk:{w:.8,d:1.5,h:.935,max:8},table:{w:1.1,d:.6,h:.78,max:8}};// local top size (x,z) + height
-export const BIG=['shelf','pallet','sink','table','bed','tcan','desk','dirtbag','trash','light','rack','water'];// can't sit on a table
+export const BIG=['seedrack','shelf','pallet','sink','table','bed','tcan','desk','dirtbag','trash','light','rack','water'];// can't sit on a table
 export const ROLL=1.6,JOINT=6;// seconds to roll; $ per pre-roll on the spot (vs $4/g jar)
 export const WAKE=7*60,canSleep=min=>min>=19*60||min<5*60;
 // v12: shared catalog categories (laptop shop + Quick Bud phone app)
 export const CATS={seeds:'Seeds',grow:'Grow Supplies',equip:'Equipment',furn:'Furniture',bulk:'Bulk Pallets'};
-export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
+export function catOf(k){if(k.startsWith('seed_'))return 'seeds';if(k.startsWith('pal_'))return 'bulk';if(k.startsWith('pot_')||k=='gbed')return 'equip';const S=SHOP[k];if(S?.cat)return S.cat;if(['light','rack','scale','shelf','seedrack'].includes(k))return 'equip';if(['table','bed','tcan'].includes(k))return 'furn';return 'grow'}
 export const MAXORD=10;// max units per line in one order
 export function harvQ(p){const b=p.qt?p.qs/p.qt*100:60;return Math.max(15,Math.min(92,Math.round(b*.9+(p.sq||0)*4+(p.ty==='f'?4:0)+((p.ph||1)-1)*8)))}
 // v13a: light-weight item collisions — per-object support shapes; dropped items settle on the highest surface under them
