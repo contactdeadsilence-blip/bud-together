@@ -15,5 +15,9 @@ tx({t:'dbg',give:'soil'});await sl(150);const n0=c.w.ents.length;tx({t:'use',tar
 tx({t:'trash'});await sl(100);
 const held=()=>c.w.ents.filter(e=>e.by).length;for(const e of c.w.ents.filter(e=>e.by)){tx({t:'drop',x:-2,z:0});await sl(120)}
 tx({t:'use',target:rk.id,slot:0,only:true});await sl(200);rk=c.w.ents.find(e=>e.id==rk.id);ok('take from aimed slot',rk.data.sl[0].n.length==9&&c.w.ents.some(e=>e.by&&e.type=='seed_haze'),rk.data.sl[0].n.length);
-tx({t:'pick',id:rk.id});tx({t:'use',target:rk.id,pick:1});await sl(200);ok('cannot move a loaded rack',!c.w.ents.find(e=>e.id==rk.id).by);
+for(const e of c.w.ents.filter(e=>e.by)){tx({t:'drop',x:-2,z:0});await sl(120)}
+const tot=r=>r.data.sl.reduce((a,x)=>a+(x?.n?.length||0),0);const t0=tot(rk);
+tx({t:'use',target:rk.id,slot:-1});await sl(200);rk=c.w.ents.find(e=>e.id==rk.id);ok('loaded rack picks up when aiming at frame',!!rk.by);ok('stored seeds travel with the rack',tot(rk)==t0&&t0>0,t0);
+tx({t:'drop',x:-1.8,z:1,y:0});await sl(300);rk=c.w.ents.find(e=>e.id==rk.id);ok('re-placed rack snaps to a wall, seeds kept',!rk.by&&Math.abs(Math.abs(rk.x)-3)<1.2&&tot(rk)==t0,JSON.stringify([rk.x,rk.z,rk.ry]));
+tx({t:'dbg',give:'seedrack'});await sl(200);const r2=c.w.ents.find(e=>e.type=='seedrack'&&e.by);tx({t:'drop',x:0,z:-4.5,y:0});await sl(250);tx({t:'use',target:r2.id,slot:1});await sl(200);ok('fresh empty rack: empty hands on a slot picks it up',c.w.ents.find(e=>e.id==r2.id).by);
 srv.kill();require('fs').rmSync('/tmp/bt-rack.json',{force:true});const n=res.filter(Boolean).length;console.log(`${n}/${res.length} passed`);process.exit(n==res.length?0:1)})();
