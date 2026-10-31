@@ -1,5 +1,8 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.2',date:'Oct 31, 2026',title:'Beta v1.7.2 — Fixes',notes:[
+'Grass and flowers no longer poke through built floors. They are hidden under any floor or building you place and come back if you remove it.',
+'Display cases, sales counters, retail shelves and Open/Closed signs bought from the shop now arrive in a crate on the delivery pad. Pick one up and press B (D-pad ▲ on controller) to unpack it into Build mode and place it.']},
 {v:'1.7.1',date:'Oct 31, 2026',title:'Beta v1.7.1 — Storefront polish',notes:[
 'Ground is now flat across the whole buildable lot, so buildings far from the house no longer get grass poking through the floor.',
 'Trees are hidden where you build, so they no longer grow through your walls.',

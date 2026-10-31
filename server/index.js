@@ -98,6 +98,7 @@ function act0(w,pid,m){fixHeal(w);const bag=w.ents.filter(e=>e.by===pid);const c
  if(m.t==='buy')m={t:'order',items:[{k:m.item,n:m.n}],via:'laptop'};
  if(procAct(w,pid,m,{bag,c,t,say,give,full}))return;
  if(m.t==='order')return order(w,m,say);
+ if(m.t==='unpack'){if(!c||!String(c.type).startsWith('b_')||BP[c.type.slice(2)]?.c!=='x')return say('Hold a fixture crate to unpack it');const k=c.type.slice(2),S=w.bstock??={};S[k]=(S[k]||0)+1;w.ents=w.ents.filter(e=>e!==c);w.sound='pick';return say(`Unpacked ${BP[k].n} — place it in Build mode`)}
  if(m.t==='door'){w.doorC=w.doorC?0:1;w.sound='pick';w._sv=1;return say(w.doorC?'🚪 Closed the front door':'🚪 Opened the front door')}
  if(m.t==='acceptc'){const i=(w.offers||[]).findIndex(c=>c.id===m.id);if(i<0)say('That notice is gone');else if(w.contracts.length>=8)say('Too many active contracts');else{const c=w.offers.splice(i,1)[0];w.contracts.push(c);say(`Accepted special: ${c.g}g ${STRAINS[c.s].name} for ${c.shop} — $${c.pay}`);w.sound='ui'}}else if(m.t==='paybill'){const U=w.util,tot=U.bills.reduce((a,b)=>a+b.amt,0);if(!tot)return say('No bills due');if(w.money<tot)return say(`Need $${tot} to pay utilities`);w.money-=tot;U.bills=[];const was=U.off;U.off=0;w.sound='cash';return say(`Paid utilities $${tot}`+(was?' — water & power back on':''))}
  if(m.t==='claim'){const i=m.i|0,M=MILES[i],R=w.rew??=[];if(!M||R[i])return;if(collPct(w)<M[0])return say(`Need ${M[0]}% collection`);R[i]=1;w.money+=M[1];w.rep+=M[2];w.sound='cash';return say(`Journal reward: +$${M[1]} ★+${M[2]}`)}

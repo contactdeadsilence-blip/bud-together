@@ -126,7 +126,7 @@ export function bExpand(k,x,z,r){r=((r|0)%4+4)%4;if(BP[k])return [{k,x,z,r}];con
 export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2&&!(x>-5.2&&x<12.2&&z>-6.2&&z<7.6)&&!(x>-11.8&&x<-5.4&&z>-3.4&&z<3.4);
 export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.05&&Math.abs(p.z-z)<=1.05);
 // shop listings for construction stock (bought items go to your build inventory, saved with the farm)
-for(const [k,v] of Object.entries(BP))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
+for(const [k,v] of Object.entries(BP))SHOP['b_'+k]=v.c=='x'?{n:v.n,p:v.p,cat:'build',d:'Dispensary fixture — delivered in a crate to the delivery pad. Pick it up, then press B (D-pad ▲ on controller) to unpack it into Build mode and place it.'}:{n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
 for(const [k,v] of Object.entries(BPF))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Prefab building kit — walls, door, floor and roof snap together in one placement. Goes to your Build inventory; place it in Build mode (B / D-pad ▲).'};
 // v22: wall paint / panels / floors / light color / fixtures — formerly the laptop Decorate tab; buying applies it to your shed (owned styles re-apply free)
 const STN={paint:'Shed Paint',panel:'Shed Wall Panels',floor:'Shed Flooring',light:'Shed Light Color',fix:'Shed Light Fixture'};
