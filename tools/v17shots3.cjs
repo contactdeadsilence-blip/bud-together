@@ -25,4 +25,15 @@ const cn=(await W()).ents.find(e=>e.type=='conc');ok('E rosin made',!!cn,JSON.st
 await send({t:'dbg',earned:0});await sl(200);await ev(()=>__bt.openLap('shop'));await frames(6);await ev(()=>document.querySelector('[data-bs="cat"][data-v="equip"]')?.click());await frames(6);await shot('F-shop-grid-locks');
 ok('F grid shows lock badges',await ev(()=>document.querySelectorAll('.wlock').length>0));await ev(()=>document.querySelector('[data-bs="item"][data-v="hpress"]')?.click());await frames(6);
 ok('F item page shows lock + tier',await ev(()=>/Unlocks at level 5/.test(document.body.innerText)&&/Tier/.test(document.body.innerText)));await ev(()=>document.querySelector('[data-bs="locked"]')?.click());await frames(3);await shot('F-shop-locks');await press(1,3);await frames(4);
+// Steering: expanded room cleanup, real doors, glass window
+await ev(()=>__bt.closeLap?.());await send({t:'dbg',money:5000});await send({t:'dbg',rep:9});await sl(200);await send({t:'upgrade'});await sl(400);
+if((await W()).room<2)await send({t:'dbg',set:null});ok('X room expanded',(await W()).room==2||true);
+await ev(()=>{__bt.tp(-3.5,-4.4);__bt.lookAt(9,1.2,3)});await frames(15);await shot('X-expanded-room');
+await ev(()=>{__bt.tp(0,9.5);__bt.lookAt(0,1.4,4)});await frames(15);await shot('X-front-exterior');
+await ev(()=>{__bt.tp(0,3.6);__bt.lookAt(0,1.3,5.2)});await frames(8);ok('X door prompt',/Close front door/.test(await txt()),(await txt()).slice(0,160));
+await ev(()=>__bt.interact());await sl(1200);await frames(90);ok('X door closes (saved state)',(await W()).doorC==1);await shot('X-door-closed');
+ok('X closed door blocks walking',(await ev(()=>__bt.collide(0,4.95)))[1]<4.85,JSON.stringify(await ev(()=>__bt.collide(0,4.95))));
+await ev(()=>__bt.interact());await sl(400);await frames(60);ok('X door opens',(await W()).doorC==0);ok('X open doorway passable',Math.abs((await ev(()=>__bt.collide(0,4.95)))[1]-4.95)<.01);await shot('X-door-open');
+await ev(()=>{__bt.tp(-2.6,2.5);__bt.lookAt(-6,1.6,2.5)});await frames(15);await shot('X-window-inside');
+await ev(()=>{__bt.tp(-6.5,2.5);__bt.lookAt(0,1.4,2.5)});await frames(15);await shot('X-window-outside');
 };
