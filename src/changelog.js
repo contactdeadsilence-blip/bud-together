@@ -1,5 +1,9 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.1',date:'Oct 31, 2026',title:'Beta v1.7.1 — Storefront polish',notes:[
+'Ground is now flat across the whole buildable lot, so buildings far from the house no longer get grass poking through the floor.',
+'Trees are hidden where you build, so they no longer grow through your walls.',
+'Storefront sign sits below the eave and faces the customer door; taller P&L chart.']},
 {v:'1.7.0',date:'Oct 31, 2026',title:'Beta v1.7.0 — Dispensary Business',notes:[
 'Run your own dispensary! Build the 🏪 Dispensary kit, then open Laptop → 🏪 Business to name your store and open for business.',
 'Logo maker: shapes, icons, colors and text. Your logo and name appear on a lit sign above the storefront.',
