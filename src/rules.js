@@ -101,11 +101,11 @@ export function settle(w,x,z,yh=9,r=.1){let best={x,z,y:0,on:null};
   best={x:+(e.x+lx*c+lz*sn).toFixed(3),z:+(e.z-lx*sn+lz*c).toFixed(3),y:+top.toFixed(3),on:e.type||e.k}}
  return best}
 // ---------- v18: Section 5 building & decorating (shared by client + server) ----------
-export const BP={wall:{n:'Wall Panel',p:30,c:'w'},door:{n:'Door',p:60,c:'w'},window:{n:'Glass Window Wall',p:55,c:'w'},gdoor:{n:'Garage Door',p:120,c:'w'},floor:{n:'Floor Tile',p:20,c:'f'},roof:{n:'Roof Panel',p:25,c:'r'}};
+export const BP={wall:{n:'Wall Panel',p:30,c:'w'},door:{n:'Door',p:60,c:'w'},window:{n:'Glass Window Wall',p:55,c:'w'},gdoor:{n:'Garage Door',p:120,c:'w'},floor:{n:'Floor Tile',p:20,c:'f'},roof:{n:'Flat Roof Panel',p:25,c:'r'},roofs:{n:'Pitched Roof Slope',p:35,c:'r'},roofr:{n:'Roof Ridge',p:35,c:'r'}};
 export const BMAT=[['wood','Wood','#b88250'],['brick','Brick','#b5563a'],['metal','Metal','#9aa3ab'],['glass','Glass','#cfefff'],['paint','White Paint','#f2efe8'],['paint','Sage Paint','#8fae8b'],['paint','Navy Paint','#2f4466'],['paint','Barn Red Paint','#9b2f2a'],['paint','Sunny Yellow Paint','#e8c547']];
 export const PAINTP=5;
 // prefab = list of [piece, tileX, tileZ, rot(0..3), mat] in a grid of 2m tiles; walls sit on tile edges
-function boxPF(W,D,m,o={}){const L=[],rf=o.roof!==false;for(let i=0;i<W;i++)for(let j=0;j<D;j++){L.push(['floor',2*i,2*j,0,o.fm??0]);if(rf)L.push(['roof',2*i,2*j,0,o.rm??m])}
+function boxPF(W,D,m,o={}){const L=[],rf=o.roof!==false;for(let i=0;i<W;i++)for(let j=0;j<D;j++){L.push(['floor',2*i,2*j,0,o.fm??0]);if(rf){const mid=(D-1)/2;L.push(D%2&&j==mid?['roofr',2*i,2*j,0,o.rm??o.roofM??m]:['roofs',2*i,2*j,j<mid?0:2,o.rm??o.roofM??m])}}
  for(let i=0;i<W;i++){const mid=i==(W-1>>1);if(!o.openBack)L.push([o.backWin&&mid?'window':'wall',2*i,-1,0,m]);L.push([mid?(o.front||'door'):(o.win&&i!=mid?'window':'wall'),2*i,2*D-1,0,m])}
  for(let j=0;j<D;j++){const w=o.win&&j==(D-1>>1)?'window':'wall';L.push([w,-1,2*j,1,m]);L.push([w,2*W-1,2*j,1,m])}return L}
 export const BPF={room:{n:'Room Kit (4×4m)',p:420,L:()=>boxPF(2,2,0,{win:1})},greenhouse:{n:'Greenhouse Kit (6×4m)',p:560,L:()=>boxPF(3,2,3,{rm:3,fm:2,front:'door'})},garage:{n:'Garage Kit (6×6m)',p:780,L:()=>boxPF(3,3,2,{front:'gdoor',win:1,fm:2})},shed:{n:'Storage Shed Kit (2×4m)',p:220,L:()=>boxPF(1,2,0,{front:'door'})},ext:{n:'Room Extension (4×4m, open back)',p:300,L:()=>boxPF(2,2,0,{openBack:1,win:1})}};
