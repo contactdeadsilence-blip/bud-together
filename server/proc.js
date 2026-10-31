@@ -26,6 +26,11 @@ export function procAct(w,pid,m,X){const {bag,c,t,say,give,full}=X,ct=c?.type,mk
  if(m.press&&t?.type==='press'){if(ct!=='drybud'&&ct!=='trim')return say('Hold dried bud or trim to press it'),true;const a=(Array.isArray(m.press.a)?m.press.a:[]).slice(0,3).map(v=>cl(v));while(a.length<3)a.push(0);const av=a.reduce((x,y)=>x+y,0)/3,hy=!!t.data.hy,bud=ct==='drybud';
   const yld=(bud?.2:.1)+(hy?.05:0),g=Math.max(.1,r1(c.data.g*yld*(.6+.4*av))),q=Math.round(Math.max(0,Math.min(100,(c.data.q??70)*(bud?.6:.9)+av*40-8+(hy?5:0))));
   c.type='conc';c.data={s:c.data.s,g,q,src:bud?'bud':'trim'};w.sound='check';w._sv=1;return say(`🍯 Pressed ${g}g ${STRAINS[c.data.s]?.name||''} rosin · ${qcat('conc',c.data)[0]} (grade ${grade(q)[0]}) · temp ${Math.round(a[0]*100)}% · pressure ${Math.round(a[1]*100)}% · time ${Math.round(a[2]*100)}%`),true}
+ // trim machine: load dried or wet bud, it auto-trims (full speed, steady accuracy)
+ if(t?.type==='trimmer'&&!m.only){if(ct!=='drybud'&&ct!=='wetbud')return say(c?'Only dried or wet bud goes in the Trim Machine':'Hold dried or wet bud and use the Trim Machine to trim it'),true;if(c.data.tr)return say('Already trimmed'),true;
+  const tg=Math.max(1,Math.round(c.data.g*.12)),dq=7;c.data.q=Math.max(0,Math.min(100,(c.data.q??70)+dq));c.data.g=Math.max(1,c.data.g-tg);c.data.tr=1;w._sv=1;w.sound='check';
+  const tr=mk('trim',{s:c.data.s,g:tg,q:Math.round(c.data.q*.6)},{x:t.x+.45,z:t.z});w.ents.push(tr);if(bag.length<3){tr.by=pid;tr.bi=-1}
+  return say(`✂ Trim Machine: +${dq} quality · ${c.data.g}g ${ct==='wetbud'?'wet ':''}bud + ${tg}g trim${bag.length<3?'':' (trim left by the machine)'}`),true}
  // pack dried bud into a curing container at the scale (jar box or grove bags, nearest wins)
  if(t?.type==='scale'&&ct==='drybud'){const j=near(w,t,'jars',60),gv=near(w,t,'grove',60),b=j&&gv?(Math.hypot(j.x-t.x,j.z-t.z)<=Math.hypot(gv.x-t.x,gv.z-t.z)?j:gv):j||gv;if(!b)return say('Need a Jar Box or Grove Bags placed in the shed'),true;
   t.data.last=c.data.g;c.type='packed';c.data.cure=0;if(b.type==='grove')c.data.ct='grove';else{c.data.ct='jar';c.data.hm=0}if(--b.data.uses<=0)w.ents=w.ents.filter(e=>e!==b);w.sound='cash';

@@ -9,6 +9,7 @@ export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(S){if(!PRODUCT.includes(ct))return null;if(S.only&&!S.only.includes(ct))return'';return (e.data.st||[]).length>=S.n?'':'Store '+H.NAME(ct)+` in ${SHOP[e.type].n} (${(e.data.st||[]).length}/${S.n})`}
  if(e.type=='scale'&&(ct=='packed'||ct=='conc'))return near('mylar',e)?'Package '+(ct=='conc'?'rosin':'bud')+' (minigame)':'Place Mylar Bags by the scale to package';
  if(e.type=='press'&&(ct=='drybud'||ct=='trim'))return 'Press '+(ct=='trim'?'trim':'bud')+' into rosin (minigame)';
+ if(e.type=='trimmer')return (ct=='drybud'||ct=='wetbud')?(c.data.tr?'Already trimmed':'Load '+(ct=='wetbud'?'wet':'dried')+' bud into Trim Machine (auto-trim)'):'Hold dried or wet bud to use the Trim Machine';
  if(e.type=='scale'&&ct=='drybud')return 'Weigh & pack into '+(near('grove',e,60)&&!near('jars',e,60)?'grove bag':'curing container');
  return undefined}
 const MOVE=['fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears'];
