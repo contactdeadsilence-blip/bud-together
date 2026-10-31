@@ -1,5 +1,12 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.3',date:'Oct 31, 2026',title:'Beta v1.7.3 — AI Farm Workers',notes:[
+'New 👷 Workers tab on the laptop. Hire a Grower, a Harvester / Trimmer or a Shelf Stocker (Rookie, Skilled or Expert), up to 2 of each. It works fully with the controller.',
+'Workers walk around your farm and do the chores themselves, from 6:00 to 22:00. Each one has a name tag that shows what they are doing.',
+'Grower: fills empty pots with soil, plants seeds from the floor or the seed rack, refills their own can at the sink and waters thirsty plants. Also clears spent soil.',
+'Harvester / Trimmer: harvests ripe plants, hangs them on drying racks, hand-trims the dried bud, then weighs and jars it at the scale (needs a Jar Box). Jars go on a storage shelf.',
+'Shelf Stocker: carries packed jars and pre-rolls from the floor and storage shelves to your dispensary display cases and retail shelves.',
+'The first day is paid when you hire. After that, wages come out each morning. A worker you cannot pay quits. Workers and what they carry are saved with your farm and synced in co-op. They never grab anything a player is holding.']},
 {v:'1.7.2',date:'Oct 31, 2026',title:'Beta v1.7.2 — Fixes',notes:[
 'Grass and flowers no longer poke through built floors. They are hidden under any floor or building you place and come back if you remove it.',
 'Display cases, sales counters, retail shelves and Open/Closed signs bought from the shop now arrive in a crate on the delivery pad. Pick one up and press B (D-pad ▲ on controller) to unpack it into Build mode and place it.']},

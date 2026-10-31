@@ -1,6 +1,6 @@
 // v1.7.0 Business laptop tab + logo canvas + 3D storefront dressing.
 import * as THREE from 'three';
-import {SHAPES,ICONS,COLS,AWN,LTS,NW1,NW2,SKILL,STAFFT,UPG,LOCS,MARK,CLEAN_FEE,BRANCH_CAP,pkey,stars} from './bizdata.js';
+import {SHAPES,ICONS,COLS,AWN,LTS,NW1,NW2,SKILL,STAFFT,WORKT,WORK_MAX,WORK_HOURS,UPG,LOCS,MARK,CLEAN_FEE,BRANCH_CAP,pkey,stars} from './bizdata.js';
 import {STRAINS} from './rules.js';
 export let sec='home';let n1=0,n2=0;
 const SECS=[['home','🏪 Overview'],['logo','🎨 Logo'],['front','🏬 Storefront'],['prod','🏷 Prices'],['inv','📦 Inventory'],['staff','👥 Staff'],['upg','⬆ Upgrades'],['pl','📈 Profit & Loss'],['rev','⭐ Reviews'],['loc','🗺 Locations']];
@@ -53,6 +53,7 @@ export function bizHTML(W,pad){const b=W.biz;if(!b)return '<div class="card">Loa
 // returns true if handled
 export function bizClick(ds,send,W){if(ds.bzs){sec=ds.bzs;return true}if(ds.bzw){if(ds.bzw=='1')n1=(n1+1)%NW1.length;else n2=(n2+1)%NW2.length;const i=document.getElementById('bzname');if(i)i.value=NW1[n1]+' '+NW2[n2];return true}
  if(ds.bz==null)return false;const [op,a,c]=ds.bz.split('|');
+ if(op=='whire'){send({t:'work',op:'hire',k:a,sk:+c});return true}if(op=='wfire'){send({t:'work',op:'fire',k:a});return true}
  if(op=='open'||op=='name')send({t:'biz',op,name:document.getElementById('bzname')?.value||NW1[n1]+' '+NW2[n2]});
  else if(op=='logo'||op=='front')send({t:'biz',op,k:a,v:+c});else if(op=='logotx')send({t:'biz',op:'logo',k:'tx',v:document.getElementById('bztx')?.value||''});
  else if(op=='price')send({t:'biz',op,key:a,d:+c});else if(op=='hire')send({t:'biz',op,k:a,sk:+c});else if(op=='fire'||op=='upg')send({t:'biz',op,k:a});
@@ -71,3 +72,10 @@ export function storefront(scene,W,lowq){const b=W?.biz,B=W?.build||[];const reg
  if(b.front.lt){const N=lowq?8:14;for(let i=0;i<N;i++){const c=b.front.lt==3?new THREE.Color().setHSL(i/N,1,.6):b.front.lt==2?new THREE.Color(COLS[b.front.ac]):new THREE.Color('#ffd27a');const m=new THREE.Mesh(new THREE.SphereGeometry(.045,8,6),new THREE.MeshBasicMaterial({color:c}));m.position.set(-(wd+.5)/2+(wd+.5)/(N-1)*i,2.66,zo+.05);g.add(m)}
   if(!lowq){const pl=new THREE.PointLight(b.front.lt==1?0xffd27a:COLS[b.front.ac],1.2,6);pl.position.set(0,2.3,zo+1);g.add(pl)}}
  scene.add(g);SF=g;return g}
+// v1.7.3 👷 Workers laptop tab — every control is a focusable card so the pad D-pad/A works.
+const WST={walk:'🚶 on the way',work:'🛠 working',idle:'☕ idle — nothing to do',off:'🌙 off shift'};
+export function workHTML(W,pad){const L=W.workers||[];let h=`<div class="card info" style="grid-column:1/-1"><h3>👷 Farm Workers</h3>Hire NPCs who walk the farm and do the chores for you, ${WORK_HOURS[0]}:00–${WORK_HOURS[1]}:00. First day is paid on hiring, then wages come out each morning — if you can't pay, they quit. Up to ${WORK_MAX} of each.${W.wlast?`<br><small>${esc(W.wlast)}</small>`:''}</div>`;
+ for(const [k,T] of Object.entries(WORKT)){const mine=L.filter(v=>v.k===k);
+  h+=`<div class="card info" style="grid-column:1/-1"><h3>${T.e} ${T.n} · ${mine.length}/${WORK_MAX} hired</h3>${T.d}${mine.map(v=>`<br>• ${SKILL[v.sk].n} — $${Math.round(T.wage*SKILL[v.sk].m)}/day — ${WST[v.st]||v.st}${v.say?` <small>(“${esc(v.say)}”)</small>`:''}`).join('')}</div>`;
+  h+=SKILL.map((S,i)=>`<button class="card" data-bz="whire|${k}|${i}" ${mine.length>=WORK_MAX?'disabled':''}><h3>Hire ${S.n}</h3>${Math.round(S.f*100)}% speed<br><span class="p">$${Math.round(T.wage*S.m)}/day</span></button>`).join('')+(mine.length?`<button class="card" data-bz="wfire|${k}"><h3>Let one go</h3>Drops whatever they carry<br><span class="p">${pad?'A ▶ fire':'Fire'}</span></button>`:'')}
+ return h}
