@@ -1,19 +1,19 @@
 import {SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD,seedOf,settle,grade,gradeOk,prodQ,CURE,GRADES,inGH,harvQ,BASE,MUTS,rollMut,rollPack,makeCross,regGen,collPct,MILES,RAR,NW1,NW2} from '../src/rules.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
 const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','dist');
-const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));
+const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));app.get('/health/db',(q,r)=>r.json({kind:store.kind,ok:store.kind=='file'||!!store.status?.ok,err:store.status?.err||null}));
 // ---------- accounts + saves ----------
-const store=await openStore();console.log('Store:',store.kind);
+const store=await openStore().catch(e=>{console.error('Store init failed, using memory:',e.message);const m=new Map();return {kind:'memory',get:async k=>m.get(k)??null,set:async(k,v)=>{m.set(k,v)},del:async k=>{m.delete(k)},list:async p=>[...m].filter(([k])=>k.startsWith(p)).map(([k,v])=>({k,v}))}});console.log('Store:',store.kind);
 app.use('/api',express.json({limit:'200kb'}));
 const U=n=>String(n||'').trim().toLowerCase();const okU=n=>/^[a-z0-9_]{3,16}$/.test(n);
 const hash=(pw,salt)=>crypto.scryptSync(String(pw),salt,64).toString('hex');
 async function newSess(u){const tok=crypto.randomBytes(24).toString('hex');await store.set('sess:'+tok,{u,t:Date.now()});return tok}
 async function who(tok){if(!tok||typeof tok!='string')return null;const s=await store.get('sess:'+tok);return s?.u||null}
-const authed=f=>async(q,r)=>{try{const u=await who(q.get('x-bt-token'));if(!u)return r.status(401).json({e:'Not logged in'});await f(q,r,u)}catch(e){console.error(e);r.status(500).json({e:'Server error'})}};
-app.post('/api/signup',async(q,r)=>{const u=U(q.body?.user),pw=String(q.body?.pass||'');if(!okU(u))return r.status(400).json({e:'Username: 3-16 letters, numbers or _'});if(pw.length<4)return r.status(400).json({e:'Password must be 4+ characters'});
- if(await store.get('user:'+u))return r.status(409).json({e:'Username taken'});const salt=crypto.randomBytes(16).toString('hex');await store.set('user:'+u,{u,salt,h:hash(pw,salt),c:Date.now()});r.json({user:u,token:await newSess(u)})});
-app.post('/api/login',async(q,r)=>{const u=U(q.body?.user),a=await store.get('user:'+u);if(!a)return r.status(401).json({e:'Wrong username or password'});const h=hash(String(q.body?.pass||''),a.salt);
- if(!crypto.timingSafeEqual(Buffer.from(h,'hex'),Buffer.from(a.h,'hex')))return r.status(401).json({e:'Wrong username or password'});r.json({user:u,token:await newSess(u)})});
-app.post('/api/logout',async(q,r)=>{const t=q.get('x-bt-token');if(t)await store.del('sess:'+t);r.json({ok:1})});
+const A=f=>(q,r)=>Promise.resolve(f(q,r)).catch(e=>{console.error('api:',e.message);if(!r.headersSent)r.status(503).json({e:'Server busy — try again'})});const authed=f=>async(q,r)=>{try{const u=await who(q.get('x-bt-token'));if(!u)return r.status(401).json({e:'Not logged in'});await f(q,r,u)}catch(e){console.error(e);r.status(500).json({e:'Server error'})}};
+app.post('/api/signup',A(async(q,r)=>{const u=U(q.body?.user),pw=String(q.body?.pass||'');if(!okU(u))return r.status(400).json({e:'Username: 3-16 letters, numbers or _'});if(pw.length<4)return r.status(400).json({e:'Password must be 4+ characters'});
+ if(await store.get('user:'+u))return r.status(409).json({e:'Username taken'});const salt=crypto.randomBytes(16).toString('hex');await store.set('user:'+u,{u,salt,h:hash(pw,salt),c:Date.now()});r.json({user:u,token:await newSess(u)})}));
+app.post('/api/login',A(async(q,r)=>{const u=U(q.body?.user),a=await store.get('user:'+u);if(!a)return r.status(401).json({e:'Wrong username or password'});const h=hash(String(q.body?.pass||''),a.salt);
+ if(!crypto.timingSafeEqual(Buffer.from(h,'hex'),Buffer.from(a.h,'hex')))return r.status(401).json({e:'Wrong username or password'});r.json({user:u,token:await newSess(u)})}));
+app.post('/api/logout',A(async(q,r)=>{const t=q.get('x-bt-token');if(t)await store.del('sess:'+t);r.json({ok:1})}));
 app.get('/api/me',authed(async(q,r,u)=>r.json({user:u})));
 app.get('/api/profile',authed(async(q,r,u)=>r.json((await store.get('prof:'+u))||{})));
 app.put('/api/profile',authed(async(q,r,u)=>{const b=q.body;if(!b||typeof b!='object')return r.status(400).json({e:'bad'});const o={};for(const[k,v]of Object.entries(b))if(/^bt_\w{1,20}$/.test(k)&&typeof v=='string'&&v.length<20000)o[k]=v;await store.set('prof:'+u,o);r.json({ok:1})}));
@@ -187,4 +187,5 @@ setInterval(()=>{for(const r of rooms.values())if(r.w._sv){delete r.w._sv;r.owne
 setInterval(()=>{for(const r of rooms.values())saveRoom(r)},+process.env.BT_AUTOSAVE_MS||45000);
 let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{fixp:w.fixp,money:w.money,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,offers:w.offers||[],log:w.log,toast:w.toast,sound:w.sound,smoke:w.smoke,fx:w.fx,pending:w.pending.length,orders:orderView(w),util:w.util,decor:w.decor,sleepers:w.sleepers||[],slept:w.slept||0,disc:w.disc||{},rew:w.rew||[],gen:w.gen||{}}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
 const shutdown=async()=>{await Promise.all([...rooms.values()].map(saveRoom));process.exit(0)};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
+process.on('unhandledRejection',e=>console.error('unhandled:',e?.message||e));process.on('uncaughtException',e=>console.error('uncaught:',e?.stack||e));
 const PORT=process.env.PORT||3000;server.listen(PORT,()=>console.log('Bud Together on :'+PORT));
