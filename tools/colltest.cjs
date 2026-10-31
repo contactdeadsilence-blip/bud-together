@@ -23,6 +23,11 @@ tx(A,{t:'use',target:box.id});await st();tx(A,{t:'dbg',spawn:{x:2,z:2,d:{used:1}
 tx(A,{t:'use',target:pot.id});await st();let b=held()[0];ok('single bag fills with old dirt (1/3)',b?.type=='dirtbag'&&b.data.f==1&&held().length==1,JSON.stringify(b));
 tx(A,{t:'dbg',spawn:{x:2.6,z:2,s:'kush',age:100,dead:1}});await st();const dp=A.w.ents.at(-1);tx(A,{t:'use',target:box.id});await st();tx(A,{t:'cycle'});await st();
 const g1=held().find(e=>e.type=='gbag1');for(let i=0;i<3&&held()[0]?.type!='gbag1';i++){tx(A,{t:'cycle'});await st()}tx(A,{t:'use',target:dp.id});await st();ok('single bag bags a dead plant into a trash bag',byId(g1.id)?.type=='trash',byId(g1.id)?.type);
+// contract timers + board
+{const d0=A.w.day,reg=A.w.contracts;ok('regular contracts last ~7 game days',reg.length&&reg.every(c=>c.due-d0>=5&&!c.sp),JSON.stringify(reg.map(c=>c.due-d0)));
+tx(A,{t:'dbg',offer:1});tx(A,{t:'dbg',offer:1});await st();const of=A.w.offers;ok('special offers post on the board (1-2 days, better pay/grade)',of.length>=2&&of.every(c=>c.sp&&c.due-A.w.day<=1),JSON.stringify(of.map(c=>[c.due-A.w.day,c.min,c.pay])));
+const o1=of[0];tx(A,{t:'acceptc',id:o1.id});await st();ok('accepting moves special into active contracts',A.w.contracts.some(c=>c.id==o1.id)&&!A.w.offers.some(c=>c.id==o1.id));
+const left=A.w.offers.filter(c=>c.id!=o1.id).map(c=>c.id);for(let i=0;i<2;i++){tx(A,{t:'dbg',min:1439.5});tx(A,{t:'dbg',ff:1});await st()}ok('unaccepted specials expire off the board',left.every(id=>!A.w.offers.some(c=>c.id==id)),JSON.stringify(A.w.offers.map(c=>c.id)));}
 // browser shots
 const br=await pp.launch({executablePath:'/usr/bin/google-chrome',headless:'new',protocolTimeout:300000,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const P=await br.newPage();await P.setViewport({width:1280,height:800});const errs=[];P.on('pageerror',e=>errs.push(e.message));
@@ -45,6 +50,13 @@ ok('HUD notices pointer-events none and fade out after ~4s',fe[0]=='none'&&fe[2]
 await ev(()=>{__bt.send({t:'dbg',min:720});__bt.tp(-8.6,7.5);__bt.lookAt(-8.6,2,0)});await sl(400);await frames(8);await P.screenshot({path:'/workspace/ui-shots/grow/v13-greenhouse-roof.png'});
 await ev(()=>{__bt.send({t:'dbg',min:1320})});await sl(400);await frames(8);await P.screenshot({path:'/workspace/ui-shots/grow/v13-night-greenhouse.png'});
 await ev(()=>{__bt.tp(0,-10);__bt.lookAt(0,1,0)});await frames(8);await P.screenshot({path:'/workspace/ui-shots/grow/v13-night-yard.png'});
-tx(A,{t:'dbg',min:1320});tx(A,{t:'dbg',spawn:{x:-8.6,z:0,s:'kush',age:50}});await st();tx(A,{t:'dbg',ff:.2});await st();const gp=A.w.ents.at(-1);ok('server: greenhouse pot lit at night by grow lights',gp.data.plant.lit===1,JSON.stringify([gp.data.plant.lit,A.w.min,A.w.util&&A.w.util.off]));
+tx(A,{t:'dbg',money:500});tx(A,{t:'paybill'});await st();tx(A,{t:'dbg',min:1320});tx(A,{t:'dbg',spawn:{x:-8.6,z:0,s:'kush',age:50}});await st();tx(A,{t:'dbg',ff:.2});await st();const gp=A.w.ents.at(-1);ok('server: greenhouse pot lit at night by grow lights',gp.data.plant.lit===1,JSON.stringify([gp.data.plant.lit,A.w.min,A.w.util&&A.w.util.off]));
+await ev(()=>{__bt.send({t:'dbg',min:600});__bt.send({t:'dbg',offer:1});__bt.send({t:'dbg',offer:1})});await sl(500);
+await ev(()=>{__bt.tp(-6,8.9);__bt.lookAt(-6.4,1.5,6.9)});await frames(40);await P.screenshot({path:'/workspace/ui-shots/grow/v13-board-3d.png'});
+const pr=await ev(()=>document.getElementById('prompt')?.textContent||document.body.innerText.match(/View Contract Board/)?.[0]||'');ok('board prompt shown',/Contract Board/.test(pr),pr);
+await press(0,3);await sl(400);await frames(4);const bo=await ev(()=>({n:document.querySelectorAll('#laptop .note').length,a:document.querySelectorAll('#laptop .note[data-acc]').length}));ok('A opens the board with pinned notes',bo.n>=3&&bo.a>=1,JSON.stringify(bo));
+await P.screenshot({path:'/workspace/ui-shots/grow/v13-board-ui.png'});const nA=await ev(()=>__bt.W.contracts.length);
+await ev(()=>__bt.focusEl(document.querySelector('#laptop .note[data-acc]')));await frames(2);await press(0,3);await sl(600);ok('pad A accepts a special from the board',(await ev(()=>__bt.W.contracts.length))==nA+1);
+await press(1,3);await frames(3);ok('B closes the board',!(await ev(()=>document.getElementById('laptop').classList.contains('on'))));
 ok('no page errors',!errs.length,errs.join('|'));
 console.log(`${res.filter(Boolean).length}/${res.length} passed`);await br.close();srv.kill();process.exit(res.every(Boolean)?0:1)})().catch(e=>{console.error(e);srv?.kill();process.exit(1)});
