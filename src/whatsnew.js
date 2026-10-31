@@ -48,6 +48,6 @@ function init(){const st=document.createElement('style');st.textContent=css;docu
  const v=document.createElement('div');v.id='wnver';v.textContent='Beta v'+CURRENT_VERSION;document.body.appendChild(v);
  const vis=()=>{v.style.display=$('menu')?.classList.contains('on')&&$('m-main')?.style.display!='none'?'':'none'};setInterval(vis,300);vis();
  // Popup on load if the player hasn't seen this version yet (wait for splash to finish)
- const seen=localStorage.getItem(KEY);if(!seen||cmp(seen,CURRENT_VERSION)<0){const t=setInterval(()=>{if(!$('splash')?.classList.contains('on')){clearInterval(t);setTimeout(()=>openWhatsNew('latest'),400)}},250)}
+ const seen=localStorage.getItem(KEY);if(!seen||cmp(seen,CURRENT_VERSION)<0){const t=setInterval(()=>{if(!$('splash')?.classList.contains('on')&&!$('cre')?.classList.contains('on')){clearInterval(t);setTimeout(()=>openWhatsNew('latest'),400)}},250)}
  window.__wn={open:openWhatsNew,close,isOpen:()=>open,version:CURRENT_VERSION}}
 document.readyState=='loading'?document.addEventListener('DOMContentLoaded',init):init();

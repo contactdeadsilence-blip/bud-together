@@ -1,5 +1,8 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.6.1',date:'Oct 31, 2026',title:'Beta v1.6.1 — Controller Fix',notes:[
+'Fixed: on your very first launch the character creator ignored the controller (D-pad, A, LB/RB) because the What\'s New popup opened behind it. What\'s New now waits until you finish creating your character.',
+'Character creator controller input is smoother on slower PCs.']},
 {v:'1.6.0',date:'Oct 31, 2026',title:'Beta v1.6.0 — Bug Fixes & Performance',notes:[
 'Bud Together is now in Beta! New version numbers start at Beta v1.6.0.',
 'Smoother frame rate: the HUD (money, clock, prompts, hands) only redraws when something actually changes instead of every frame.',

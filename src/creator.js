@@ -81,12 +81,12 @@ function pad(dt){const gp=[...(navigator.getGamepads?.()||[])].find(p=>p&&p.conn
  const d=dx+','+dy;if(dx||dy){if(d!=rep.d){rep.d=d;rep.t=.35;dy?mv(dy):act(dx)}else if((rep.t-=dt)<=0){rep.t=.09;dy?mv(dy):act(dx)}}else rep.d=0;
  if(Math.abs(ax(2))>.2)C.rot+=ax(2)*dt*3;if(Math.abs(ax(3))>.2)C.zoom=Math.max(0,Math.min(1,C.zoom-ax(3)*dt*1.5));
  if(E[4])tab(-1);if(E[5])tab(1);if(E[0])act(1,true);if(E[1]||E[9])close(true)}
-function loop(t){if(!C.open)return;requestAnimationFrame(loop);const dt=Math.min(.1,(t-last)/1000||0);last=t;pad(dt);
+function loop(t){if(!C.open)return;requestAnimationFrame(loop);const dt=Math.min(.1,(t-last)/1000||0);last=t;if(!C.man)return;
  const el=$('crev'),w=el.clientWidth,h=el.clientHeight;if(C.r.domElement.width!=Math.round(w*C.r.getPixelRatio())){C.r.setSize(w,h,false);C.cam.aspect=w/h;C.cam.updateProjectionMatrix()}
  if(C.man){C.man.rotation.y=C.rot;animateAvatar(C.man,dt,{spd:0})}const z=C.zoom,ty=1+z*.62;C.cam.position.set(0,ty+.05,4.6-z*3.6);C.cam.lookAt(0,ty,0);C.r.render(C.s,C.cam)}
 export async function openCreator(o={}){ui();C.mode=o.mode||'edit';C.cb=o.onChange;C.onClose=o.onClose;C.money=o.money;C.spend=o.spend;C.t=o.tab||'body';C.row=0;C.gate=true;
  C.look=cleanLook(LS.look||o.look||defLook(Math.random()<.5?'m':'f',Math.random()*1000|0));if(!LS.look)localStorage.bt_look=JSON.stringify(C.look);
- C.open=true;C.d.classList.add('on');document.exitPointerLock?.();render();await ready;if(!C.man){C.man=makeHuman(cleanLook(C.look));C.s.add(C.man)}else setLook(C.man,cleanLook(C.look));last=performance.now();requestAnimationFrame(loop)}
+ C.open=true;C.d.classList.add('on');document.exitPointerLock?.();render();last=performance.now();clearInterval(C.pi);let pl=performance.now();C.pi=setInterval(()=>{if(!C.open){clearInterval(C.pi);return}const n=performance.now();pad(Math.min(.1,(n-pl)/1000));pl=n},16);if(!C.loop){C.loop=1;requestAnimationFrame(t=>{C.loop=0;loop(t)})}await ready;if(!C.open)return;if(!C.man){C.man=makeHuman(cleanLook(C.look));C.s.add(C.man)}else setLook(C.man,cleanLook(C.look))}
 export function closeCreator(){close(true)}
 function close(){if(!C?.open)return;C.open=false;C.d.classList.remove('on');save();C.onClose?.(C.look)}
 export function creatorOpen(){return !!C?.open}
