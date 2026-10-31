@@ -17,7 +17,7 @@ await press(A,4);await sl(1500);await frames(5);s=await st();ok('solo game start
 const D='/workspace/ui-shots/grow/v18-';const shot=n=>P.screenshot({path:D+n+'.png'});
 const W=()=>ev(()=>__bt.W),send=m=>ev(m=>__bt.send(m),m),bs=()=>ev(()=>__bt.build());
 const pr=()=>ev(()=>document.getElementById('prompt').textContent);
-const put=async(k,x,z)=>{await send({t:'dbg',give:k});await sl(250);await send({t:'drop',x,z,y:0});await sl(250)};
+const put=async(k,x,z,y=0)=>{await send({t:'dbg',give:k});await sl(250);await send({t:'drop',x,z,y});await sl(250)};
 await put('scale',2,9);await put('jars',2.8,9);
 const sc=(await W()).ents.find(e=>e.type=='scale');ok('scale placed',sc&&!sc.by,JSON.stringify(sc));
 for(let i=0;i<3;i++){await send({t:'dbg',give:'drybud',gd:{s:'owl',g:5,q:70}});await sl(300);
@@ -25,4 +25,11 @@ for(let i=0;i<3;i++){await send({t:'dbg',give:'drybud',gd:{s:'owl',g:5,q:70}});a
  await press(A);await sl(500);const h=(await st()).held;console.log('round',i,'prompt:',p,'held:',h,'toast:',await ev(()=>__bt.state().alert));ok('fill '+i,/Weigh/.test(p)&&h=='packed',p+' | '+h);
  await send({t:'drop',x:sc.x+.04,z:sc.z+.06,y:0});await sl(300);
  }
+for(const tt of ['table','desk']){const tx0=tt=='table'?-2:-5;await put(tt,tx0,6);const T=(await W()).ents.find(e=>e.type==tt&&!e.by);const H=tt=='table'?.78:.935;
+ await put('scale',T.x+(tt=='desk'?.0:0),T.z+(tt=='desk'?.4:0),H);await send({t:'dbg',give:'jars'});await sl(250);await send({t:'drop',x:T.x+.6,z:T.z+.6,y:0});await sl(250);
+ const S=(await W()).ents.find(e=>e.type=='scale'&&Math.hypot(e.x-T.x,e.z-T.z)<.6);ok(tt+': scale sits on top',S&&S.y>H-.1,JSON.stringify(S));
+ for(let i=0;i<4;i++){await send({t:'dbg',give:'drybud',gd:{s:'owl',g:5,q:70}});await sl(300);
+  await ev((x,z)=>__bt.warp(x,z+1.0,0,-.45),S.x,S.z);await frames(6);const p=await pr();await press(A);await sl(500);const h=(await st()).held;
+  ok(tt+' fill '+i,/Weigh/.test(p)&&h=='packed',p+' | '+h);
+  await send({t:'drop',x:S.x,z:S.z,y:S.y});await sl(300);const J=(await W()).ents.filter(e=>e.type=='packed'&&!e.by).pop();ok(tt+' jar placed off scale '+i,J&&Math.hypot(J.x-S.x,J.z-S.z)>=.3,JSON.stringify(J&&[J.x,J.z,J.y]))}}
 const n=res.filter(Boolean).length;console.log(n+'/'+res.length);await b.close();srv.kill();process.exit(0)})();
