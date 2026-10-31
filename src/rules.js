@@ -68,6 +68,8 @@ export const DECOR={rug:{n:'Woven Rug',p:40,w:1.6,d:2.2,h:.02,s:'floor'},rugr:{n
  poster:{n:'Strain Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},poster2:{n:'Retro Poster',p:20,w:.6,d:.04,h:.85,s:'wall'},neon:{n:'Neon Leaf Sign',p:120,w:.9,d:.06,h:.6,s:'wall'},clock:{n:'Wall Clock',p:25,w:.4,d:.05,h:.4,s:'wall'},shelfw:{n:'Floating Shelf',p:30,w:1,d:.25,h:.3,s:'wall'}};
 export const defDecor=()=>({paint:'cream',panel:'plank',floor:'oak',light:'warm',fix:'shade',own:[],items:[]});
 // interior bounds the decor must fit in (room 1 / with the expansion)
+export const FXB={kush:['relax','😌','Relaxed',60],haze:['speed','⚡','Speed boost',40],owl:['nv','🦉','Night vision',60],lemon:['jump','🍋','Jump boost',30],blue:['wobble','🌀','Glitch vision',45],og:['fog','👻','Ghostly fog',50]};const FXMAP={mint:'lemon',ember:'haze',aurora:'owl',phantom:'og',sol:'haze',void:'kush'};
+export function fxBase(s,d=0){if(FXB[s])return s;if(FXMAP[s])return FXMAP[s];const p=STRAINS[s]?.par;if(p&&d<4)return fxBase(p[0],d+1);const k=Object.keys(FXB);let h=0;for(const ch of String(s))h=h*31+ch.charCodeAt(0)|0;return k[Math.abs(h)%k.length]}
 export const RACKN=10;export function rackSnap(B,x,z){const d=[[x-B.x0,B.x0+.06,z,Math.PI/2],[B.x1-x,B.x1-.06,z,-Math.PI/2],[z-B.z0,x,B.z0+.06,0],[B.z1-z,x,B.z1-.06,Math.PI]];const m=d.reduce((a,b)=>Math.abs(b[0])<Math.abs(a[0])?b:a);return m[2]===z&&m[3]!==0&&m[3]!==Math.PI?{x:m[1],z,ry:m[3]}:{x,z:m[2],ry:m[3]}}
 export const ROOMB=r=>({x0:-4.1,x1:r>1?11:4.1,z0:-5,z1:5});
 // v11: day length, surfaces, sleep, pre-rolls
