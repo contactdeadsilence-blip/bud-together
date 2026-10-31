@@ -1,5 +1,11 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.6',date:'Oct 31, 2026',title:'Beta v1.7.6 — Performance Hotfix',notes:[
+'Big farms run much smoother: about half as many draw calls and triangles per frame on a busy 70-item save.',
+'Props now share geometry and materials, and each item\'s static parts are merged, so tables with jars and bags are much cheaper to draw.',
+'Fixed a memory leak: plants and other items that update leaked GPU memory every time they changed. Plants also redraw less often.',
+'Lamp and grow-light shadows are now limited to the High and Ultra presets (the ceiling lamp\'s 6-sided shadow is Ultra only). Lights that are off no longer cost anything.',
+'Tip: Settings → Graphics has Low/Medium/High/Ultra presets and a Render Scale down to 50% if your game still feels slow.']},
 {v:'1.7.5',date:'Oct 31, 2026',title:'Beta v1.7.5 — Packaging Hotfix',notes:[
 'Fixed: the Scale, Rosin Press, Vacuum Sealer, Label Printer and bag boxes now work when they sit on a Work Table or desk, not only on the floor.',
 'Fixed: packing into Mylar Bags at the scale works again, including straight from dried bud.',
