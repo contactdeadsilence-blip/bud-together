@@ -12,6 +12,10 @@ await clear();tx({t:'dbg',give:'packed',gd:{s:'owl',g:14,q:70,cure:0,ct:'grove'}
 const cab=await put('ccab',5,4);await clear();tx({t:'dbg',give:'packed',gd:{s:'owl',g:7,q:70,cure:0,ct:'jar',hm:0}});await sl(200);tx({t:'use',target:cab.id});await sl(200);ok('jar stored in curing cabinet',E(cab.id).data.st?.length==1,c.toast);
 await clear();tx({t:'dbg',give:'drybud',gd:{s:'owl',g:5,q:70}});await sl(200);tx({t:'use',target:cab.id});await sl(200);ok('curing cabinet rejects loose bud',/Only curing/.test(c.toast),c.toast);
 await clear();await sl(1200);ok('cabinet cures contents',(E(cab.id).data.st[0].data.cure||0)>0);tx({t:'use',target:cab.id});await sl(200);ok('take jar back out of cabinet',held().some(e=>e.type=='packed'),c.toast);
+// --- quick fix: every section 3 equipment piece can be picked up (F/X) with contents kept
+tx({t:'dbg',give:'packed',gd:{s:'owl',g:7,q:70,cure:0,ct:'jar',hm:0}});await sl(200);tx({t:'use',target:cab.id});await sl(200);await clear();
+tx({t:'use',target:cab.id,only:1});await sl(250);{const h=held().find(e=>e.type=='ccab');ok('F/X picks up the curing cabinet with jars inside',h&&h.data.st?.length>=1,c.toast);tx({t:'drop',x:5,z:4,y:0});await sl(200);ok('cabinet placed back, jars kept',E(cab.id)&&!E(cab.id).by&&E(cab.id).data.st?.length>=1)}
+for(const k of ['fan','dehum','grove','jars','stash','scale','press','hbin','mylar','vseal','lprint','trimmer']){const e=await put(k,6,1.5);if(!e){ok('spawn '+k,false);continue}await clear();tx({t:'use',target:e.id,only:1});await sl(220);ok('F/X picks up '+k,held().some(h=>h.id==e.id),c.toast);await clear()}
 // --- D: storage, packaging, quality categories ---
 const bn=await put('sbin',5,2.5);await clear();tx({t:'dbg',give:'packed',gd:{s:'owl',g:7,q:90,cure:1}});await sl(200);tx({t:'use',target:bn.id});await sl(200);ok('storage bin holds product',E(bn.id).data.st?.length==1&&!held().length,c.toast);
 tx({t:'use',target:bn.id,only:1});await sl(200);ok('F/X with empty hands picks up the bin itself',held().some(e=>e.type=='sbin'),c.toast);tx({t:'drop',x:5,z:2.5,y:0});await sl(200);

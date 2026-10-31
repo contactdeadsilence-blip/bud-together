@@ -11,19 +11,21 @@ export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(e.type=='press'&&(ct=='drybud'||ct=='trim'))return 'Press '+(ct=='trim'?'trim':'bud')+' into rosin (minigame)';
  if(e.type=='scale'&&ct=='drybud')return 'Weigh & pack into '+(near('grove',e,60)&&!near('jars',e,60)?'grove bag':'curing container');
  return undefined}
+const MOVE=['fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears'];
 export function procPrompt(c,t,only){const e=t?.e;if(!e)return undefined;const S=STORE[e.type];
+ if(only&&!c&&MOVE.includes(e.type)&&!(e.type=='hbin'&&(e.data.br||[]).length)){const n=(e.data.st||[]).length;return H.bag().length<3?'Pick up '+(SHOP[e.type]?.n||H.NAME(e.type))+(n?` (${n} inside stay stored)`:''):'Hands full'}
  if(S&&!c&&!only){const L=e.data.st||[];return L.length?`Take ${L.at(-1).type=='pkg'?'retail pack':H.NAME(L.at(-1).type)} · ${SHOP[e.type].n} ${L.length}/${S.n}`:`${SHOP[e.type].n} — empty (hold product to store)`}
  if(e.type=='rack'&&!c&&e.data.env&&!only&&!(e.data.slots||[]).length){const v=e.data.env;return `Drying rack · ${v.h}% RH · ${v.T}°C · speed ×${v.sp}${v.dq>0?' · ideal':v.dq<0?' · too humid/hot':''}`}
  return undefined}
 // returns true if handled
 export function procInteract(c,t,only){if(only)return false;const W=H.W();
- if(c?.type=='packed'&&(!t||!t.e)&&c.data.ct!='grove'&&(c.data.cure||0)<1){H.send({t:'burp'});H.sfx('ui');return true}
+ if(c?.type=='packed'&&!t&&c.data.ct!='grove'&&(c.data.cure||0)<1){H.send({t:'burp'});H.sfx('ui');return true}
  const e=t?.e;if(!e||!c)return false;
  if(e.type=='scale'&&(c.type=='packed'||c.type=='conc')&&near('mylar',e)){return packGame(c,{id:e.id,dg:!!e.data.dg,vac:!!near('vseal',e),pr:!!near('lprint',e)},H.send,H.sfx)||false}
  if(e.type=='press'&&(c.type=='drybud'||c.type=='trim')){pressGame(c,{id:e.id,hy:!!e.data.hy},H.send,H.sfx);return true}
  return false}
 export function procHold(c){if(!c)return'';const d=c.data||{};let s='';
- if(c.type=='packed'){s=` · ${qcat('packed',d)[0]}`;if(d.ct=='grove')s+=' · grove bag';else if((d.cure||0)<1)s+=(d.hm||0)>=1.4?' · 💧 OVERDUE burp (G with no target)':(d.hm||0)>=.5?' · 💧 ready to burp (E/A with no target)':' · sealed'}
+ if(c.type=='packed'){s=` · ${qcat('packed',d)[0]}`;if(d.ct=='grove')s+=' · grove bag';else if((d.cure||0)<1)s+=(d.hm||0)>=1.4?' · 💧 OVERDUE burp (V, or A/E aiming at nothing)':(d.hm||0)>=.5?' · 💧 ready to burp (V, or A/E aiming at nothing)':' · sealed'}
  if(c.type=='pkg')s=` · ${d.n}× ${d.g}g ${d.cc?'rosin':''} · ${catTxt('pkg',d)}`;if(c.type=='conc')s=` · ${d.g}g rosin · ${catTxt('conc',d)}`;if(c.type=='trim')s=' · Trim';if(c.type=='drybud'&&d.q!=null)s=` · ${qcat('drybud',d)[0]}`;return s}
 export function lvlTxt(W){const l=lvl(W),n=lvNext(W);return `Lv ${l}${n?` · $${W.earned||0}/${n}`:''}`}
 // ---------- 3D props ----------
