@@ -11,9 +11,9 @@ const near=(v,x,z)=>Math.hypot(v.x-x,v.z-z);
 const nearest=(v,L)=>L.sort((a,b)=>near(v,a.x,a.z)-near(v,b.x,b.z))[0];
 // run a real player action as this worker with item `it` in hand (bi 0); keeps worker chatter out of the player toast unless it's useful
 function doAct(w,v,act,m,it){held(w,v).forEach(e=>e.bi=e===it?0:1);const t0=w.toast,s0=w.sound;act(w,v.id,m);if(w.toast&&w.toast.pid===v.id){v.say=w.toast.t;w.toast=t0}if(w.sound!==s0&&near(v,HOME.x,HOME.z)>60)w.sound=s0}
-function pickUp(w,v,e){e.by=v.id;e.bi=1;w._sv=1}
+function pickUp(w,v,e){e.by=v.id;e.bi=1;w._svw=1}
 function mk(w,v,type,data){const e={id:w.nid++,type,x:v.x,y:0,z:v.z,ry:0,by:v.id,bi:1,data};w.ents.push(e);return e}
-function drop(w,v,e,x,z){e.by=0;e.bi=0;e.x=(x??v.x)+(Math.random()-.5)*.3;e.z=(z??v.z)+(Math.random()-.5)*.3;e.y=0;w._sv=1}
+function drop(w,v,e,x,z){e.by=0;e.bi=0;e.x=(x??v.x)+(Math.random()-.5)*.3;e.z=(z??v.z)+(Math.random()-.5)*.3;e.y=0;w._svw=1}
 const canSell=e=>e&&e.data&&e.data.s&&!['drybud','wetbud','trim','seed'].includes(e.type)&&!e.type.startsWith('seed_')&&(e.data.g||e.data.n);
 const seedSrc=(w,v)=>{const L=w.ents.filter(e=>free(e)&&e.type.startsWith('seed_')&&!claimed(w,v,e.id));const r=w.ents.filter(e=>e.type==='seedrack'&&!e.by&&(e.data.sl||[]).some(s=>s&&s.n?.length)&&!claimed(w,v,e.id));return nearest(v,[...L,...r])};
 // returns the next goal {id,x,z,go:fn} or null
@@ -25,8 +25,8 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   const thirsty=pots.filter(p=>p.data.soil&&p.data.plant&&!p.data.plant.dead&&(p.data.moist??0)<Math.max(THIRSTY+20,45)&&!claimed(w,v,p.id));
   if(thirsty.length){if((can.data.w??0)<15){const s=nearest(v,w.ents.filter(e=>e.type==='sink'&&!e.by));if(s)return go(s,()=>{for(let i=0;i<12&&(can.data.w??0)<CAN;i++)doAct(w,v,act,{t:'use',target:s.id},can)},1.1);return null}
    const p=nearest(v,thirsty);return go(p,()=>{for(let i=0;i<20&&(p.data.moist??0)<90&&(can.data.w??0)>0;i++)doAct(w,v,act,{t:'use',target:p.id},can)})}
-  const spent=pots.find(p=>p.data.soil&&p.data.used&&!p.data.plant&&!claimed(w,v,p.id));if(spent)return go(spent,()=>{if(spent.data.used&&!spent.data.plant){spent.data.soil=0;spent.data.used=0;spent.data.moist=0;v.say='Cleared spent soil';w._sv=1}});
-  const empty=pots.filter(p=>p.data.soil&&!p.data.used&&!p.data.plant);if(empty.length&&H.length<3){const s=seedSrc(w,v);if(s)return go(s,()=>{if(s.type==='seedrack'){const sl=(s.data.sl||[]).find(x=>x&&x.n?.length);if(sl){mk(w,v,sl.k,sl.n.pop());if(!sl.n.length)s.data.sl[s.data.sl.indexOf(sl)]=null;w._sv=1}}else if(free(s))pickUp(w,v,s)})}
+  const spent=pots.find(p=>p.data.soil&&p.data.used&&!p.data.plant&&!claimed(w,v,p.id));if(spent)return go(spent,()=>{if(spent.data.used&&!spent.data.plant){spent.data.soil=0;spent.data.used=0;spent.data.moist=0;v.say='Cleared spent soil';w._svw=1}});
+  const empty=pots.filter(p=>p.data.soil&&!p.data.used&&!p.data.plant);if(empty.length&&H.length<3){const s=seedSrc(w,v);if(s)return go(s,()=>{if(s.type==='seedrack'){const sl=(s.data.sl||[]).find(x=>x&&x.n?.length);if(sl){mk(w,v,sl.k,sl.n.pop());if(!sl.n.length)s.data.sl[s.data.sl.indexOf(sl)]=null;w._svw=1}}else if(free(s))pickUp(w,v,s)})}
   const bare=pots.filter(p=>!p.data.soil);if(bare.length&&H.length<3){const s=nearest(v,w.ents.filter(e=>free(e)&&e.type==='soil'&&!claimed(w,v,e.id)));if(s)return go(s,()=>{if(free(s))pickUp(w,v,s)})}
   return null}
  if(v.k==='trimmer'){const wet=H.find(e=>e.type==='wetbud'),dry=H.find(e=>e.type==='drybud'),trim=H.find(e=>e.type==='trim'),pk=H.find(e=>e.type==='packed');const scale=nearest(v,w.ents.filter(e=>e.type==='scale'&&!e.by));
@@ -42,15 +42,15 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   if(it){const p=nearest(v,space.filter(p=>p.k==='dcase').length?space.filter(p=>p.k==='dcase'):space);if(p)return go(p,()=>doAct(w,v,act,{t:'dstock',id:p.id},it),1.2);v.say='Every case and shelf is full';return null}
   if(!space.length)return null;
   const loose=w.ents.filter(e=>free(e)&&canSell(e)&&!claimed(w,v,e.id)),shv=w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).some(s=>s&&canSell(s))&&!claimed(w,v,e.id));
-  const s=nearest(v,[...loose,...shv]);if(s)return go(s,()=>{if(s.type==='shelf'){const sl=s.data.slots,i=sl.findIndex(x=>x&&canSell(x));if(i>=0){mk(w,v,sl[i].type,sl[i].data);sl[i]=null;w._sv=1}}else if(free(s))pickUp(w,v,s)},1.1);
+  const s=nearest(v,[...loose,...shv]);if(s)return go(s,()=>{if(s.type==='shelf'){const sl=s.data.slots,i=sl.findIndex(x=>x&&canSell(x));if(i>=0){mk(w,v,sl[i].type,sl[i].data);sl.splice(i,1);w._svw=1}}else if(free(s))pickUp(w,v,s)},1.1);
   return null}
  return null}
 export function workTick(w,dt,act){const L=w.workers;if(!L?.length)return;const h=w.min/60,on=h>=WORK_HOURS[0]&&h<WORK_HOURS[1];
  for(const v of L){const f=SKILL[v.sk]?.f||1;v.mv=0;
   if(v.wait>0){v.wait-=dt;continue}
-  if(!v.tg){if(!on){v.st='off';v.tg={x:HOME.x+(L.indexOf(v)*.7),z:HOME.z,d:.2}}else{const g=plan(w,v,act);if(g?.wait){v.wait=g.wait;v.st='work';continue}v.tg=g||null;v.st=g?'walk':'idle';if(!g){v.wait=1.5;continue}}}
+  if(!v.tg){if(!on){v.st='off';v.tg={x:HOME.x+(L.indexOf(v)*.7),z:HOME.z,d:.2}}else{if((v.nx=(v.nx||0)-dt)>0)continue;v.nx=.5;const g=plan(w,v,act);if(g?.wait){v.wait=g.wait;v.st='work';continue}v.tg=g||null;v.st=g?'walk':'idle';if(!g){v.wait=1.5;continue}}}
   const g=v.tg,dx=g.x-v.x,dz=g.z-v.z,D=Math.hypot(dx,dz);
-  if(D>g.d){const s=Math.min(D-g.d+.01,SPD*f*dt);v.x+=dx/D*s;v.z+=dz/D*s;v.ry=Math.atan2(dx,dz);v.mv=1;continue}
+  if(D>g.d){const s=Math.min(D-g.d+.01,SPD*f*dt);v.x+=dx/D*s;v.z+=dz/D*s;v.ry=Math.atan2(-dx,-dz);v.mv=1;continue}
   if(g.go){if(g.id==null||w.ents.some(e=>e.id===g.id)||(w.build||[]).some(p=>p.id===g.id))g.go();v.wait=1.1/f;v.st='work'}else v.st=on?'idle':'off';v.tg=null}}
 export function workDay(w){const L=w.workers;if(!L?.length)return '';let tot=0,quit=[];for(const v of [...L]){const c=wage(v);if(w.money>=c){w.money-=c;tot+=c;v.days=(v.days||0)+1}else{fireW(w,v);quit.push(WORKT[v.k].n)}}
  return (tot?`Farm wages −$${tot}`:'')+(quit.length?` · Unpaid ${quit.join(', ')} quit`:'')}

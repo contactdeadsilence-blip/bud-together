@@ -1,5 +1,9 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.4',date:'Oct 31, 2026',title:'Beta v1.7.4 — Hotfix',notes:[
+'Fixed: items in your shed (seed rack, furniture and more) could disappear after reloading a save. It happened after a Shelf Stocker took the last item from a shelf. Saves that were affected now load correctly.',
+'Fixed lag when AI workers are on the farm. Workers no longer cause constant autosaves, name tags are no longer rebuilt every few seconds, and far-away characters animate more cheaply.',
+'Fixed: workers walked backwards. They now face the way they walk.']},
 {v:'1.7.3',date:'Oct 31, 2026',title:'Beta v1.7.3 — AI Farm Workers',notes:[
 'New 👷 Workers tab on the laptop. Hire a Grower, a Harvester / Trimmer or a Shelf Stocker (Rookie, Skilled or Expert), up to 2 of each. It works fully with the controller.',
 'Workers walk around your farm and do the chores themselves, from 6:00 to 22:00. Each one has a name tag that shows what they are doing.',
