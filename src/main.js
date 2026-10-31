@@ -5,7 +5,7 @@ import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
 import {ShaderPass} from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import {GTAOPass} from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import {GTAOPass} from 'three/examples/jsm/postprocessing/GTAOPass.js';import {SMAAPass} from 'three/examples/jsm/postprocessing/SMAAPass.js';import {FXAAShader} from 'three/examples/jsm/shaders/FXAAShader.js';import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js';import {loadGfx,saveGfx,PRESETS,OPTS,LABEL} from './gfx.js';
 import {RoundedBoxGeometry} from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';import {gen,pmat,retex,WOOD,PANEL,FLOOR,SURF} from './pbr.js';
 import {mergeGeometries} from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import {makeAvatar,animateAvatar,makeFPArms,animateFP,setLook,cleanLook,defLook,palmLocal} from './human.js';import {PAGES} from './book.js';import {openCreator,creatorOpen,hasLook,savedLook,creatorState} from './creator.js';
@@ -14,24 +14,31 @@ import * as BLD from './build.js';import {sfx,initAudio,setVol} from './audio.js
 import {STRAINS,SHOP,READY,stage,POUR,THIRSTY,SLOTS,CAN,RATE,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,FXB,fxBase,SURFS,BIG,ROLL,canSleep,MINPS,seedOf,settle,stage6,STAGE6,SEEDT,SOILQ,grade,prodQ,harvQ,GH,GRADES,RAR,MUTS,collPct,JOURNAL,MILES,regGen,NW1,NW2} from './rules.js';
 const $=id=>document.getElementById(id);const Q=new URLSearchParams(location.search);
 const settings=Object.assign({sens:5,qual:2,vol:7,inv:0,vib:1,rfx:0},JSON.parse(localStorage.bt_set||'{}'));if(Q.has('q'))settings.qual=+Q.get('q');
-const HQ=settings.qual>0;
+const GFX=loadGfx(Q);settings.qual=GFX.preset<0?(GFX.ao?2:GFX.bloom?1:0):Math.min(GFX.preset,2);
+const HQ=!!(GFX.bloom||GFX.ao||GFX.aa=='fxaa'||GFX.aa=='smaa');
 // ---------- renderer ----------
-const renderer=new THREE.WebGLRenderer({antialias:!HQ,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,settings.qual==2?1.5:1));renderer.setSize(innerWidth,innerHeight);
-renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const renderer=new THREE.WebGLRenderer({antialias:!HQ&&GFX.aa!='off',powerPreference:'high-performance'});
+const PR=()=>Math.min(Math.min(devicePixelRatio,2)*GFX.rs,3);renderer.setPixelRatio(PR());renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=GFX.tm=='none'?THREE.NoToneMapping:GFX.tm=='agx'?THREE.AgXToneMapping:THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.shadowMap.enabled=GFX.sh>0;renderer.shadowMap.type=GFX.soft?(GFX.sh>=4096?THREE.PCFSoftShadowMap:THREE.PCFSoftShadowMap):THREE.PCFShadowMap;
 document.body.prepend(renderer.domElement);
-const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,400);scene.add(camera);
-const SKY=new THREE.Color('#a8d8ff');scene.background=SKY.clone();scene.fog=new THREE.Fog('#d6ead0',30,110);
+const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.05,Math.max(150,GFX.vd*2.2));scene.add(camera);
+const SKY=new THREE.Color('#a8d8ff');scene.background=SKY.clone();scene.fog=new THREE.Fog('#d6ead0',30*GFX.vd/110,Math.min(GFX.vd,125));
+if(GFX.env){try{const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.35;pm.dispose()}catch(e){}}
 const GRADE={uniforms:{tDiffuse:{value:null}},vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
  fragmentShader:'uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 col=c.rgb*vec3(1.05,1.0,.9);float l=dot(col,vec3(.299,.587,.114));col=mix(vec3(l),col,1.1);col=(col-.5)*1.05+.5;vec2 d=vUv-.5;col*=1.-dot(d,d)*.6;gl_FragColor=vec4(col,c.a);}'};
-let composer=null;
-if(HQ){composer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(innerWidth,innerHeight,{samples:settings.qual==2?4:0,type:THREE.HalfFloatType}));composer.addPass(new RenderPass(scene,camera));
- if(settings.qual==2){try{const ao=new GTAOPass(scene,camera,innerWidth,innerHeight);ao.blendIntensity=.85;ao.updateGtaoMaterial({radius:.5,distanceExponent:1.4,thickness:1,scale:1.1,samples:12});composer.addPass(ao)}catch(e){console.warn('AO off',e)}}
- composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),.28,.5,.86));composer.addPass(new OutputPass());composer.addPass(new ShaderPass(GRADE))}
+let composer=null,fxaa=null,smaa=null;
+if(HQ){composer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(innerWidth,innerHeight,{samples:GFX.aa=='msaa'?4:0,type:THREE.HalfFloatType}));composer.setPixelRatio(PR());composer.addPass(new RenderPass(scene,camera));
+ if(GFX.ao){try{const ao=new GTAOPass(scene,camera,innerWidth,innerHeight);ao.blendIntensity=.85;ao.updateGtaoMaterial({radius:.5,distanceExponent:1.4,thickness:1,scale:1.1,samples:GFX.preset==3?16:12});composer.addPass(ao)}catch(e){console.warn('AO off',e)}}
+ if(GFX.bloom)composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth/2,innerHeight/2),.28,.5,.86));composer.addPass(new OutputPass());composer.addPass(new ShaderPass(GRADE));
+ if(GFX.aa=='smaa'){smaa=new SMAAPass(innerWidth*PR(),innerHeight*PR());composer.addPass(smaa)}
+ if(GFX.aa=='fxaa'){fxaa=new ShaderPass(FXAAShader);composer.addPass(fxaa)}}
 else{const vig=document.createElement('div');vig.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:5;background:radial-gradient(ellipse at center,transparent 60%,rgba(20,15,5,.4))';document.body.append(vig)}
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer&&composer.setSize(innerWidth,innerHeight)});
+const fxaaRes=()=>{if(fxaa)fxaa.material.uniforms.resolution.value.set(1/(innerWidth*PR()),1/(innerHeight*PR()))};fxaaRes();
+// texture anisotropy: sweep materials periodically (textures are created lazily all over the code)
+{const MAXA=renderer.capabilities.getMaxAnisotropy(),A=Math.min(GFX.an,MAXA),K=['map','normalMap','roughnessMap','aoMap','bumpMap'];const sweep=()=>scene.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];for(const m of ms)for(const k of K){const t=m[k];if(t&&t.anisotropy!==A){t.anisotropy=A;t.needsUpdate=true}}});setInterval(sweep,4000);setTimeout(sweep,800)}
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer&&composer.setSize(innerWidth,innerHeight);smaa&&smaa.setSize(innerWidth*PR(),innerHeight*PR());fxaaRes()});
 const hemi=new THREE.HemisphereLight('#ffefd2','#5a4630',.75);scene.add(hemi);
-const sun=new THREE.DirectionalLight('#ffe0b0',2.3);sun.position.set(-14,22,18);sun.castShadow=true;const SM=settings.qual==2?2048:1024;sun.shadow.mapSize.set(SM,SM);
+const sun=new THREE.DirectionalLight('#ffe0b0',2.3);sun.position.set(-14,22,18);sun.castShadow=GFX.sh>0;const SM=GFX.sh||512;sun.shadow.mapSize.set(SM,SM);if(GFX.soft)sun.shadow.radius=GFX.sh>=4096?3:2;
 Object.assign(sun.shadow.camera,{left:-20,right:20,top:20,bottom:-20,near:1,far:70});sun.shadow.bias=-.0004;sun.shadow.normalBias=.03;scene.add(sun);
 // ---------- helpers ----------
 const rnd=(s=>()=>(s=(s*16807)%2147483647)/2147483647)(4242);
@@ -231,7 +238,7 @@ function buildWorld(){
  for(let k=0;k<26;k++){const b=sh(new THREE.Mesh(new THREE.IcosahedronGeometry(.35+rnd()*.3,1),lf[k%3]));b.position.set((rnd()-.5)*26,.15,-7+rnd()*19);if(insideFoot(b.position.x,b.position.z,.6))continue;scene.add(b)}
  // grass tufts
  const bg=[];for(let i=0;i<3;i++){const g=new THREE.BufferGeometry();const a=i*2.1,w=.035;g.setAttribute('position',new THREE.Float32BufferAttribute([-Math.cos(a)*w,0,Math.sin(a)*w,Math.cos(a)*w,0,-Math.sin(a)*w,Math.cos(a+.5)*.03,.28,-Math.sin(a+.5)*.03],3));g.setAttribute('color',new THREE.Float32BufferAttribute([.35,.6,.25,.35,.6,.25,.75,1,.5],3));g.computeVertexNormals();bg.push(g)}
- const blade=mergeGeometries(bg);const N=[500,1500,3000][settings.qual];grass=new THREE.InstancedMesh(blade,new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.9}),N);grass.receiveShadow=true;
+ const blade=mergeGeometries(bg);const N=GFX.grass;grass=new THREE.InstancedMesh(blade,new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,roughness:.9}),N);grass.receiveShadow=true;
  const M=new THREE.Matrix4(),col=new THREE.Color();let n=0;while(n<N){const x=(rnd()-.5)*50,z=(rnd()-.5)*50;if(x>-4.8&&x<11.8&&z>-5.8&&z<5.8||Math.abs(x)<1.3&&z>5&&z<11.8||x>1.2&&x<3.6&&z>6.1&&z<8.3||x>GH.x0-.3&&x<GH.x1+.3&&z>GH.z0-.3&&z<GH.z1+.3)continue;
   _o.position.set(x,0,z);_o.rotation.set(0,rnd()*6,0);_o.scale.setScalar(.6+rnd()*.9);_o.updateMatrix();grass.setMatrixAt(n,_o.matrix);grass.setColorAt(n,col.setHSL(.27+rnd()*.05,.5,.45+rnd()*.15));n++}scene.add(grass);
  const fc=['#ff7aa8','#ffe066','#ffffff','#b48aff'];for(let k=0;k<60;k++){const x=(rnd()-.5)*24,z=-8+rnd()*20;if(insideFoot(x,z,.3))continue;scene.add(at(new THREE.Mesh(new THREE.IcosahedronGeometry(.05,0),mat(fc[k%4],{emissive:fc[k%4],emissiveIntensity:.15})),x,.2,z),at(cyl(.006,.006,.2,'#3a8a3a',3),x,.1,z))}
@@ -481,7 +488,7 @@ function svLine(){const t=+localStorage.bt_savedAt;const e=$('lastsv');if(e)e.te
 function saveGame(){if(game&&!document.hidden)toast('Saving…');try{send({t:'save'})}catch{}}
 setInterval(()=>{if(game)try{send({t:'save',auto:1})}catch{}},60000);addEventListener('beforeunload',()=>{if(game)try{send({t:'save'})}catch{}});document.addEventListener('visibilitychange',()=>{if(document.hidden&&game)try{send({t:'save'})}catch{}});
 function setPause(v){svLine();if(!game)return;paused=v;setTimeout(syncPause);$('pause').classList.toggle('on',v);if(v)document.exitPointerLock?.();setFocus(null)}
-function showMenu(which){setFocus(null);$('pause').classList.remove('on');$('menu').classList.add('on');{const o=$('osk');if(which=='acct')$('oskslot').appendChild(o);else if(which=='join')$('nm').after(o)}['main','join','lobby','set','remap','acct','saves'].forEach(k=>$('m-'+k).style.display=k==which?(k=='main'?'flex':''):'none')}
+function showMenu(which){setFocus(null);$('pause').classList.remove('on');$('menu').classList.add('on');{const o=$('osk');if(which=='acct')$('oskslot').appendChild(o);else if(which=='join')$('nm').after(o)}['main','join','lobby','set','gfx','remap','acct','saves'].forEach(k=>$('m-'+k).style.display=k==which?(k=='main'?'flex':''):'none')}
 const OSK='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let oskT=null;
 $('osk').innerHTML=[...OSK].map(c=>`<button class="key" data-k="${c}">${c}</button>`).join('')+'<button class="key w" data-k="DEL">DEL</button><button class="key w" data-k="OK">OK</button>';
 ['code','nm','au','ap'].forEach(k=>$(k).addEventListener('focus',()=>{oskT=$(k);setTgt()}));
@@ -703,13 +710,13 @@ document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const 
  if(ds.k)return oskKey(ds.k);if(ds.rm){capture=ds.rm;renderRemap();return}if(ds.slot!=null){send({t:'cycle',sel:+ds.slot});setTimeout(renderInv,150);return}if(ds.tab){if(ds.tab!=tab)WS.go({tab:ds.tab});renderLap();return}if(ds.buy){send({t:'buy',item:ds.buy,n:qty[ds.buy]||1});return}if(ds.upg){send({t:'upgrade'});return}if(ds.gc!=null){send({t:'claim',i:+ds.gc});return}if(ds.gn){const [k,j]=ds.gn.split(':'),P=gpick[k]??=[0,0];P[+j]=(P[+j]+1)%(j=='0'?NW1:NW2).length;renderLap(1);return}if(ds.gs){const P=gpick[ds.gs]||[0,0];send({t:'gname',k:ds.gs,name:NW1[P[0]]+' '+NW2[P[1]]});return}if(ds.dk){decoPick(ds.dk);return}if(ds.ds){const [k,v]=ds.ds.split(':');send({t:'dstyle',k,v});return}if(ds.acc){send({t:'acceptc',id:+ds.acc});sfx('ui');return}if(ds.dt){decoTab=ds.dt;renderDecoCat();return}if(ds.a=='decoclose'){closeDecoCat();return}if(ds.a=='decor'){const t0=ds.dt0;closeLap();if(paused)setPause(false);decoMode(true);if(t0)openDecoCat(t0);return}
  const a=ds.a,nm=()=>($('nm').value||localStorage.bt_nm||'Grower').toUpperCase();
  if(a=='solo'){pendingSolo=true;const gw=!ACC.tok&&localStorage.bt_guestw?JSON.parse(localStorage.bt_guestw):undefined;const sv=ACC.tok&&localStorage.bt_lastsave||undefined;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok,save:sv,gw}))}if(a=='savegame')saveGame();
- if(a=='host'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}if(a=='join'){showMenu('join');oskT=$('code');setTgt()}if(a=='set')showMenu('set');if(a=='remap'){capture=null;showMenu('remap');renderRemap();setFocus(defFocus($('m-remap')))}if(a=='rmback'){capture=null;showMenu('set')}if(a=='rmreset'){binds={...DEFB};localStorage.bt_binds=JSON.stringify(binds);renderRemap();renderHelp();toast('Controller buttons reset')}if(a=='closeinv')closeInv();if(a=='closemap')closeMap();
+ if(a=='host'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}if(a=='join'){showMenu('join');oskT=$('code');setTgt()}if(a=='set')showMenu('set');if(a=='gfx'){gfxDraft=null;gfxUI();showMenu('gfx');setFocus($('g_preset'))}if(a=='gfxapply')gfxApply();if(a=='gfxback')showMenu('set');if(a=='remap'){capture=null;showMenu('remap');renderRemap();setFocus(defFocus($('m-remap')))}if(a=='rmback'){capture=null;showMenu('set')}if(a=='rmreset'){binds={...DEFB};localStorage.bt_binds=JSON.stringify(binds);renderRemap();renderHelp();toast('Controller buttons reset')}if(a=='closeinv')closeInv();if(a=='closemap')closeMap();
  if(a=='back'){if(game){$('menu').classList.remove('on');setFocus(null);if(paused)$('pause').classList.add('on')}else showMenu('main')}
  if(a=='dojoin'){localStorage.bt_nm=$('nm').value;pendingSolo=false;net(()=>send({t:'join',code:$('code').value,name:nm(),look:myLook()}))}
  if(a=='acct'){if(ACC.tok)return acctLogout();showMenu('acct');oskT=$('au');setTgt();setFocus($('au'))}if(a=='guest')showMenu('main');if(a=='login'||a=='signup')acctAuth(a);if(a=='saves'){showMenu('saves');renderSaves()}if(a=='cont'&&ACC.last)hostSave(ACC.last);if(ds.sv)hostSave(ds.sv);if(ds.svdel&&confirm('Delete this farm save?'))api('DELETE','/api/saves/'+ds.svdel).then(renderSaves);if(a=='newfarm'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}
  if(a=='start')send({t:'start'});if(a=='leave'){ws&&ws.close();ws=null;showMenu('main')}
  if(a=='paybill')send({t:'paybill'});if(a=='resume')setPause(false);if(a=='cre')openCre('body');if(a=='book'){closeLap();openBook()}if(a=='howto')openHowto();if(a=='closehow')closeHowto();if(a=='bkprev')turnBook(-1);if(a=='bknext')turnBook(1);if(a=='closebook')closeBook();if(a=='threads'){closeLap();openCre('store')}if(a=='wardrobe'){closeLap();openCre('fit')}if(a=='close')closeLap();if(a=='tomenu'){endGame();ws&&ws.close();ws=null;acctUI();showMenu('main')}});
-['sens','qual','vol','inv','vib','rfx'].forEach(k=>{$(k).value=settings[k];$(k).onchange=()=>{settings[k]=+$(k).value;localStorage.bt_set=JSON.stringify(settings);setVol(settings.vol/10);if(k=='qual')location.reload()}});
+['sens','vol','inv','vib','rfx'].forEach(k=>{$(k).value=settings[k];$(k).onchange=()=>{settings[k]=+$(k).value;localStorage.bt_set=JSON.stringify(settings);setVol(settings.vol/10);}});
 const endSplash=()=>{if(!$('splash').classList.contains('on'))return;$('splash').classList.remove('on');if(!game)showMenu('main');if(!hasLook())openCre('body',true)};
 function openCre(t,first){const wasP=paused;setFocus(null);openCreator({tab:t,mode:first?'create':'edit',money:()=>W&&game?W.money:null,spend:(n,why)=>{if(!W||W.money<n)return false;send({t:'spend',n,why});W.money-=n;return true},
  onChange:l=>{if(fpArms)setLook(fpArms,cleanLook(l))},onClose:l=>{send({t:'look',look:l});if(fpArms)setLook(fpArms,cleanLook(l));lastRoot=null;const r=uiRoot();if(padMode&&r)setFocus(defFocus(r));if(first)toast('Looking good! Press Play to start.')}})}$('splash').onclick=endSplash;setTimeout(endSplash,Q.has('nosplash')?0:2900);
@@ -807,3 +814,11 @@ function inspRender(){if(!inspE)return;const el=document.getElementById('inspv')
 #insp .ib{display:grid;grid-template-columns:120px 1fr 44px;align-items:center;gap:6px}#insp .ib i{height:10px;background:#333;border-radius:5px;overflow:hidden}#insp .ib b{display:block;height:100%}#insp .ib em{font-style:normal;text-align:right}
 #insp .ir{opacity:.85;font-size:13px}#insp .iq{display:flex;gap:12px;align-items:center;background:#1a221a;border-radius:10px;padding:8px}#insp .gr{font:900 30px Nunito;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#555}
 #insp .gAp{background:#c9a2ff;color:#211}#insp .gA{background:#5fd36a;color:#111}#insp .gB{background:#3fa0ff}#insp .gC{background:#e0a030}#insp .gD{background:#b04030}#insp .iw2{color:#ff6a5a}#insp button{margin-top:auto;padding:10px;border-radius:10px;border:0;background:#5fd36a;color:#111;font:900 15px Nunito}#insp button.f,#insp button:focus{outline:3px solid #fff}`;document.head.appendChild(st)}
+
+// ---------- v19 graphics settings panel ----------
+var gfxDraft=null;function gfxUI(){const P=$('gfxopts');if(!P)return;const g=gfxDraft||(gfxDraft={...GFX});
+ const sel=(id,lab,opts,v)=>`<p class="gopt">${lab} <select id="g_${id}" style="font:900 16px Nunito">${opts.map(([k,n])=>`<option value="${k}"${String(k)==String(v)?' selected':''}>${n}</option>`).join('')}</select></p>`;
+ P.innerHTML=sel('preset','Preset',[...PRESETS.map((p,i)=>[i,p.n]),[-1,'Custom']],g.preset)+Object.keys(LABEL).map(k=>sel(k,LABEL[k],OPTS[k],g[k])).join('')+`<p class="sub" id="gfxnote">${JSON.stringify(g)==JSON.stringify(GFX)?'Current settings':'Changed — press Apply'} · GPU auto-detect picks a default</p>`;
+ P.querySelectorAll('select').forEach(el=>el.onchange=()=>{const k=el.id.slice(2),v=isNaN(+el.value)?el.value:+el.value;if(k=='preset'){gfxDraft=v<0?{...gfxDraft,preset:-1}:{...PRESETS[v],preset:v}}else{gfxDraft={...gfxDraft,[k]:v,preset:-1}}for(const q of P.querySelectorAll('select')){const kk=q.id.slice(2);q.value=String(gfxDraft[kk])}$('gfxnote').textContent=(JSON.stringify(gfxDraft)==JSON.stringify(GFX)?'Current settings':'Changed — press Apply')+' · GPU auto-detect picks a default'})}
+function gfxApply(){saveGfx(gfxDraft||GFX);if(game&&W){try{document.querySelector('[data-a=savegame]')?.click()}catch(e){}}setTimeout(()=>location.reload(),game?600:50)}
+window.__bt&&(window.__bt.gfx=()=>({...GFX,pr:renderer.getPixelRatio(),composer:!!composer,smaa:!!smaa,fxaa:!!fxaa,shadow:sun.shadow.mapSize.x,env:!!scene.environment}));
