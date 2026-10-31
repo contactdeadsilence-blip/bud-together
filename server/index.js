@@ -1,4 +1,5 @@
-import {BP,BPF,BMAT,PAINTP,bSlot,bExpand,bAllowed,onBFloor,SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD,seedOf,settle,grade,gradeOk,prodQ,CURE,GRADES,inGH,harvQ,BASE,MUTS,rollMut,rollPack,makeCross,regGen,collPct,MILES,RAR,NW1,NW2} from '../src/rules.js';import {procTick,procAct,concContract,radioMsg} from './proc.js';import {qcat} from '../src/proc.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
+import {bizOf,bizMsg,bizTick,bizDay,custDone,sale,spawnGap,custCap,payTime,buyBoost,markOf,fairTotal,homeOpen,itemPrice as bizPrice} from './biz.js';
+import {DCAP,DMARK,STAFF,fairPrice,GRADES as GR2,BP,BPF,BMAT,PAINTP,bSlot,bExpand,bAllowed,onBFloor,SLOTS,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD,seedOf,settle,grade,gradeOk,prodQ,CURE,GRADES,inGH,harvQ,BASE,MUTS,rollMut,rollPack,makeCross,regGen,collPct,MILES,RAR,NW1,NW2} from '../src/rules.js';import {procTick,procAct,concContract,radioMsg} from './proc.js';import {qcat} from '../src/proc.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
 const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','dist');
 const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));app.get('/health/db',(q,r)=>r.json({kind:store.kind,ok:store.kind=='file'||!!store.status?.ok,err:store.status?.err||null}));
 // ---------- accounts + saves ----------
@@ -47,7 +48,7 @@ const near=(a,b,r)=>Math.hypot(a.x-b.x,a.z-b.z)<r;
 const isDay=w=>w.min>=6*60&&w.min<19*60;
 function outdoor(w,e){const B=ROOMB(w.room);return e.x<B.x0||e.x>B.x1||e.z<B.z0||e.z>B.z1}
 function lit(w,e){if(powered(w)&&w.ents.some(l=>l.type==='light'&&!l.by&&near(l,e,3.2)))return 1;if(inGH(e)&&!isDay(w)&&powered(w))return 1;/* v13a greenhouse grow lights at night */if(outdoor(w,e)&&isDay(w))return inGH(e)?'gh':'sun';return 0}
-function tick(w,dt){const U=w.util;if(!(U.off&2))U.kwh+=w.ents.filter(e=>e.type=='light'&&!e.by).length*RATE.light*dt*MINPS/60;w.min+=dt*MINPS;if(w.min>=1440){w.min-=1440;w.day++;bill(w);
+function tick(w,dt){const U=w.util;if(!(U.off&2))U.kwh+=w.ents.filter(e=>e.type=='light'&&!e.by).length*RATE.light*dt*MINPS/60;w.min+=dt*MINPS;dispTick(w,dt);bizTick(w,dt);if(w.min>=1440){w.min-=1440;w.day++;bill(w);dispDay(w);
   for(const b of U.bills)if(b.due<w.day&&!(U.off&3)){U.off=3;msg(w,'⚠ Utility bill overdue — water & power are OFF until you pay (laptop → Utilities)')}
   w.contracts=w.contracts.filter(c=>{if(c.due<w.day){w.rep=Math.max(0,w.rep-1);msg(w,`Missed contract for ${c.shop} (-1 rep)`);return false}return true});w.offers=(w.offers||[]).filter(c=>c.due>=w.day)}
  if((w.offers||[]).length<2&&Math.random()<dt/600)newContract(w,1);/* v13a board specials: 1-2 game days */
@@ -104,6 +105,8 @@ function act0(w,pid,m){fixHeal(w);const bag=w.ents.filter(e=>e.by===pid);const c
  if(m.t==='upgrade'){if(w.room>1)return;if(w.rep<5)return say('Need 5 reputation');if(w.money<500)return say('Need $500');w.money-=500;w.room=2;return say('Grow room expanded!')}
  if(m.t==='drop'){if(!c)return;c.by=0;c.bi=0;const P=settle(w,+m.x||0,+m.z||0,(+m.y||0)+.1);c.x=P.x;c.z=P.z;c.y=P.y;c.ry=+m.ry||0;if(c.type!=='scale'){const sc=w.ents.find(e=>e.type==='scale'&&!e.by&&e!==c&&Math.hypot(e.x-c.x,e.z-c.z)<.3);if(sc){const a=Math.atan2(c.z-sc.z,c.x-sc.x)||0;const Q=settle(w,sc.x+Math.cos(a)*.35,sc.z+Math.sin(a)*.35,(+m.y||0)+.1);c.x=Q.x;c.z=Q.z;c.y=Q.y}}{const k=c.type==='dropbox'?'drop':c.type==='dumpster'?'bin':null;if(k){w.fixp[k]={x:c.x,z:c.z,ry:c.ry};w.ents=w.ents.filter(e=>e!==c);return}}if(c.type==='seedrack'){const S=rackSnap(ROOMB(w.room),c.x,c.z);c.x=S.x;c.z=S.z;c.ry=S.ry;c.y=0}return}
  if(m.t==='cycle'){if(bag.length<2)return;const L=bag.length;if(m.sel!=null){const k=+m.sel;if(k>0&&k<L)for(const e of bag)e.bi=((e.bi||0)-k+L)%L;return}const d=m.d<0?1:L-1;for(const e of bag)e.bi=((e.bi||0)+d)%L;return}
+ if(m.t==='biz')return bizMsg(w,m,say);
+ if(m.t==='dstock'||m.t==='dtake'||m.t==='dprice'||m.t==='dstaff')return dispMsg(w,m,c,give,full,say);
  if(m.t==='bplace'||m.t==='bdel'||m.t==='bsell'||m.t==='bpaint'||m.t==='bdoor')return build(w,m,say);
  if(m.t==='dstyle'||m.t==='dplace'||m.t==='dmove'||m.t==='drem'||m.t==='dlight'||m.t==='dstow')return decor(w,m,say);
  if(m.t==='trash'){if(!c)return;return trash(w,c,say)}
@@ -164,12 +167,43 @@ function build(w,m,say){const B=w.build??=[],S=w.bstock??={},sn=v=>Math.round(+v
   const pr=(BP[k]||BPF[k]).p;if(S[k]>0)S[k]--;else{if(w.money<pr)return say(`Need $${pr} for ${(BP[k]||BPF[k]).n} — or buy it in budsupply.shop`);w.money-=pr}
   const gid=BPF[k]?w.nid++:0;for(const p of L)B.push({id:w.nid++,k:p.k,x:p.x,z:p.z,r:p.r,m:BPF[k]?p.m:mi,o:0,...(gid?{g:gid,gk:k}:{})});w.sound='drop';return say(`Built ${(BP[k]||BPF[k]).n}`+(L.length>1?` (${L.length} pieces)`:''))}
  const p=B.find(e=>e.id===m.id);if(!p)return say('Piece not found');
- if(m.t==='bsell'){const grp=m.whole&&p.g?B.filter(e=>e.g===p.g):[p],v=grp.reduce((a,e)=>a+bSellP(e.k),0);w.build=B.filter(e=>!grp.includes(e));w.money+=v;w.sound='cash';
+ if(m.t==='bsell'){const grp=m.whole&&p.g?B.filter(e=>e.g===p.g):[p];if(grp.some(e=>e.st?.length))return say('Take the product out first (X / F)');const v=grp.reduce((a,e)=>a+bSellP(e.k),0);w.build=B.filter(e=>!grp.includes(e));w.money+=v;w.sound='cash';
   return say(grp.length>1?`Sold ${BPF[p.gk]?.n||'building'} (${grp.length} pieces) for $${v}`:`Sold ${BP[p.k].n} for $${v}`)}
- if(m.t==='bdel'){w.build=B.filter(e=>e!==p);S[p.k]=(S[p.k]||0)+1;w.sound='pick';return say(`Removed ${BP[p.k].n} — back in your Build inventory`)}
+ if(m.t==='bdel'){if(p.st?.length)return say('Take the product out first (X / F)');w.build=B.filter(e=>e!==p);S[p.k]=(S[p.k]||0)+1;w.sound='pick';return say(`Removed ${BP[p.k].n} — back in your Build inventory`)}
  if(m.t==='bpaint'){const mi=m.m|0;if(!BMAT[mi])return;if(p.m===mi)return say('Already '+BMAT[mi][1]);if(w.money<PAINTP)return say(`Need $${PAINTP}`);w.money-=PAINTP;p.m=mi;w.sound='ui';return say(`${BP[p.k].n} → ${BMAT[mi][1]} (-$${PAINTP})`)}
- if(m.t==='bdoor'){if(p.k!=='door'&&p.k!=='gdoor')return;p.o=p.o?0:1;w.sound='ui';return}}
+ if(m.t==='bdoor'){if(!['door','gdoor','rollup','dsign'].includes(p.k))return;if(p.k==='dsign'&&!p.o&&!homeOpen(w))return say('Name & open your business first: laptop → 🏪 Business');p.o=p.o?0:1;w.sound='ui';if(p.k==='dsign')return say(p.o?'🟢 Dispensary OPEN — customers will start arriving (8am–10pm)':'🔴 Dispensary CLOSED');return}}
 const bSellP=k=>Math.floor(((BP[k]||BPF[k])?.p||0)/2);
+// ---------- v20 dispensary: display stock, prices, staff, AI customers (server-authoritative) ----------
+const units=e=>e.type==='joints'?(e.data.n||1):(e.data.g||1)*(e.data.n||1);
+const canSell=e=>e&&e.data&&e.data.s&&!['drybud','wetbud','trim','seed'].includes(e.type)&&!e.type.startsWith('seed_')&&(e.data.g||e.data.n);
+export function itemPrice(w,it,p){return bizPrice(w,it,p)}
+function dispMsg(w,m,c,give,full,say){const B=w.build||[];if(m.t==='dstaff'){const k=m.k;if(!STAFF[k])return;const S=w.staff??={};if(S[k])delete S[k];else S[k]={sk:1};w.sound='ui';return say(S[k]?`Hired a ${STAFF[k].n} — $${STAFF[k].wage}/day wage, paid each morning`:`${STAFF[k].n} let go`)}
+ const p=B.find(e=>e.id===m.id);if(!p||!DCAP[p.k])return say('Aim at a display case or shelf');const st=p.st??=[];
+ if(m.t==='dprice'){p.pm=((p.pm??1)+(m.d<0?DMARK.length-1:1))%DMARK.length;w.sound='ui';return say(`Price set to ${Math.round(DMARK[p.pm]*100)}% of market value`)}
+ if(m.t==='dstock'){if(!canSell(c))return say('Hold packed jars, pre-rolls or packaged product to stock it');if(st.length>=DCAP[p.k])return say('This '+BP[p.k].n+' is full');w.ents=w.ents.filter(e=>e!==c);st.push({t:c.type,d:c.data,q:prodQ(c.data),u:units(c)});w.sound='drop';w._sv=1;return say(`Stocked ${STRAINS[c.data.s]?.name||c.data.s} (${st.length}/${DCAP[p.k]})`+(p.k==='dcase'?` · sells for $${itemPrice(w,st[st.length-1],p)}`:''))}
+ if(m.t==='dtake'){if(!st.length)return say('It\'s empty');if(full())return;const it=st.pop();give({id:w.nid++,type:it.t,x:0,y:0,z:0,ry:0,data:it.d});w.sound='pick';return say('Took product back')}}
+const CUSTN=['Alex','Sam','Jordan','Riley','Casey','Morgan','Jamie','Taylor','Quinn','Avery','Drew','Rowan'];
+const fwd=(p,d)=>{const r=p.r|0,c=[1,0,-1,0][r],s=[0,1,0,-1][r];return {x:p.x-s*d,z:p.z+c*d}};
+function shopOpen(w){return (w.build||[]).some(p=>p.k==='dsign'&&p.o)}
+export function dispTick(w,dt){const B=w.build||[],hr=w.min/60,open=shopOpen(w)&&homeOpen(w)&&hr>=8&&hr<22,S=w.staff||{};w.cust??=[];
+ const cases=B.filter(p=>p.k==='dcase'),reg=B.find(p=>p.k==='dcount');
+ // staff positions + stocker restocking cases from shelves
+ w.crew=[];if(reg&&S.cashier){const f=fwd(reg,-.8);w.crew.push({k:'cashier',x:f.x,z:f.z,ry:reg.r*Math.PI/2*-1})}
+ if(S.stocker){const sh=B.filter(p=>p.k==='dshelf'&&p.st?.length),cs=cases.find(p=>(p.st?.length||0)<DCAP.dcase);w._stk=(w._stk||0)+dt;const a=sh[0]||B.find(p=>p.k==='dshelf')||reg;if(a){const f=w._sj&&cs?fwd(cs,.8):fwd(a,.8);w.crew.push({k:'stocker',x:f.x,z:f.z,ry:0})}
+  if(w._stk>8&&sh.length&&cs){w._stk=0;w._sj=!w._sj;(cs.st??=[]).push(sh[0].st.pop());w._sv=1}}
+ const door=reg&&B.filter(p=>p.k==='door').sort((a,b)=>Math.hypot(a.x-reg.x,a.z-reg.z)-Math.hypot(b.x-reg.x,b.z-reg.z))[0];
+ const stocked=cases.filter(p=>p.st?.length);
+ if(open&&door&&stocked.length&&w.cust.length<custCap(w)){w._cs=(w._cs||0)+dt;if(w._cs>spawnGap(w)){w._cs=0;
+   const out=fwd(door,2.5),inn=fwd(door,-1.6),cs=stocked[Math.random()*stocked.length|0],cf=fwd(cs,1),rf=fwd(reg,1.1),sx=out.x+(Math.random()<.5?-1:1)*14;
+   w.cust.push({id:w.nid++,n:CUSTN[Math.random()*CUSTN.length|0],x:sx,z:out.z,lk:Math.random()*1e3|0,ph:0,t:0,pts:[{x:out.x,z:out.z},inn,cf,{w:'browse',c:cs.id},rf,{w:'pay'},inn,{x:out.x,z:out.z},{x:sx,z:out.z},{w:'gone'}]})}}
+ for(const u of w.cust){const g=u.pts[u.ph];if(!g)continue;if(g.w){u.t+=dt;u.mv=0;
+   if(g.w==='browse'&&u.t>3){const cs=B.find(p=>p.id===g.c);const L=(cs?.st||[]).map((it,i)=>{const pr=itemPrice(w,it,cs),fair=fairTotal(it);const rar=STRAINS[it.d.s]?.rar||0;return {i,pr,sc:Math.min(.95,.75*Math.pow(fair/pr,2.2)*(.6+it.q/200)*(1+rar*.15)+buyBoost(w))}}).sort((a,b)=>b.sc-a.sc)[0];
+     if(L&&Math.random()<L.sc){u.buy={c:cs.id,i:L.i,pr:L.pr,it:cs.st[L.i]};u.ph++;u.t=0}else{u.say='Too pricey…';custDone(w,u,{bought:0,why:'Prices are way too high.'});u.ph=6;u.t=0}}
+   else if(g.w==='pay'){const staffed=S.cashier||(w._near&&w._near.some(q=>Math.hypot(q.x-reg.x,q.z-reg.z)<3.5));if(staffed&&u.t>payTime(w)){const cs=B.find(p=>p.id===u.buy?.c),j=cs?.st?.indexOf(u.buy.it);if(cs&&j>=0){cs.st.splice(j,1);w.money+=u.buy.pr;w.earned=(w.earned||0)+u.buy.pr;sale(w,u.buy.pr);custDone(w,u,{bought:1,pr:u.buy.pr,fair:fairTotal(u.buy.it),wait:u.t});w.sales=(w.sales||0)+1;w.sound='cash';msg(w,`🛒 ${u.n} bought ${STRAINS[u.buy.it.d.s]?.name||'product'} for $${u.buy.pr}`);u.say='Thanks!'}u.ph++;u.t=0;w._sv=1}else if(u.t>40){u.say='No one at the register…';custDone(w,u,{bought:0,wait:u.t,why:'Nobody at the register, I left.'});u.ph++;u.t=0}}
+   else if(g.w==='gone')u.dead=1;continue}
+  const dx=g.x-u.x,dz=g.z-u.z,d=Math.hypot(dx,dz),sp=1.4*dt;u.mv=1;if(d<=sp){u.x=g.x;u.z=g.z;u.ph++;u.t=0}else{u.x+=dx/d*sp;u.z+=dz/d*sp;u.ry=Math.atan2(-dx,-dz)}}
+ w.cust=w.cust.filter(u=>!u.dead);if(!open&&w.cust.length)for(const u of w.cust)if(u.ph<6&&!u.pts[u.ph]?.w){u.ph=6}}
+export function dispDay(w){bizDay(w,msg)}
 // ---------- shed decor (server-authoritative: money, bounds, ownership) ----------
 function decor(w,m,say){const D=w.decor??=defDecor();const B=ROOMB(w.room),num=v=>Math.round((+v||0)*100)/100;
  if(m.t==='dstyle'){const cat=STYLE[m.k],o=cat?.[m.v];if(!o)return say('Unknown style');if(D[m.k]===m.v)return say('Already applied');const key=m.k+':'+m.v;
@@ -199,7 +233,7 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
   else if(!room)return;
   else if(m.t==='save'){if(room.owner){await saveRoom(room);send({t:'saved',at:Date.now()})}else if(me.id===room.host&&room.started)send({t:'saved',at:Date.now(),w:snap(room.w)})}
   else if(m.t==='start'&&me.id===room.host){room.started=true;room.owner&&saveRoom(room);bc(room,{t:'start',pl:roster(room)})}
-  else if(m.t==='s'){m.id=me.id;bc(room,m,me)}
+  else if(m.t==='s'){m.id=me.id;if(Array.isArray(m.p))me.px=[+m.p[0]||0,+m.p[1]||0];bc(room,m,me)}
   else if(m.t==='pause'){me.paused=!!m.v}
   else if(m.t==='look'){me.look=okLook(m.look);if(me.look)bc(room,{t:'look',id:me.id,look:me.look},me)}
   else if(m.t==='spend'){const n=Math.max(0,m.n|0);if(room.w.money>=n){room.w.money-=n;room.w.toast={pid:me.id,t:'Bought '+String(m.why||'item').slice(0,30)+' (-$'+n+')'}}}
@@ -210,7 +244,7 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
 });
 setInterval(()=>{for(const r of rooms.values())if(r.w._sv){delete r.w._sv;r.owner&&saveRoom(r);const h=r.players.find(p=>p.id===r.host);if(!r.owner&&h&&r.started)h.ws.send(JSON.stringify({t:'saved',at:Date.now(),w:snap(r.w),q:1}))}},2000);
 setInterval(()=>{for(const r of rooms.values())saveRoom(r)},+process.env.BT_AUTOSAVE_MS||45000);
-let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{fixp:w.fixp,money:w.money,earned:w.earned||0,doorC:w.doorC||0,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,offers:w.offers||[],log:w.log,toast:w.toast,sound:w.sound,smoke:w.smoke,fx:w.fx,pending:w.pending.length,orders:orderView(w),util:w.util,decor:w.decor,build:w.build||[],bstock:w.bstock||{},sleepers:w.sleepers||[],slept:w.slept||0,disc:w.disc||{},rew:w.rew||[],gen:w.gen||{}}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
+let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;r.w._near=r.players.filter(p=>p.px).map(p=>({x:p.px[0],z:p.px[1]}));if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{biz:w.biz,staff:w.staff||{},crew:w.crew||[],cust:(w.cust||[]).map(u=>({id:u.id,x:+u.x.toFixed(2),z:+u.z.toFixed(2),ry:+(u.ry||0).toFixed(2),lk:u.lk,mv:u.mv,say:u.say})),fixp:w.fixp,money:w.money,earned:w.earned||0,doorC:w.doorC||0,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,offers:w.offers||[],log:w.log,toast:w.toast,sound:w.sound,smoke:w.smoke,fx:w.fx,pending:w.pending.length,orders:orderView(w),util:w.util,decor:w.decor,build:w.build||[],bstock:w.bstock||{},sleepers:w.sleepers||[],slept:w.slept||0,disc:w.disc||{},rew:w.rew||[],gen:w.gen||{}}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
 const shutdown=async()=>{await Promise.all([...rooms.values()].map(saveRoom));process.exit(0)};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 process.on('unhandledRejection',e=>console.error('unhandled:',e?.message||e));process.on('uncaughtException',e=>console.error('uncaught:',e?.stack||e));
 const PORT=process.env.PORT||3000;server.listen(PORT,()=>console.log('Bud Together on :'+PORT));

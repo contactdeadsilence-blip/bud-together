@@ -106,14 +106,19 @@ export function settle(w,x,z,yh=9,r=.1){let best={x,z,y:0,on:null};
   best={x:+(e.x+lx*c+lz*sn).toFixed(3),z:+(e.z-lx*sn+lz*c).toFixed(3),y:+top.toFixed(3),on:e.type||e.k}}
  return best}
 // ---------- v18: Section 5 building & decorating (shared by client + server) ----------
-export const BP={wall:{n:'Wall Panel',p:30,c:'w'},door:{n:'Door',p:60,c:'w'},window:{n:'Glass Window Wall',p:55,c:'w'},gdoor:{n:'Garage Door',p:120,c:'w'},floor:{n:'Floor Tile',p:20,c:'f'},roof:{n:'Flat Roof Panel',p:25,c:'r'},roofs:{n:'Pitched Roof Slope',p:35,c:'r'},roofr:{n:'Roof Ridge',p:35,c:'r'}};
+export const BP={wall:{n:'Wall Panel',p:30,c:'w'},door:{n:'Door',p:60,c:'w'},window:{n:'Glass Window Wall',p:55,c:'w'},gdoor:{n:'Garage Door',p:120,c:'w'},floor:{n:'Floor Tile',p:20,c:'f'},roof:{n:'Flat Roof Panel',p:25,c:'r'},roofs:{n:'Pitched Roof Slope',p:35,c:'r'},roofr:{n:'Roof Ridge',p:35,c:'r'},rollup:{n:'Roll-Up Door',p:160,c:'w'},dcase:{n:'Glass Display Case',p:140,c:'x'},dcount:{n:'Sales Counter + Register',p:220,c:'x'},dshelf:{n:'Retail / Stock Shelf',p:80,c:'x'},dsign:{n:'Open/Closed Sign',p:60,c:'x'}};
+// v20 dispensary: display/stock fixture capacity, price markups, staff
+export const DCAP={dcase:6,dshelf:8},DMARK=[.8,1,1.25,1.5,2],STAFF={cashier:{n:'Cashier',wage:60},stocker:{n:'Stocker',wage:45}};
+export const fairPrice=(s,q,STR,GR)=>{const b=(STR[s]?.ppg||10),G=GR.find(x=>q>=x[1])||GR[GR.length-1];return Math.round(b*G[2]*10)/10};
 export const BMAT=[['wood','Wood','#b88250'],['brick','Brick','#b5563a'],['metal','Metal','#9aa3ab'],['glass','Glass','#cfefff'],['paint','White Paint','#f2efe8'],['paint','Sage Paint','#8fae8b'],['paint','Navy Paint','#2f4466'],['paint','Barn Red Paint','#9b2f2a'],['paint','Sunny Yellow Paint','#e8c547']];
 export const PAINTP=5;
 // prefab = list of [piece, tileX, tileZ, rot(0..3), mat] in a grid of 2m tiles; walls sit on tile edges
 function boxPF(W,D,m,o={}){const L=[],rf=o.roof!==false;for(let i=0;i<W;i++)for(let j=0;j<D;j++){L.push(['floor',2*i,2*j,0,o.fm??0]);if(rf){const mid=(D-1)/2;L.push(D%2&&j==mid?['roofr',2*i,2*j,0,o.rm??o.roofM??m]:['roofs',2*i,2*j,j<mid?0:2,o.rm??o.roofM??m])}}
  for(let i=0;i<W;i++){const mid=i==(W-1>>1);if(!o.openBack)L.push([o.backWin&&mid?'window':'wall',2*i,-1,0,m]);L.push([mid?(o.front||'door'):(o.win&&i!=mid?'window':'wall'),2*i,2*D-1,0,m])}
  for(let j=0;j<D;j++){const w=o.win&&j==(D-1>>1)?'window':'wall';L.push([w,-1,2*j,1,m]);L.push([w,2*W-1,2*j,1,m])}return L}
-export const BPF={room:{n:'Room Kit (4×4m)',p:420,L:()=>boxPF(2,2,0,{win:1})},greenhouse:{n:'Greenhouse Kit (6×4m)',p:560,L:()=>boxPF(3,2,3,{rm:3,fm:2,front:'door'})},garage:{n:'Garage Kit (6×6m)',p:780,L:()=>boxPF(3,3,2,{front:'gdoor',win:1,fm:2})},shed:{n:'Storage Shed Kit (2×4m)',p:220,L:()=>boxPF(1,2,0,{front:'door'})},ext:{n:'Room Extension (4×4m, open back)',p:300,L:()=>boxPF(2,2,0,{openBack:1,win:1})}};
+function dispPF(){const L=boxPF(6,5,1,{front:'door',win:1,fm:0,rm:2});for(let i=0;i<6;i++)L.push([i==2?'rollup':'wall',2*i,3,0,4]);
+ L.push(['dcase',0,5,3,0],['dcase',0,7,3,0],['dcase',4,6,0,0],['dcount',8,5,0,0],['dshelf',10,7,1,0],['dsign',8,8,0,0],['dshelf',0,0,0,0],['dshelf',2,0,0,0],['dshelf',8,0,0,0],['dshelf',10,0,0,0]);return L}
+export const BPF={room:{n:'Room Kit (4×4m)',p:420,L:()=>boxPF(2,2,0,{win:1})},greenhouse:{n:'Greenhouse Kit (6×4m)',p:560,L:()=>boxPF(3,2,3,{rm:3,fm:2,front:'door'})},garage:{n:'Garage Kit (6×6m)',p:780,L:()=>boxPF(3,3,2,{front:'gdoor',win:1,fm:2})},shed:{n:'Storage Shed Kit (2×4m)',p:220,L:()=>boxPF(1,2,0,{front:'door'})},disp:{n:'Dispensary (12×10m, stock room + sales floor)',p:2400,L:()=>dispPF()},ext:{n:'Room Extension (4×4m, open back)',p:300,L:()=>boxPF(2,2,0,{openBack:1,win:1})}};
 export const bSlot=(k,x,z,r,y=0)=>BP[k].c+':'+x+','+z+(BP[k].c=='w'?':'+(r&1):'');
 // expand a placement (piece or prefab) to absolute pieces; origin snapped to even tile centers
 export function bExpand(k,x,z,r){r=((r|0)%4+4)%4;if(BP[k])return [{k,x,z,r}];const P=BPF[k];if(!P)return [];const c=[1,0,-1,0][r],s=[0,1,0,-1][r];

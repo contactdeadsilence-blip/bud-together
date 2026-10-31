@@ -1,5 +1,17 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.7.0',date:'Oct 31, 2026',title:'Beta v1.7.0 — Dispensary Business',notes:[
+'Run your own dispensary! Build the 🏪 Dispensary kit, then open Laptop → 🏪 Business to name your store and open for business.',
+'Logo maker: shapes, icons, colors and text. Your logo and name appear on a lit sign above the storefront.',
+'Storefront: sign color, accent color, awnings (striped, solid, scalloped) and lights (warm, neon, rainbow).',
+'Stock display cases with your own jars and pre-rolls, set a price per product, and restock from the stock room.',
+'Hire and fire Cashiers, Stockers and Budtenders at Rookie, Skilled or Expert level. Each one has a daily wage.',
+'Upgrades: bigger sales floor, extra register, security system (stops shoplifting) and premium signage.',
+'Daily Profit & Loss with a chart. Rent, wages and utilities are paid at midnight.',
+'Customer satisfaction depends on price, wait, stock, cleanliness, decor and staff. It builds your reputation, which brings more customers.',
+'Customers leave star reviews. Read them in the Reviews panel.',
+'Expand to Downtown, the Beach Boardwalk and the Mall, ship stock to each branch and switch between locations.',
+'Full controller support: LB/RB to reach the Business tab, D-pad and A for everything. Co-op partners share the same business.']},
 {v:'1.6.1',date:'Oct 31, 2026',title:'Beta v1.6.1 — Controller Fix',notes:[
 'Fixed: on your very first launch the character creator ignored the controller (D-pad, A, LB/RB) because the What\'s New popup opened behind it. What\'s New now waits until you finish creating your character.',
 'Character creator controller input is smoother on slower PCs.']},
