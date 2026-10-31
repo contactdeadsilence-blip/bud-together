@@ -21,7 +21,7 @@ export function phoneKey(e){// physical keyboard while the phone is open; return
  if(P.scr=='qb'&&(e.code=='KeyQ'||e.code=='KeyE')){phoneTab(e.code=='KeyE'?1:-1);return true}return false}
 function typeK(k){if(k=='DEL')P.q=P.q.slice(0,-1);else if(k=='CLR')P.q='';else if(k=='OK'){P.scr='qb';P.tab='shop';render(false,true);return}else if(P.q.length<18)P.q+=k;render(true)}
 export function phoneClick(el){const d=el.dataset;if(!d.ph)return false;const a=d.ph;D.sfx('ui');
- if(a=='app'){P.scr='qb';P.tab='shop'}else if(a=='home'){P.scr='home'}else if(a=='close'){closePhone();return true}else if(a=='back'){phoneBack();return true}
+ if(a=='help'){closePhone();D.openHelp?.();return true}if(a=='app'){P.scr='qb';P.tab='shop'}else if(a=='home'){P.scr='home'}else if(a=='close'){closePhone();return true}else if(a=='back'){phoneBack();return true}
  else if(a=='tab')P.tab=d.v;else if(a=='cat')P.cat=d.v;else if(a=='search'){P.scr='search';P.cat='all'}else if(a=='key'){typeK(d.v);return true}
  else if(a=='add'){const n=P.cart[d.v]||0;if(n>=MAXORD){D.toast('Max '+MAXORD+' per item');return true}P.cart[d.v]=n+1;saveCart();D.toast('🛒 Added '+SHOP[d.v].n);D.rumble(.15,40)}
  else if(a=='inc'||a=='dec'){const n=(P.cart[d.v]||0)+(a=='inc'?1:-1);if(n<=0)delete P.cart[d.v];else P.cart[d.v]=Math.min(MAXORD,n);saveCart()}
@@ -35,7 +35,7 @@ export function phoneNav(dx){
 let sig='';export function phoneRefresh(){if(!P.on)return;const W=D.W(),k=JSON.stringify([W?.money,W?.orders,W?.min|0]);if(k==sig)return;sig=k;render(true)}
 function render(keep,reset){const W=D.W(),pad=D.padMode(),g=D.bglyph;const f=D.fEl(),fk=keep&&f?f.dataset.pk:null;let h='';
  const top=`<div class="ph-st"><span>${clock(W)}</span><span>📶 5G ▮▮▮</span><span>$${W?W.money:0}</span></div>`;
- if(P.scr=='home'){h=`<div class="ph-home"><div class="ph-wall">Day ${W?.day||1}</div><button class="ph-app" data-ph="app" data-pk="app"><i>🛍️</i><span>Quick Bud</span>${cartN()?`<b class="ph-badge">${cartN()}</b>`:''}</button></div>`}
+ if(P.scr=='home'){h=`<div class="ph-home"><div class="ph-wall">Day ${W?.day||1}</div><button class="ph-app" data-ph="app" data-pk="app"><i>🛍️</i><span>Quick Bud</span>${cartN()?`<b class="ph-badge">${cartN()}</b>`:''}</button><button class="ph-app" data-ph="help" data-pk="help"><i>❓</i><span>Help</span></button></div>`}
  else if(P.scr=='search'){const K='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('').concat(['SPACE','DEL','CLR','OK']);
   h=`<div class="ph-hd"><button class="ph-bk" data-ph="back" data-pk="bk">‹</button><b>Search Quick Bud</b></div><div class="ph-q">${esc(P.q)||'<i>type to search…</i>'}<span class="ph-car">|</span></div><div class="ph-kb">${K.map(k=>`<button class="ph-k${k.length>1?' w':''}" data-ph="key" data-v="${k=='SPACE'?' ':k}" data-pk="k${k}">${k=='SPACE'?'␣':k=='OK'?'Search':k}</button>`).join('')}</div>`}
  else{const tabs=`<div class="ph-tabs">${[['shop','Shop'],['cart',`Cart${cartN()?' ('+cartN()+')':''}`],['orders','Orders']].map(([k,n])=>`<button class="ph-tab${P.tab==k?' sel':''}" data-ph="tab" data-v="${k}" data-pk="t${k}">${n}</button>`).join('')}</div>`;
