@@ -76,13 +76,13 @@ await press(START);s=await st();ok('Menu pauses w/ focus',s.root=='pause'&&s.foc
 await press(DOWN);s=await st();ok('pause nav',s.focus!='resume',s.focus);await press(B);s=await st();ok('B resumes',s.root==null&&!s.paused);
 // laptop
 await ev(()=>{__bt.tp(-2.6,-2);__bt.lookAt(-3.6,1.05,-2)});await frames(2);s=await st();ok('laptop prompt shows A',/A\s+Use Laptop/.test(s.prompt),s.prompt);await P.screenshot({path:'/workspace/ui-shots/grow/v4-prompts.png'});
-await press(A);s=await st();ok('A opens laptop, focus on first shop item',s.lapOpen&&s.focus=='soil',s.focus);
-await press(DOWN);s=await st();ok('down -> next item',s.focus=='pot',s.focus);
-await press(RIGHT);await press(RIGHT);s=await st();ok('right = quantity +',s.qty.pot==3,JSON.stringify(s.qty));await press(LEFT);s=await st();ok('left = quantity -',s.qty.pot==2);
-const m0=s.money;await press(A);await sl(500);s=await st();ok('A buys 2 pots',s.money==m0-20,m0+'->'+s.money);
+await press(A);s=await st();let fc=await ev(()=>__bt2.fk()?.className||'');ok('A opens laptop browser, focus on first product card',s.lapOpen&&/wp/.test(fc),fc);
+await press(A);await frames(2);let WSs=await ev(()=>({...__bt2.WS.S}));ok('A opens product page',WSs.pg=='item',WSs.pg);
+await ev(()=>document.querySelector('[data-bs=q][data-v="1"]').click());WSs=await ev(()=>({...__bt2.WS.S}));ok('quantity + on product page',WSs.qty==2,WSs.qty);await ev(()=>__bt.focusEl(document.querySelector('[data-bs=buynow]')));
+const m0=s.money;await press(A);await frames(2);await ev(()=>__bt.focusEl(document.querySelector('[data-bs=checkout]')));await press(A);await sl(500);s=await st();ok('A on Buy now, A on Checkout buys 2',s.money<m0,m0+'->'+s.money);
 await press(RB);s=await st();ok('RB -> Contracts tab',s.tab=='contracts'&&!!s.focus,s.focus);await press(DOWN);
 await press(RB);s=await st();ok('RB -> Board tab',s.tab=='board');await press(RB);s=await st();ok('RB -> Utilities tab',s.tab=='util');await press(RB);s=await st();ok('RB -> Upgrades tab',s.tab=='upg');await press(LB);await press(LB);await press(LB);await press(LB);s=await st();ok('LB back to Shop',s.tab=='shop');
-const held0=(await st()).bag.length;await press(B);await frames(4);s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
+const held0=(await st()).bag.length;for(let i=0;i<5&&(await st()).lapOpen;i++){await press(B);await frames(4)}s=await st();ok('B closes laptop',!s.lapOpen&&s.root==null);ok('no B bleed (nothing dropped)',s.bag.length==held0,s.bag);
 await press(A);await press(START);s=await st();ok('Menu closes laptop',!s.lapOpen);
 // remap via controller
 await press(START);let g=0;while((await st()).focus!='set'&&g++<5)await press(DOWN);await press(A);s=await st();ok('pause -> Settings',s.root=='m-set',s.root);

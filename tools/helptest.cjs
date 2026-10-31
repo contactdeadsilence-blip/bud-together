@@ -16,6 +16,7 @@ await ev(()=>window.dispatchEvent(new Event('gamepadconnected')));
 let s=await st();if(s.root=='splash'){await press(A);await frames(4)}if(await ev(()=>__bt.cre?.()))await press(B);await frames(3);
 await press(A,4);await sl(1500);await frames(5);s=await st();ok('solo game started',s.root==null,s.root);
 const W2=f=>ev(f);const SH=async n=>{if(process.env.SHOTS){await P.setViewport({width:1280,height:720});await frames(3);await P.screenshot({path:'/workspace/ui-shots/grow/v15-'+n+'.png'});await P.setViewport({width:960,height:540});await frames(2)}};const fcls=()=>ev(()=>{const e=__bt2.fk();return e?(e.dataset.bs||e.dataset.a||e.className):null});
+{const h=await ev(()=>__bt2.phint());ok('phone HUD hint shows pad glyph in play',/Phone/.test(h[0])&&/View/.test(h[0])&&!h[1],JSON.stringify(h))}
 const fcs=()=>ev(()=>{const f=document.querySelector('#howto .f');return f?(f.dataset.hk||f.dataset.hq||f.dataset.hcat||f.id||f.textContent):null});
 ok('100+ entries',await ev(()=>__bt2.HP.QA.length>=100),await ev(()=>__bt2.HP.QA.length));
 const t=await ev(()=>{const H=__bt2.HP,c=q=>H.ask(q).res[0]?.q||'';return {x:c('xbox controls'),r:c('seed rack'),s:c('autosave'),w:c('watr plant'),d:H.ask('corkbord').dym,k:c('cross breed'),sm:c('smoke joint'),u:c('utility bill'),co:c('play coop'),st:c('Violet Void'),cats:Object.keys(H.HCATS).every(k=>H.QA.some(e=>e.cat==k)),rel:H.QA.every(e=>e.rel.every(r=>H.byQ(r)))}});
@@ -24,7 +25,7 @@ ok('breeding',/breed/.test(t.k));ok('smoking',/smoke/.test(t.sm));ok('utilities'
 ok('main menu has How to Play',await ev(()=>!!document.querySelector('#m-main [data-a=howto]')));
 await press(START);await frames(4);ok('pause menu has How to Play button',await ev(()=>[...document.querySelectorAll('[data-a=howto]')].length>=2));
 await ev(()=>[...document.querySelectorAll('[data-a=howto]')].find(b=>b.offsetParent)?.click());await frames(3);
-ok('opens from pause',await ev(()=>__bt2.howOpen()));s=await st();ok('uiRoot is howto',s.root=='howto',s.root);
+ok('opens from pause',await ev(()=>__bt2.howOpen()));s=await st();ok('uiRoot is howto',s.root=='howto',s.root);{const h=await ev(()=>__bt2.phint());ok('phone hint hidden in menu, menu strip shown',!h[0]&&/Back/.test(h[1]),JSON.stringify(h))}
 await press(A);await frames(3);ok('A on input focuses pad keyboard',/^[A-Z]$/.test(await fcs()||''),await fcs());
 for(const k of ['W','A','T'])await ev(k=>document.querySelector(`#howto [data-hk="${k}"]`).click(),k);await frames(2);ok('pad keyboard types',await ev(()=>__bt2.HW.q=='wat'));;
 await ev(()=>document.querySelector('#howto .hq').click());await frames(2);ok('answer shown',await ev(()=>!!document.querySelector('#howto .ans')));
