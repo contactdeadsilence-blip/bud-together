@@ -77,7 +77,7 @@ export const DAYSEC=1800;// real seconds per in-game day (30 min)
 export const MINPS=1440/DAYSEC;// in-game minutes per real second
 export const START_CASH=1000;
 export const SURFS={desk:{w:.8,d:1.5,h:.935,max:8},table:{w:1.1,d:.6,h:.78,max:8}};// local top size (x,z) + height
-export const BIG=['seedrack','shelf','pallet','sink','table','bed','tcan','desk','dirtbag','trash','light','rack','water'];// can't sit on a table
+export const BIG=['dropbox','dumpster','seedrack','shelf','pallet','sink','table','bed','tcan','desk','dirtbag','trash','light','rack','water'];// can't sit on a table
 export const ROLL=1.6,JOINT=6;// seconds to roll; $ per pre-roll on the spot (vs $4/g jar)
 export const WAKE=7*60,canSleep=min=>min>=19*60||min<5*60;
 // v12: shared catalog categories (laptop shop + Quick Bud phone app)
