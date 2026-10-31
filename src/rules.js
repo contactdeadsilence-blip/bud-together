@@ -70,7 +70,7 @@ export const defDecor=()=>({paint:'cream',panel:'plank',floor:'oak',light:'warm'
 // interior bounds the decor must fit in (room 1 / with the expansion)
 export const ROOMB=r=>({x0:-4.1,x1:r>1?11:4.1,z0:-5,z1:5});
 // v11: day length, surfaces, sleep, pre-rolls
-export const DAYSEC=720;// real seconds per in-game day (12 min)
+export const DAYSEC=1800;// real seconds per in-game day (30 min)
 export const MINPS=1440/DAYSEC;// in-game minutes per real second
 export const START_CASH=1000;
 export const SURFS={desk:{w:.8,d:1.5,h:.935,max:8},table:{w:1.1,d:.6,h:.78,max:8}};// local top size (x,z) + height

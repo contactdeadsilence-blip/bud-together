@@ -25,9 +25,9 @@ tx(A,{t:'dbg',spawn:{x:2.6,z:2,s:'kush',age:100,dead:1}});await st();const dp=A.
 const g1=held().find(e=>e.type=='gbag1');for(let i=0;i<3&&held()[0]?.type!='gbag1';i++){tx(A,{t:'cycle'});await st()}tx(A,{t:'use',target:dp.id});await st();ok('single bag bags a dead plant into a trash bag',byId(g1.id)?.type=='trash',byId(g1.id)?.type);
 // contract timers + board
 {const d0=A.w.day,reg=A.w.contracts;ok('regular contracts last ~7 game days',reg.length&&reg.every(c=>c.due-d0>=5&&!c.sp),JSON.stringify(reg.map(c=>c.due-d0)));
-tx(A,{t:'dbg',offer:1});tx(A,{t:'dbg',offer:1});await st();const of=A.w.offers;ok('special offers post on the board (1-2 days, better pay/grade)',of.length>=2&&of.every(c=>c.sp&&c.due-A.w.day<=1),JSON.stringify(of.map(c=>[c.due-A.w.day,c.min,c.pay])));
+tx(A,{t:'dbg',offer:1});tx(A,{t:'dbg',offer:1});await st();const of=A.w.offers;ok('special offers post on the board (3 days, better pay/grade)',of.length>=2&&of.every(c=>c.sp&&c.due-A.w.day==2),JSON.stringify(of.map(c=>[c.due-A.w.day,c.min,c.pay])));
 const o1=of[0];tx(A,{t:'acceptc',id:o1.id});await st();ok('accepting moves special into active contracts',A.w.contracts.some(c=>c.id==o1.id)&&!A.w.offers.some(c=>c.id==o1.id));
-const left=A.w.offers.filter(c=>c.id!=o1.id).map(c=>c.id);for(let i=0;i<2;i++){tx(A,{t:'dbg',min:1439.5});tx(A,{t:'dbg',ff:1});await st()}ok('unaccepted specials expire off the board',left.every(id=>!A.w.offers.some(c=>c.id==id)),JSON.stringify(A.w.offers.map(c=>c.id)));}
+const left=A.w.offers.filter(c=>c.id!=o1.id).map(c=>c.id);for(let i=0;i<3;i++){tx(A,{t:'dbg',min:1439.5});tx(A,{t:'dbg',ff:1});await st()}ok('unaccepted specials expire off the board',left.every(id=>!A.w.offers.some(c=>c.id==id)),JSON.stringify(A.w.offers.map(c=>c.id)));}
 // browser shots
 const br=await pp.launch({executablePath:'/usr/bin/google-chrome',headless:'new',protocolTimeout:300000,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const P=await br.newPage();await P.setViewport({width:1280,height:800});const errs=[];P.on('pageerror',e=>errs.push(e.message));

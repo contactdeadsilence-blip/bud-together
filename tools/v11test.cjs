@@ -7,8 +7,8 @@ const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i
 const A=await cl(),B=await cl();tx(A,{t:'host',name:'A'});await sl(200);tx(B,{t:'join',code:A.code,name:'B'});await sl(200);tx(A,{t:'start'});await sl(500);
 const held=c=>c.w.ents.filter(e=>e.by==c.id).sort((a,b)=>a.bi-b.bi);const clear=async c=>{for(let i=0;i<4&&held(c).length;i++){tx(c,{t:'trash'});await st()}};const E=t=>A.w.ents.find(e=>e.type==t&&!e.by);
 ok('starting cash $1000',A.w.money==1000,A.w.money);
-ok('day ≈ 12 real minutes',/DAYSEC=720/.test(R)&&/MINPS=1440\/DAYSEC/.test(R.replace(/\s/g,'')));
-{const m0=A.w.min;tx(A,{t:'dbg',ff:60});await st();const d=(A.w.min-m0+1440)%1440;ok('60 s real = 120 game minutes',Math.abs(d-120)<3,d.toFixed(1))}
+ok('day ≈ 30 real minutes',/DAYSEC=1800/.test(R)&&/MINPS=1440\/DAYSEC/.test(R.replace(/\s/g,'')));
+{const m0=A.w.min;tx(A,{t:'dbg',ff:60});await st();const d=(A.w.min-m0+1440)%1440;ok('60 s real = 48 game minutes',Math.abs(d-48)<3,d.toFixed(1))}
 ok('starter desk, bed, trash can, papers',['desk','bed','tcan','papers'].every(t=>E(t)));
 ok('shop sells table, bed, trash can, papers',/table:\{/.test(R)&&/bed:\{/.test(R)&&/tcan:\{/.test(R)&&/papers:\{/.test(R));
 // pallet return
