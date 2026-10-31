@@ -368,6 +368,8 @@ function collide(p){for(const w of WALLS){const r=.3;const cx=THREE.MathUtils.cl
 const send=m=>ws&&ws.readyState==1&&ws.send(JSON.stringify(m));
 function net(cb){if(ws&&ws.readyState==1)return cb();ws=new WebSocket((location.protocol=='https:'?'wss://':'ws://')+location.host+'/ws');ws.onopen=cb;
  ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.t=='saved'){if(m.w)try{localStorage.bt_guestw=JSON.stringify(m.w)}catch{}localStorage.bt_savedAt=m.at;svLine();if(!m.q)toast('Saved ✓')}
+  if(m.t=='err'&&m.e=='Save not found'&&pendingSolo){localStorage.removeItem('bt_lastsave');net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}));return}
   if(m.t=='err'){$('jerr').textContent=m.e;if(!game)showMenu('main');$('acctline').textContent=m.e}
   if(m.t=='joined'){if(m.save&&ACC.user==m.save.owner){ACC.last=m.save.id;localStorage.bt_lastsave=m.save.id}myId=m.id;hostId=m.host;$('lcode').textContent=m.code;if(!pendingSolo&&!m.started)showMenu('lobby')}
   if(m.t=='look'){const r=roster.find(p=>p.id==m.id);if(r)r.look=m.look;const o=OTH.get(m.id);if(o)setLook(o.g,cleanLook(m.look));return}
@@ -456,7 +458,10 @@ function renderLap(keep){if(!W)return;const L0=[...document.querySelectorAll('#l
  if(tab=='gen')h=genTab();
  $('lbody').innerHTML=h;$('lbody').classList.toggle('one',tab=='shop');if(fi>=0){const L=[...document.querySelectorAll('#laptop button')];setFocus(L[fi]||null)}}
 // ---------- menus / focus ----------
-function setPause(v){if(!game)return;paused=v;setTimeout(syncPause);$('pause').classList.toggle('on',v);if(v)document.exitPointerLock?.();setFocus(null)}
+function svLine(){const t=+localStorage.bt_savedAt;const e=$('lastsv');if(e)e.textContent=t?'Last saved '+new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'Not saved yet'}
+function saveGame(){if(game&&!document.hidden)toast('Saving…');try{send({t:'save'})}catch{}}
+setInterval(()=>{if(game)try{send({t:'save',auto:1})}catch{}},60000);addEventListener('beforeunload',()=>{if(game)try{send({t:'save'})}catch{}});document.addEventListener('visibilitychange',()=>{if(document.hidden&&game)try{send({t:'save'})}catch{}});
+function setPause(v){svLine();if(!game)return;paused=v;setTimeout(syncPause);$('pause').classList.toggle('on',v);if(v)document.exitPointerLock?.();setFocus(null)}
 function showMenu(which){setFocus(null);$('pause').classList.remove('on');$('menu').classList.add('on');{const o=$('osk');if(which=='acct')$('oskslot').appendChild(o);else if(which=='join')$('nm').after(o)}['main','join','lobby','set','remap','acct','saves'].forEach(k=>$('m-'+k).style.display=k==which?(k=='main'?'flex':''):'none')}
 const OSK='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';let oskT=null;
 $('osk').innerHTML=[...OSK].map(c=>`<button class="key" data-k="${c}">${c}</button>`).join('')+'<button class="key w" data-k="DEL">DEL</button><button class="key w" data-k="OK">OK</button>';
@@ -642,7 +647,7 @@ document.addEventListener('click',e=>{initAudio();setVol(settings.vol/10);const 
  if(qb&&ds.buy){qty[ds.buy]=THREE.MathUtils.clamp((qty[ds.buy]||1)+(+qb.dataset.q),1,10);renderLap(true);return}
  if(ds.k)return oskKey(ds.k);if(ds.rm){capture=ds.rm;renderRemap();return}if(ds.slot!=null){send({t:'cycle',sel:+ds.slot});setTimeout(renderInv,150);return}if(ds.tab){tab=ds.tab;renderLap();return}if(ds.buy){send({t:'buy',item:ds.buy,n:qty[ds.buy]||1});return}if(ds.upg){send({t:'upgrade'});return}if(ds.gc!=null){send({t:'claim',i:+ds.gc});return}if(ds.gn){const [k,j]=ds.gn.split(':'),P=gpick[k]??=[0,0];P[+j]=(P[+j]+1)%(j=='0'?NW1:NW2).length;renderLap(1);return}if(ds.gs){const P=gpick[ds.gs]||[0,0];send({t:'gname',k:ds.gs,name:NW1[P[0]]+' '+NW2[P[1]]});return}if(ds.dk){decoPick(ds.dk);return}if(ds.ds){const [k,v]=ds.ds.split(':');send({t:'dstyle',k,v});return}if(ds.acc){send({t:'acceptc',id:+ds.acc});sfx('ui');return}if(ds.dt){decoTab=ds.dt;renderDecoCat();return}if(ds.a=='decoclose'){closeDecoCat();return}if(ds.a=='decor'){const t0=ds.dt0;closeLap();if(paused)setPause(false);decoMode(true);if(t0)openDecoCat(t0);return}
  const a=ds.a,nm=()=>($('nm').value||localStorage.bt_nm||'Grower').toUpperCase();
- if(a=='solo'){pendingSolo=true;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}
+ if(a=='solo'){pendingSolo=true;const gw=!ACC.tok&&localStorage.bt_guestw?JSON.parse(localStorage.bt_guestw):undefined;const sv=ACC.tok&&localStorage.bt_lastsave||undefined;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok,save:sv,gw}))}if(a=='savegame')saveGame();
  if(a=='host'){pendingSolo=false;net(()=>send({t:'host',name:nm(),look:myLook(),token:ACC.tok}))}if(a=='join'){showMenu('join');oskT=$('code');setTgt()}if(a=='set')showMenu('set');if(a=='remap'){capture=null;showMenu('remap');renderRemap();setFocus(defFocus($('m-remap')))}if(a=='rmback'){capture=null;showMenu('set')}if(a=='rmreset'){binds={...DEFB};localStorage.bt_binds=JSON.stringify(binds);renderRemap();renderHelp();toast('Controller buttons reset')}if(a=='closeinv')closeInv();if(a=='closemap')closeMap();
  if(a=='back'){if(game){$('menu').classList.remove('on');setFocus(null);if(paused)$('pause').classList.add('on')}else showMenu('main')}
  if(a=='dojoin'){localStorage.bt_nm=$('nm').value;pendingSolo=false;net(()=>send({t:'join',code:$('code').value,name:nm(),look:myLook()}))}

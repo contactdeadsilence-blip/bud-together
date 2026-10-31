@@ -20,7 +20,7 @@ app.put('/api/profile',authed(async(q,r,u)=>{const b=q.body;if(!b||typeof b!='ob
 app.get('/api/saves',authed(async(q,r,u)=>r.json((await store.list('save:'+u+':')).map(({k,v})=>({id:k.split(':')[2],name:v.name,day:v.w.day,money:v.w.money,rep:v.w.rep,plants:v.w.ents.filter(e=>e.data?.plant&&!e.data.plant.dead).length,at:v.at})).sort((a,b)=>b.at-a.at))));
 app.delete('/api/saves/:id',authed(async(q,r,u)=>{await store.del('save:'+u+':'+String(q.params.id).replace(/\W/g,''));r.json({ok:1})}));
 // world save: strip transient fields; held items get dropped at the delivery pad
-function snap(w){const c=JSON.parse(JSON.stringify(w));for(const e of c.ents)if(e.by){e.by=0;e.bi=0;e.x=PAD.x+(Math.random()-.5);e.z=PAD.z+(Math.random()-.5);e.y=0}c.log=[];delete c.toast;delete c.sound;delete c.fx;delete c.sleepers;return c}
+function snap(w){const c=JSON.parse(JSON.stringify(w));for(const e of c.ents)if(e.by){e.by=0;e.bi=0;e.x=PAD.x+(Math.random()-.5);e.z=PAD.z+(Math.random()-.5);e.y=0}c.log=[];delete c.toast;delete c.sound;delete c.fx;delete c.sleepers;delete c._sv;return c}
 async function saveRoom(r){if(!r.owner||!r.started)return;try{await store.set('save:'+r.owner+':'+r.sid,{name:r.sname,at:Date.now(),w:snap(r.w)});r.savedAt=Date.now()}catch(e){console.error('save failed',e.message)}}
 
 const server=http.createServer(app);const wss=new WebSocketServer({server,path:'/ws'});
@@ -136,7 +136,7 @@ function act0(w,pid,m){const bag=w.ents.filter(e=>e.by===pid);const c=bag.find(e
   if(m.only)return say("Can't use "+(SHOP[ct]?.n||ct)+' on that')}
  if(t.type==='pot'&&stage(t.data.plant)==='ready'){if(full())return;const p=t.data.plant,M=MUTS[p.mu]||{},g=Math.max(1,Math.round((M.y||1)*STRAINS[p.s].g*(t.data.sz||1)*(p.ph||1)*(p.ty==='a'?.8:1)*(.35+.65*p.health/100))),q=harvQ(p);t.data.plant=null;t.data.used=1;t.data.moist=Math.min(t.data.moist??30,40);
   const q2=Math.min(100,q+(M.q||0)),D=w.disc??={},nw=[p.s,p.mu&&'mu:'+p.mu].filter(k=>k&&!D[k]&&!STRAINS[k]?.x);nw.forEach(k=>D[k]=1);let xs='';if(p.x&&STRAINS[p.x]){const k=makeCross(w,p.s,p.x);if(!STRAINS[k].x&&!D[k]){D[k]=1;nw.push(k)}w.ents.push({id:w.nid++,type:'seed_x',x:t.x+.35,y:0,z:t.z,ry:0,by:0,data:{s:k,ty:'r',uses:3}});xs=` · 🌱 ${STRAINS[k].name} seeds dropped by the pot!`}if(nw.length)w.sound='cash';
-  give({id:w.nid++,type:'wetbud',x:0,y:0,z:0,ry:0,by:pid,data:{s:p.s,g,q:q2}});return say(`${nw.length?'📖 NEW DISCOVERY: '+nw.map(k=>k.startsWith('mu:')?MUTS[k.slice(3)].n:STRAINS[k].name).join(', ')+'! ':''}Harvested ${g}g wet ${STRAINS[p.s].name} (grade ${grade(q)[0]} so far) — hang it to dry · dump the spent soil${xs}`)}
+  give({id:w.nid++,type:'wetbud',x:0,y:0,z:0,ry:0,by:pid,data:{s:p.s,g,q:q2}});w._sv=1;return say(`${nw.length?'📖 NEW DISCOVERY: '+nw.map(k=>k.startsWith('mu:')?MUTS[k.slice(3)].n:STRAINS[k].name).join(', ')+'! ':''}Harvested ${g}g wet ${STRAINS[p.s].name} (grade ${grade(q)[0]} so far) — hang it to dry · dump the spent soil${xs}`)}
  if(t.type==='pot'&&t.data.plant?.dead)return say('Dead plant — use a Garbage Bag on it (laptop shop)');
  if(t.type==='rack'){const sl=t.data.slots||[];const i=sl.findIndex(s=>s.t<=0);if(i>=0){if(full())return;const s=sl.splice(i,1)[0];give({id:w.nid++,type:'drybud',x:0,y:0,z:0,ry:0,data:{s:s.s,g:s.g,q:s.q??70}});return say(`Took ${s.g}g dried bud — pack it at the scale`)}
   if(sl.length)return say('Still drying…')}
@@ -155,16 +155,18 @@ let nid=1;
 wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  const send=m=>ws.send(JSON.stringify(m));
  ws.on('message',async d=>{let m;try{m=JSON.parse(d)}catch{return}
+  if(room&&/^(buy|order|sleep|claim|upgrade)$/.test(m.t))setTimeout(()=>room&&(room.w._sv=1),50);
   if(m.t==='host'||m.t==='join'){me.name=String(m.name||'Grower').slice(0,10);me.look=okLook(m.look);
    if(m.t==='host'){const u=await who(m.token);let w=null,sid=null,sname='Farm';
     if(u&&m.save){sid=String(m.save).replace(/\W/g,'');const sv=await store.get('save:'+u+':'+sid);if(!sv)return send({t:'err',e:'Save not found'});w=sv.w;w.decor??=defDecor();addV11(w);regGen(w.gen);sname=sv.name;w.log=['Welcome back — farm loaded (Day '+w.day+')']}
+    else if(!u&&m.gw&&typeof m.gw==='object'&&Array.isArray(m.gw.ents)&&typeof m.gw.money==='number'){w=m.gw;w.decor??=defDecor();addV11(w);regGen(w.gen);w.log=['Welcome back — farm loaded (Day '+w.day+')']}
     else if(u){sid=crypto.randomBytes(5).toString('hex');sname=String(m.sname||'').slice(0,20)||('Farm '+new Date().toISOString().slice(0,10))}
-    if(room&&room.players.includes(me))return;room={code:mk(),players:[],host:me.id,started:false,w:w||newWorld(),owner:u,sid,sname};rooms.set(room.code,room)}
+    if(room&&room.players.includes(me))return;if(u&&sid)for(const r of rooms.values())if(r.owner===u&&r.sid===sid)r.owner=null;room={code:mk(),players:[],host:me.id,started:false,w:w||newWorld(),owner:u,sid,sname};rooms.set(room.code,room)}
    else{const r=rooms.get(String(m.code||'').toUpperCase());if(!r)return send({t:'err',e:'Room not found'});if(r.players.length>=4)return send({t:'err',e:'Room full'});room=r}
    room.players.push(me);send({t:'joined',code:room.code,id:me.id,host:room.host,started:room.started,save:room.owner?{id:room.sid,name:room.sname,owner:room.owner}:null});bc(room,{t:'roster',pl:roster(room),host:room.host});
    if(room.started)send({t:'start',pl:roster(room)})}
   else if(!room)return;
-  else if(m.t==='save'&&room.owner){await saveRoom(room);send({t:'saved'})}
+  else if(m.t==='save'){if(room.owner){await saveRoom(room);send({t:'saved',at:Date.now()})}else if(me.id===room.host&&room.started)send({t:'saved',at:Date.now(),w:snap(room.w)})}
   else if(m.t==='start'&&me.id===room.host){room.started=true;room.owner&&saveRoom(room);bc(room,{t:'start',pl:roster(room)})}
   else if(m.t==='s'){m.id=me.id;bc(room,m,me)}
   else if(m.t==='pause'){me.paused=!!m.v}
@@ -175,6 +177,7 @@ wss.on('connection',ws=>{const me={ws,id:nid++,name:'Grower'};let room=null;
  });
  ws.on('close',()=>{if(!room)return;saveRoom(room);room.w.ents.forEach(e=>{if(e.by===me.id){e.by=0}});room.players=room.players.filter(p=>p!==me);if(!room.players.length)rooms.delete(room.code);else{if(room.host===me.id)room.host=room.players[0].id;bc(room,{t:'roster',pl:roster(room),host:room.host,left:me.id})}});
 });
+setInterval(()=>{for(const r of rooms.values())if(r.w._sv){delete r.w._sv;r.owner&&saveRoom(r);const h=r.players.find(p=>p.id===r.host);if(!r.owner&&h&&r.started)h.ws.send(JSON.stringify({t:'saved',at:Date.now(),w:snap(r.w),q:1}))}},2000);
 setInterval(()=>{for(const r of rooms.values())saveRoom(r)},+process.env.BT_AUTOSAVE_MS||45000);
 let acc=0;setInterval(()=>{acc++;for(const r of rooms.values()){if(!r.started)continue;if(!r.players.every(p=>p.paused))tick(r.w,.1);{const S=r.w.sleepers;if(S?.length){r.w.sleepers=S.filter(id=>r.players.some(p=>p.id===id));if(r.w.sleepers.length&&r.players.every(p=>r.w.sleepers.includes(p.id))){doSleep(r.w);r.dirty=true}}}if(r.dirty||acc%3==0){r.dirty=false;const w=r.w;bc(r,{t:'w',w:{money:w.money,rep:w.rep,day:w.day,min:w.min,room:w.room,ents:w.ents,contracts:w.contracts,offers:w.offers||[],log:w.log,toast:w.toast,sound:w.sound,fx:w.fx,pending:w.pending.length,orders:orderView(w),util:w.util,decor:w.decor,sleepers:w.sleepers||[],slept:w.slept||0,disc:w.disc||{},rew:w.rew||[],gen:w.gen||{}}});w.log=[];w.toast=null;w.sound=null;w.fx=null}}},100);
 const shutdown=async()=>{await Promise.all([...rooms.values()].map(saveRoom));process.exit(0)};process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);

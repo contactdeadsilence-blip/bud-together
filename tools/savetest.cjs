@@ -1,7 +1,7 @@
 // accounts + saves: signup/login, wrong pw, profile + farm round trip, restart persistence (file store), co-op host load
 const WS=require('ws'),{spawn}=require('child_process'),fs=require('fs'),os=require('os'),path=require('path');const sl=ms=>new Promise(r=>setTimeout(r,ms));
 const PORT=3209,B=`http://localhost:${PORT}`,DATA=path.join(os.tmpdir(),'bt-savetest-'+process.pid+'.json');
-const up=()=>{const p=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,BT_DATA:DATA,BT_AUTOSAVE_MS:1000,DATABASE_URL:''},stdio:'ignore'});return sl(900).then(()=>p)};
+const up=()=>{const p=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,BT_DATA:DATA,BT_AUTOSAVE_MS:1000,DATABASE_URL:''},stdio:process.env.SV_LOG?'inherit':'ignore'});return sl(900).then(()=>p)};
 const res=[];const ok=(n,c,i='')=>{res.push(!!c);console.log(c?'PASS':'FAIL',n,i)};
 const api=async(m,u,b,t)=>{const r=await fetch(B+u,{method:m,headers:{'content-type':'application/json','x-bt-token':t||''},body:b?JSON.stringify(b):undefined});return {s:r.status,j:await r.json().catch(()=>({}))}};
 const cl=()=>new Promise(r=>{const ws=new WS(`ws://localhost:${PORT}/ws`);const c={ws,w:null};ws.on('message',d=>{const m=JSON.parse(d);if(m.t=='joined')c.code=m.code,c.id=m.id,c.save=m.save;if(m.t=='roster')c.pl=m.pl;if(m.t=='err')c.err=m.e;if(m.t=='w')c.w=m.w});ws.on('open',()=>r(c))});
@@ -36,5 +36,20 @@ ok('friend keeps own character',F.pl&&F.pl.find(p=>p.name=='FRIEND')?.look?.sex=
 tx(H2,{t:'dbg',money:3});await sl(1600);ok('autosave',(await api('GET','/api/saves',null,T)).j[0].money==1625);
 ok('bad save id rejected',await (async()=>{const X=await cl();tx(X,{t:'host',token:T,save:'nope'});await sl(200);return X.err=='Save not found'})());
 const G=await cl();tx(G,{t:'host',name:'guest'});await sl(200);ok('guest mode hosts without a save',G.code&&!G.save);
+
+{// plant growth round trip: grow to flower, save, restart, reload -> identical plant state
+const R=await import('../src/rules.js');const H3=await cl();/* H2's room is still open on the same save: hosting it again must detach the stale room so it can't overwrite */tx(H3,{t:'host',name:'G',token:T,save:sid});await sl(200);tx(H3,{t:'start'});await sl(300);
+tx(H3,{t:'dbg',spawn:{x:1,z:-3,s:'kush',age:0,water:90}});await sl(300);const id=H3.w.ents.filter(e=>e.type=='pot'&&e.data.plant).pop().id;
+let g=0;while(R.stage(H3.w.ents.find(e=>e.id==id).data.plant)!='flower'&&g++<200){tx(H3,{t:'dbg',ff:5});await sl(60)}
+const b=H3.w.ents.find(e=>e.id==id);const st0=R.stage(b.data.plant);ok('plant grown to flower',st0=='flower',st0);
+tx(H3,{t:'save'});await sl(400);const before=JSON.stringify(b.data);H3.ws.close();await sl(400);srv.kill('SIGTERM');await sl(500);srv=await up();
+const H4=await cl();tx(H4,{t:'host',name:'G',token:T,save:sid});await sl(200);tx(H4,{t:'start'});await sl(400);const a=H4.w.ents.find(e=>e.id==id);
+ok('plant stage survives save+restart+reload',a&&R.stage(a.data.plant)==st0,a&&R.stage(a.data.plant));
+const near=(x,y)=>typeof x=='number'?Math.abs(x-y)<3:typeof x=='object'&&x?Object.keys({...x,...y}).every(k=>near(x[k],y?.[k])):x===y;
+ok('plant data (age, health, water, nutrients, genetics) round-trips',a&&near(JSON.parse(before),a.data),a&&JSON.stringify(a.data).slice(0,160));H4.ws.close();await sl(200)}
+{// guest save: snapshot to client, rehost with it
+const Gs=await cl();tx(Gs,{t:'host',name:'g'});await sl(200);tx(Gs,{t:'start'});await sl(300);tx(Gs,{t:'dbg',money:4321,spawn:{x:1,z:-3,s:'haze',age:400}});await sl(300);
+let gw=null;Gs.ws.on('message',d=>{const m=JSON.parse(d);if(m.t=='saved'&&m.w)gw=m.w});tx(Gs,{t:'save'});await sl(400);ok('guest save returns world snapshot',gw&&gw.money>4321,gw&&gw.money);Gs.ws.close();
+const G2=await cl();tx(G2,{t:'host',name:'g',gw});await sl(200);tx(G2,{t:'start'});await sl(400);ok('guest farm reloads from snapshot (money + plant age)',G2.w.money==gw.money&&G2.w.ents.some(e=>e.data?.plant?.age>=400));G2.ws.close()}
 await api('POST','/api/logout',null,T);ok('logout kills session',(await api('GET','/api/me',null,T)).s==401);
 srv.kill();fs.rmSync(DATA,{force:true});const n=res.filter(Boolean).length;console.log(`${n}/${res.length} passed`);process.exit(n==res.length?0:1)})();
