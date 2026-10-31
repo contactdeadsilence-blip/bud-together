@@ -14,3 +14,4 @@ export function sfx(k,x=0){if(!ac)return;
   mantle:()=>tone(400,800,.15,'triangle',.15),land:()=>{tone(120,50,.2,'sine',.4*x+.1);noise(.15,400,.2*x+.05)},slip:()=>tone(600,150,.4,'triangle',.18),
   cp:()=>[523,659,784,1046].forEach((f,i)=>tone(f,f,.25,'triangle',.15,i*.09)),win:()=>[523,659,784,1046,784,1046,1318].forEach((f,i)=>tone(f,f*1.01,.35,'square',.08,i*.13)),
   buy:()=>[784,1046].forEach((f,i)=>tone(f,f,.12,'triangle',.15,i*.07)),pick:()=>tone(330,520,.08,'triangle',.15),drop:()=>tone(300,160,.1,'triangle',.15),pour:()=>noise(.5,700,.15),cash:()=>[1046,1318,1568].forEach((f,i)=>tone(f,f,.18,'square',.07,i*.08)),emote:()=>tone(880,1200,.1,'sine',.12),check:()=>[880,1320].forEach((f,i)=>tone(f,f,.16,'sine',.18,i*.1)),ui:()=>tone(660,880,.06,'triangle',.12)})[k]?.()}
+export const audioCtx=()=>ac?{ac,master}:null;

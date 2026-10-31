@@ -26,6 +26,7 @@ Object.assign(SHOP,{
  vseal:{n:'Vacuum Sealer',p:150,lv:3,cat:'equip',d:'Perfect seals every time; vacuum-sealed packs sell for +10%.'},
  lprint:{n:'Label Printer',p:110,lv:2,cat:'equip',d:'Prints clean labels automatically; printed packs sell for +5%.'},
  trimmer:{n:'Trim Machine',p:260,lv:4,cat:'equip',d:'Bowl trimmer: every trim counts as full speed.'},
+ radio:{n:'Boombox Radio',p:45,cat:'furn',d:'Portable radio with 5 generated music stations. E/A on/off, R/RT next station, [ ]/◀▶ volume.'},
  press:{n:'Hand Rosin Press',p:80,cat:'equip',d:'Press dried bud (~20%) or trim (~10%) into rosin concentrate.'},
  hpress:{n:'Hydraulic Press',p:350,lv:5,ent:'press',dat:{hy:1},cat:'equip',d:'Hydraulic rosin press: +5% yield and +5 quality.'},
  conc:{n:'Rosin',p:0,hide:1},pkg:{n:'Retail Pack',p:0,hide:1}});

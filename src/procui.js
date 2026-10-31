@@ -3,7 +3,7 @@ import {STRAINS,SHOP,grade,prodQ} from './rules.js';import {STORE,PRODUCT,qcat,d
 let H;export function procInit(h){H=h}
 const sn=s=>STRAINS[s]?.name||s||'';
 export function catTxt(type,d){if(!d)return'';const q=type=='trim'?d.q??50:prodQ(d),C=qcat(type,d);return `${C[0]} · ${grade(q)[0]}`}
-export function procKey(e){const d=e.data||{};return (STORE[e.type]?'st'+(d.st||[]).length:'')+(e.type=='rack'&&d.env?'h'+d.env.h+'T'+d.env.T:'')+(e.type=='packed'?'hm'+Math.round(Math.min(1.5,d.hm||0)*2)+(d.ct||''):'')+(e.type=='pkg'||e.type=='conc'?d.g+'|'+d.n+'|'+d.q:'')}
+export function procKey(e){const d=e.data||{};return (STORE[e.type]?'st'+(d.st||[]).length:'')+(e.type=='rack'&&d.env?'h'+d.env.h+'T'+d.env.T:'')+(e.type=='radio'?'r'+(d.on?1:0):'')+(e.type=='packed'?'hm'+Math.round(Math.min(1.5,d.hm||0)*2)+(d.ct||''):'')+(e.type=='pkg'||e.type=='conc'?d.g+'|'+d.n+'|'+d.q:'')}
 const near=(t,e,r=3)=>H.W().ents.find(o=>o.type==t&&!o.by&&Math.hypot(o.x-e.x,o.z-e.z)<r);
 export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(S){if(!PRODUCT.includes(ct))return null;if(S.only&&!S.only.includes(ct))return'';return (e.data.st||[]).length>=S.n?'':'Store '+H.NAME(ct)+` in ${SHOP[e.type].n} (${(e.data.st||[]).length}/${S.n})`}
@@ -12,8 +12,9 @@ export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(e.type=='trimmer')return (ct=='drybud'||ct=='wetbud')?(c.data.tr?'Already trimmed':'Load '+(ct=='wetbud'?'wet':'dried')+' bud into Trim Machine (auto-trim)'):'Hold dried or wet bud to use the Trim Machine';
  if(e.type=='scale'&&ct=='drybud')return 'Weigh & pack into '+(near('grove',e,60)&&!near('jars',e,60)?'grove bag':'curing container');
  return undefined}
-const MOVE=['fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears'];
+const MOVE=['fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears','radio'];
 export function procPrompt(c,t,only){const e=t?.e;if(!e)return undefined;const S=STORE[e.type];
+ if(e.type=='radio'&&!c&&!only){const d=e.data||{},ST=['Lo-Fi Greenhouse','Roots & Dub FM','Neon Synthwave','Ambient Garden','Funky Harvest'],pm=H.pad?.();return (d.on?'Turn radio off':'Turn radio on')+` · 📻 ${ST[(d.st||0)%5]} ${Math.round((d.vol??.6)*100)}%`+(pm?' · RT station · ◀ ▶ volume':' · R station · [ ] volume')}
  if(only&&!c&&MOVE.includes(e.type)&&!(e.type=='hbin'&&(e.data.br||[]).length)){const n=(e.data.st||[]).length;return H.bag().length<3?'Pick up '+(SHOP[e.type]?.n||H.NAME(e.type))+(n?` (${n} inside stay stored)`:''):'Hands full'}
  if(S&&!c&&!only){const L=e.data.st||[];return L.length?`Take ${L.at(-1).type=='pkg'?'retail pack':H.NAME(L.at(-1).type)} · ${SHOP[e.type].n} ${L.length}/${S.n}`:`${SHOP[e.type].n} — empty (hold product to store)`}
  if(e.type=='rack'&&!c&&e.data.env&&!only&&!(e.data.slots||[]).length){const v=e.data.env;return `Drying rack · ${v.h}% RH · ${v.T}°C · speed ×${v.sp}${v.dq>0?' · ideal':v.dq<0?' · too humid/hot':''}`}
@@ -34,6 +35,8 @@ function pkgTex(d,type){return H.lbl('pk'+d.s+d.g+d.q+d.lb+d.day+type,(x,w,h)=>{
  x.fillStyle='#fff';x.font='bold 26px sans-serif';x.textAlign='center';x.fillText(C[0].toUpperCase(),w/2,31);x.fillStyle='#222';x.font='bold 28px sans-serif';x.fillText(sn(d.s).slice(0,14),w/2,80);x.font='bold 34px sans-serif';x.fillText(d.g+'g'+(type=='conc'||d.cc?' ROSIN':''),w/2,122);
  x.font='22px sans-serif';x.fillText('Grade '+grade(type=='conc'?d.q:prodQ(d))[0]+' · Day '+(d.day??H.W()?.day??1),w/2,160);if(d.lb==2){x.fillStyle='#000';for(let i=0;i<30;i++)x.fillRect(40+i*6,180,i%3?2:4,40)}},256,256)}
 export function procProp(g,e){const {THREE,mat,box,cyl,at,glass}=H,t=e.type,d=e.data||{};
+ if(t=='radio'){const on=!!d.on;g.add(at(box(.46,.24,.13,'#2b2d33'),0,.12,0));for(const sx of [-.14,.14]){const sp=at(cyl(.075,.075,.02,'#111',20),sx,.12,.066);sp.rotation.x=Math.PI/2;g.add(sp);const cn=at(cyl(.03,.03,.022,'#555',12),sx,.12,.07);cn.rotation.x=Math.PI/2;g.add(cn)}
+  g.add(at(box(.12,.05,.005,on?'#7dff9a':'#1d3a24'),0,.2,.067));const hd=new THREE.Mesh(new THREE.TorusGeometry(.17,.012,6,16,Math.PI),mat('#888'));hd.position.y=.24;g.add(hd);const an=at(cyl(.004,.004,.3,'#bbb'),.18,.38,-.04);an.rotation.z=-.3;g.add(an);if(on){const l=new THREE.PointLight('#7dff9a',.25,.8);l.position.set(0,.2,.12);g.add(l)}return true}
  if(t=='fan'){g.add(at(cyl(.12,.14,.04,'#2a2a2a'),0,.02,0),at(cyl(.02,.02,.3,'#555'),0,.17,0));const r=new THREE.Mesh(new THREE.TorusGeometry(.2,.012,8,24),mat('#ddd'));r.position.y=.42;g.add(r);for(let i=0;i<3;i++){const b=box(.06,.17,.01,'#9ac');b.position.set(Math.cos(i*2.1)*.08,.42+Math.sin(i*2.1)*.08,0);b.rotation.z=i*2.1+1.57;g.add(b)}return true}
  if(t=='dehum'){g.add(at(H.rbox(.36,.6,.26,'#e8ecef'),0,.3,0),at(box(.26,.08,.01,'#333'),0,.5,.131),at(box(.3,.18,.01,'#888'),0,.18,.131),at(box(.06,.03,.01,'#3aff6a'),.08,.5,.137));return true}
  if(t=='grove'){g.add(at(box(.34,.2,.24,'#2a3a2a'),0,.1,0));for(let i=0;i<3;i++)g.add(at(box(.09,.16,.02,'#1a2e20'),-.1+i*.1,.28,0));g.add(at(box(.3,.06,.01,'#8ad06a'),0,.12,.121));return true}

@@ -1,4 +1,4 @@
-import {procInit,procProp,procKey,procRule,procPrompt,procInteract,procHold,lvlTxt} from './procui.js';import {mgInit,mgOn,mgOpen,mgClose,mgState,mgPad,mgKey,mgKeyUp,trimGame} from './minigames.js';
+import {radioSync,STATIONS,radioPlaying} from './radio.js';import {procInit,procProp,procKey,procRule,procPrompt,procInteract,procHold,lvlTxt} from './procui.js';import {mgInit,mgOn,mgOpen,mgClose,mgState,mgPad,mgKey,mgKeyUp,trimGame} from './minigames.js';
 import * as THREE from 'three';
 import {EffectComposer} from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -344,7 +344,7 @@ const DRYC=new THREE.Color('#c2a27a'),WETC=new THREE.Color('#3a2616');
 function soilLook(g,d,snap,dt=0){const S=g.userData.soil;if(!S)return;const tgt=d.moist??50;S.m=snap?tgt:S.m+(tgt-S.m)*(1-Math.exp(-dt*6));const k=Math.min(1,S.m/100);S.sm.color.copy(DRYC).lerp(WETC,Math.pow(k,.8));S.sm.roughness=1-.5*k;
  const c=d.crack||0;if(S.cr?.[0])S.cr[0].material.opacity=Math.min(1,c*1.6)*.85;if(S.cr?.[1])S.cr[1].material.opacity=Math.max(0,c*2-1)*.9}
 const NAME=t=>t=='dropbox'?'Drop Box':t=='dumpster'?'Dumpster':t=='desk'?'Desk':t=='table'?'Work Table':t=='bed'?'Bed':t=='tcan'?'Trash Can':t=='papers'?'Rolling Papers':t=='joints'?'Pre-rolls':t=='dirtbag'?'Bag of Old Dirt':t=='pallet'?'Pallet':t=='sink'?'Sink':t=='trash'?'Trash Bag':t=='gbag1'?'Garbage Bag (empty)':t=='wetbud'?'Wet Bud':t=='drybud'?'Dried Bud':t=='packed'?'Packed Jar':SHOP[t]?.n||t;
-procInit({THREE,mat,box,cyl,at,rbox,lbl,glass,JARG,NAME,bag:()=>bag(),W:()=>W,send:m=>send(m),sfx:k=>sfx(k)});
+procInit({THREE,mat,box,cyl,at,rbox,lbl,glass,JARG,NAME,pad:()=>padMode,bag:()=>bag(),W:()=>W,send:m=>send(m),sfx:k=>sfx(k)});
 const ekey=e=>{const p=e.data.plant;return procKey(e)+e.type+'|'+(e.data.sz||'')+(e.data.bed?'B':'')+(e.data.sq||'')+(p?stage6(p)+((p.burn||0)>.3?'b':'')+((p.nutr??50)<5?'y':''):'')+(e.type=='packed'?Math.round((e.data.cure||0)*4):'')+'|'+(e.type=='shelf'?JSON.stringify(e.data.slots):'')+(e.type=='seedrack'?JSON.stringify(e.data.sl):'')+(e.data.n??'')+'|'+(e.data.soil||0)+'|'+(p?stage(p)+(p.age/12|0)+'|'+Math.round(p.health/20)+'w'+Math.round((p.wilt||0)*5):'')+'|'+JSON.stringify(e.data.slots?.map(s=>s.t>0))+'|'+(e.data.g||'')+'|'+(e.data.f||'')+(e.data.used?'u':'')+(e.data.items?JSON.stringify(e.data.items):'')+(e.data.n??'')+(e.data.br?'br'+JSON.stringify(e.data.br):'')+(e.data.last!=null?'L'+e.data.last:'')}
 // ---------- input glyphs ----------
 let padMode=false;
@@ -376,7 +376,7 @@ addEventListener('keydown',e=>{if(creatorOpen())return;if(mgKey(e)){e.preventDef
  if(e.code=='Escape'&&game&&!$('menu').classList.contains('on')){if(invOpen)return closeInv();if(mapOpen)return closeMap();if(lapOpen)closeLap();else setPause(!paused);return}
  if(e.code=='Tab'&&game&&!paused&&!$('menu').classList.contains('on')){lapOpen?closeLap():openLap('contracts');return}
  if((e.code=='KeyI'||e.code=='KeyM')&&game&&(invOpen||mapOpen)){invOpen?closeInv():closeMap();return}
- if(free()){if(e.code=='KeyB')BLD.toggle(true);if(e.code=='KeyJ')openBook();if(e.code=='KeyI')openInv();if(e.code=='KeyM')openMap();if(e.code=='Space')jump();if(e.code=='KeyE')interact();if(e.code=='KeyF')interact(true);if(e.code=='KeyG'&&decoOn)drop();if(e.code=='KeyG'&&!decoOn){if(carried())trashHold=.001}if(e.code=='KeyQ')cycle(1);if(e.code=='KeyV'&&carried()?.type=='packed'){send({t:'burp'});sfx('ui')}}});
+ if(free()){if(e.code=='KeyB')BLD.toggle(true);if(e.code=='KeyJ')openBook();if(e.code=='KeyI')openInv();if(e.code=='KeyM')openMap();if(e.code=='Space')jump();if(e.code=='KeyE')interact();if(e.code=='KeyF')interact(true);if(e.code=='KeyG'&&decoOn)drop();if(e.code=='KeyG'&&!decoOn){if(carried())trashHold=.001}if(e.code=='KeyQ')cycle(1);{const rt=curT?.e?.type=='radio'&&!carried()?curT.e:null;if(rt){if(e.code=='KeyR')radioOp(rt,'st',e.shiftKey?-1:1);if(e.code=='BracketLeft'||e.code=='Minus')radioOp(rt,'vol',-1);if(e.code=='BracketRight'||e.code=='Equal')radioOp(rt,'vol',1)}}if(e.code=='KeyV'&&carried()?.type=='packed'){send({t:'burp'});sfx('ui')}}});
 addEventListener('keyup',e=>{keys[e.code]=false;mgKeyUp(e);if(e.code=='KeyG'&&trashHold>0&&!trashSent&&!decoOn)drop();if(e.code=='KeyG'){trashHold=0;trashSent=false}});addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 addEventListener('wheel',e=>{if(!free())return;if(BLD.isOn()){BLD.cycleItem(Math.sign(e.deltaY));return}if(decoOn){decoRy+=Math.sign(e.deltaY)*Math.PI/12;return}if(e.shiftKey&&carried()){hRot+=Math.sign(e.deltaY)*Math.PI/8;return}cycle(Math.sign(e.deltaY))});
 renderer.domElement.addEventListener('mousedown',e=>{setMode(false);if(free()){if(!locked)renderer.domElement.requestPointerLock?.();else if(e.button==0)interact();else if(e.button==2)drop()}});addEventListener('contextmenu',e=>e.preventDefault());
@@ -583,6 +583,7 @@ let padTrash=0,viewT=0,viewF=false,invT=0,invF=false;function pollPad(dt){if(cre
   if(Pa('pickup')){if(c&&t?.e&&useRule(c,t.e))interact(true);else if(!c&&(!t||promptFor(c,t,true)))interact(true);else interact()}
   if(Pa('tool')&&c&&c.type!='water'&&t?.e&&useRule(c,t.e))interact(true);
   if(Pa('alt')&&!c)drop();if(c&&Ha('alt')){padTrash+=dt;if(padTrash>.8&&!trashSent){trashSent=true;send({t:'trash'});rumble(.4,120)}}else{if(padTrash>0&&padTrash<=.8&&!trashSent)drop();padTrash=0;trashSent=false}if(t?.e?.type=='pot'&&t.e.data.plant){if(Ha('inventory')){invT+=dt;if(invT>.45&&!invF){invF=true;openInsp(t.e);rumble(.3,80)}}else{if(invT>0&&!invF)openInv();invT=0;invF=false}}else{invT=0;invF=false;if(Pa('inventory'))openInv()}if(binds.phone==binds.map){if(Ha('map')){viewT+=dt;if(viewT>.45&&!viewF){viewF=true;openPhone();rumble(.3,80)}}else{if(viewT>0&&!viewF)openMap();viewT=0;viewF=false}}else{if(Pa('map'))openMap();if(Pa('phone'))openPhone()}if(Pa('pause'))setPause(true);if(Pa('camera'))sensPreset();
+  {const rt=curT?.e?.type=='radio'&&!c?curT.e:null;if(rt){if(Pa('tool'))radioOp(rt,'st',1);if(E[14])radioOp(rt,'vol',-1);if(E[15])radioOp(rt,'vol',1)}}
   if(Pa('prev'))cycle(-1);if(Pa('next')||E[13])cycle(1);if(c){if(Ha('rotl'))rotV=1;else if(Ha('rotr'))rotV=-1}if(Pa('sprint'))sprintOn=!sprintOn}
  if(Math.hypot(lx,ly)<.25)sprintOn=false;
  return {mx:lx,my:ly,rx,ry,sprint:sprintOn,crouch:!gate&&Ha('crouch'),use:!gate&&Ha('tool')}}
@@ -760,6 +761,7 @@ function frame(){requestAnimationFrame(frame);frames++;if(frames%6==0)phintTick(
  for(const k of [...checks]){k.t+=dt;const a=k.t/1.6;k.sp.position.y+=dt*.3;k.sp.scale.setScalar(.35*Math.min(1,k.t*6)*(1+Math.max(0,.15-k.t)*2));k.sp.material.opacity=a<.7?1:Math.max(0,1-(a-.7)/.3);if(a>=1){scene.remove(k.sp);checks.splice(checks.indexOf(k),1)}}
  for(const o of ENTS.values()){if(o.e)soilLook(o.g,o.e.data,0,dt);const pl=o.g.userData.plant;if(pl){const s=pl.userData.sway||0;pl.rotation.z=Math.sin(T*1.3+s)*.025;pl.rotation.x=Math.cos(T*1.05+s)*.02}}
  for(const pl of demoPl){const s=pl.userData.sway||0;pl.rotation.z=Math.sin(T*1.3+s)*.025}
+ if(W)try{radioSync(W.ents.filter(e=>e.type=='radio'&&!e.by),camera)}catch(e){}
  composer?composer.render():renderer.render(scene,camera);inspRender()}
 const demo=new THREE.Group(),demoPl=[];[[-1.2,-3,300],[0,-3.2,470],[1.2,-3,130]].forEach(([x,z,a],i)=>{const g=prop({id:900+i,type:'pot',data:{soil:1,plant:{s:['owl','kush','haze'][i],age:a,health:100,water:80,nutr:80}}});g.position.set(x,0,z);demo.add(g);demoPl.push(g.userData.plant)});
 const dlp=prop({type:'light',data:{}});dlp.position.set(-.5,0,-3.1);demo.add(dlp);scene.add(demo);setInterval(()=>demo.visible=!game,200);
@@ -822,3 +824,6 @@ var gfxDraft=null;function gfxUI(){const P=$('gfxopts');if(!P)return;const g=gfx
  P.querySelectorAll('select').forEach(el=>el.onchange=()=>{const k=el.id.slice(2),v=isNaN(+el.value)?el.value:+el.value;if(k=='preset'){gfxDraft=v<0?{...gfxDraft,preset:-1}:{...PRESETS[v],preset:v}}else{gfxDraft={...gfxDraft,[k]:v,preset:-1}}for(const q of P.querySelectorAll('select')){const kk=q.id.slice(2);q.value=String(gfxDraft[kk])}$('gfxnote').textContent=(JSON.stringify(gfxDraft)==JSON.stringify(GFX)?'Current settings':'Changed — press Apply')+' · GPU auto-detect picks a default'})}
 function gfxApply(){saveGfx(gfxDraft||GFX);if(game&&W){try{document.querySelector('[data-a=savegame]')?.click()}catch(e){}}setTimeout(()=>location.reload(),game?600:50)}
 window.__bt&&(window.__bt.gfx=()=>({...GFX,pr:renderer.getPixelRatio(),composer:!!composer,smaa:!!smaa,fxaa:!!fxaa,shadow:sun.shadow.mapSize.x,env:!!scene.environment}));
+
+function radioOp(e,op,d){initAudio();send({t:'radio',id:e.id,op,d});sfx('ui')}
+window.__bt&&(window.__bt.radio=()=>radioPlaying());

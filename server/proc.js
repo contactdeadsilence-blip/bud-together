@@ -10,6 +10,10 @@ export function procTick(w,dt){for(const e of w.ents){const d=e.data;
  if(e.type==='rack'){const v=dryEnv(w.ents,e);d.env=v;for(const s of d.slots||[])if(s.t>0){s.t=Math.max(0,s.t-dt*v.sp);if(s.t<=0&&s.dq==null){s.dq=v.dq;s.q=Math.max(0,Math.min(100,(s.q??70)+v.dq))}}}
  if(STORE[e.type]?.cure)for(const it of d.st||[])if(it.type==='packed')cureStep(it.data,dt,STORE[e.type].cure,true)}}
 // returns true when handled
+export const RST=['Lo-Fi Greenhouse','Roots & Dub FM','Neon Synthwave','Ambient Garden','Funky Harvest'];
+export function radioMsg(w,m,say){const r=w.ents.find(e=>e.id===m.id&&e.type==='radio');if(!r)return;const d=r.data;d.st??=0;d.vol??=.6;
+ if(m.op==='st'){d.st=((d.st+(m.d<0?-1:1))%RST.length+RST.length)%RST.length;d.on=1;d.t0=Date.now();say(`📻 ${RST[d.st]} (${d.st+1}/${RST.length})`)}
+ if(m.op==='vol'){d.vol=Math.round(Math.max(0,Math.min(1,d.vol+(m.d<0?-.1:.1)))*10)/10;say(`📻 Volume ${Math.round(d.vol*100)}%`)}w._sv=1}
 export function procAct(w,pid,m,X){const {bag,c,t,say,give,full}=X,ct=c?.type,mk=(type,data,at)=>({id:w.nid++,type,x:at?.x||0,y:0,z:at?.z||0,ry:0,by:0,data});
  if(m.t==='order'){for(const x of Array.isArray(m.items)?m.items:[])if(SHOP[x?.k]&&locked(x.k,w)){say(`🔒 ${SHOP[x.k].n} unlocks at level ${SHOP[x.k].lv} (you are level ${lvl(w)})`);return true}return false}
  if(m.t==='burp'){if(ct!=='packed')return say('Hold a curing jar to burp it'),true;const d=c.data;if(d.ct==='grove')return say('Grove bags never need burping'),true;if((d.cure||0)>=1)return say('Fully cured — no need to burp'),true;
@@ -26,6 +30,8 @@ export function procAct(w,pid,m,X){const {bag,c,t,say,give,full}=X,ct=c?.type,mk
  if(m.press&&t?.type==='press'){if(ct!=='drybud'&&ct!=='trim')return say('Hold dried bud or trim to press it'),true;const a=(Array.isArray(m.press.a)?m.press.a:[]).slice(0,3).map(v=>cl(v));while(a.length<3)a.push(0);const av=a.reduce((x,y)=>x+y,0)/3,hy=!!t.data.hy,bud=ct==='drybud';
   const yld=(bud?.2:.1)+(hy?.05:0),g=Math.max(.1,r1(c.data.g*yld*(.6+.4*av))),q=Math.round(Math.max(0,Math.min(100,(c.data.q??70)*(bud?.6:.9)+av*40-8+(hy?5:0))));
   c.type='conc';c.data={s:c.data.s,g,q,src:bud?'bud':'trim'};w.sound='check';w._sv=1;return say(`🍯 Pressed ${g}g ${STRAINS[c.data.s]?.name||''} rosin · ${qcat('conc',c.data)[0]} (grade ${grade(q)[0]}) · temp ${Math.round(a[0]*100)}% · pressure ${Math.round(a[1]*100)}% · time ${Math.round(a[2]*100)}%`),true}
+ // radio: use = power toggle
+ if(t?.type==='radio'&&!m.only&&!c){t.data.on=t.data.on?0:1;t.data.st??=0;t.data.vol??=.6;if(t.data.on)t.data.t0=Date.now();w._sv=1;w.sound='ui';return say(t.data.on?`📻 Radio on · ${RST[t.data.st%RST.length]}`:'📻 Radio off'),true}
  // trim machine: load dried or wet bud, it auto-trims (full speed, steady accuracy)
  if(t?.type==='trimmer'&&!m.only){if(ct!=='drybud'&&ct!=='wetbud')return say(c?'Only dried or wet bud goes in the Trim Machine':'Hold dried or wet bud and use the Trim Machine to trim it'),true;if(c.data.tr)return say('Already trimmed'),true;
   const tg=Math.max(1,Math.round(c.data.g*.12)),dq=7;c.data.q=Math.max(0,Math.min(100,(c.data.q??70)+dq));c.data.g=Math.max(1,c.data.g-tg);c.data.tr=1;w._sv=1;w.sound='check';
