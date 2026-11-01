@@ -67,12 +67,27 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   const s=nearest(v,[...loose,...shv]);if(s)return go(s,()=>{if(s.type==='shelf'){const sl=s.data.slots,i=sl.findIndex(x=>x&&canSell(x));if(i>=0){mk(w,v,sl[i].type,sl[i].data);sl.splice(i,1);w._svw=1}}else if(free(s))pickUp(w,v,s)},1.1);
   return null}
  return null}
+
+// v1.8.1 worker pathfinding: 0.4m grid over walls + placed objects (sent by clients when the layout changes), A* per new target, cached per target
+const NAV=new WeakMap(),PATH=new WeakMap(),CS=.4,GX0=-44,GZ0=-44,GW=220,GH=143,RAD=.22;
+export function navSet(w,R){const b=new Uint8Array(GW*GH);let n=0;for(const r of R){if(!Array.isArray(r)||r.length<4||++n>3000)break;const [x0,x1,z0,z1]=r.map(Number);if(![x0,x1,z0,z1].every(Number.isFinite))continue;
+ const i0=Math.max(0,Math.ceil((x0-RAD-GX0)/CS-.5)),i1=Math.min(GW-1,Math.floor((x1+RAD-GX0)/CS-.5)),j0=Math.max(0,Math.ceil((z0-RAD-GZ0)/CS-.5)),j1=Math.min(GH-1,Math.floor((z1+RAD-GZ0)/CS-.5));for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++)b[j*GW+i]=1}NAV.set(w,{b,ver:(NAV.get(w)?.ver||0)+1})}
+const cell=(x,z)=>[Math.max(0,Math.min(GW-1,Math.round((x-GX0)/CS-.5))),Math.max(0,Math.min(GH-1,Math.round((z-GZ0)/CS-.5)))],cx=i=>GX0+(i+.5)*CS,cz=j=>GZ0+(j+.5)*CS;
+function astar(N,sx,sz,g){const B=N.b,[si,sj]=cell(sx,sz),goal=Math.max(g.d+.5,.6),G=new Float32Array(GW*GH).fill(1e9),P=new Int32Array(GW*GH).fill(-1),H=[];const s0=sj*GW+si;G[s0]=0;
+ const push=(k,f)=>{H.push([f,k]);let i=H.length-1;while(i){const p=(i-1)>>1;if(H[p][0]<=H[i][0])break;[H[p],H[i]]=[H[i],H[p]];i=p}},pop=()=>{const t=H[0],l=H.pop();if(H.length){H[0]=l;let i=0;for(;;){const a=2*i+1,c=a+1;let m=i;if(a<H.length&&H[a][0]<H[m][0])m=a;if(c<H.length&&H[c][0]<H[m][0])m=c;if(m==i)break;[H[m],H[i]]=[H[i],H[m]];i=m}}return t};
+ const h=k=>Math.hypot(cx(k%GW)-g.x,cz((k/GW)|0)-g.z);push(s0,h(s0));let it=0,end=-1;
+ while(H.length&&it++<25000){const [,k]=pop(),i=k%GW,j=(k/GW)|0;if(h(k)<=goal){end=k;break}
+  for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const ni=i+di,nj=j+dj;if(ni<0||nj<0||ni>=GW||nj>=GH)continue;const nk=nj*GW+ni;if(B[nk]&&h(nk)>goal)continue;if(di&&dj&&(B[j*GW+ni]||B[nj*GW+i]))continue;const ng=G[k]+(di&&dj?1.414:1);if(ng<G[nk]){G[nk]=ng;P[nk]=k;push(nk,ng+h(nk))}}}
+ if(end<0)return null;const pts=[];for(let k=end;k!=-1&&k!=s0;k=P[k])pts.push({x:cx(k%GW),z:cz((k/GW)|0)});pts.reverse();
+ // drop collinear points
+ const out=[];for(let i=0;i<pts.length;i++){const a=out[out.length-1]||{x:sx,z:sz},b=pts[i],c=pts[i+1];if(c&&Math.abs((b.x-a.x)*(c.z-b.z)-(b.z-a.z)*(c.x-b.x))<1e-4)continue;out.push(b)}return out}
+function stepTo(w,v,g){const N=NAV.get(w);if(!N)return g;let P=PATH.get(g);if(!P||P.ver!==N.ver){P={ver:N.ver,pts:astar(N,v.x,v.z,g)||[]};PATH.set(g,P)}while(P.pts.length&&Math.hypot(P.pts[0].x-v.x,P.pts[0].z-v.z)<.12)P.pts.shift();return P.pts[0]||g}
 export function workTick(w,dt,act){const L=w.workers;if(!L?.length)return;const h=w.min/60,on=h>=WORK_HOURS[0]&&h<WORK_HOURS[1];
  for(const v of L){const f=SKILL[v.sk]?.f||1;v.mv=0;
   if(v.wait>0){v.wait-=dt;continue}
   if(!v.tg){if(!on){v.st='off';v.tg={x:HOME.x+(L.indexOf(v)*.7),z:HOME.z,d:.2}}else{if((v.nx=(v.nx||0)-dt)>0)continue;v.nx=.5;const g=plan(w,v,act);if(g?.wait){v.wait=g.wait;v.st='work';continue}v.tg=g||null;v.st=g?'walk':'idle';if(!g){v.wait=1.5;continue}}}
-  const g=v.tg,dx=g.x-v.x,dz=g.z-v.z,D=Math.hypot(dx,dz);
-  if(D>g.d){const s=Math.min(D-g.d+.01,SPD*f*dt);v.x+=dx/D*s;v.z+=dz/D*s;v.ry=Math.atan2(-dx,-dz);v.mv=1;continue}
+  const g=v.tg,D=Math.hypot(g.x-v.x,g.z-v.z);
+  if(D>g.d){const q=stepTo(w,v,g),dx=q.x-v.x,dz=q.z-v.z,Dq=Math.hypot(dx,dz)||1e-6,s=q===g?Math.min(D-g.d+.01,SPD*f*dt):Math.min(Dq,SPD*f*dt);v.x+=dx/Dq*s;v.z+=dz/Dq*s;v.ry=Math.atan2(-dx,-dz);v.mv=1;continue}
   if(g.go){if(g.id==null||w.ents.some(e=>e.id===g.id)||(w.build||[]).some(p=>p.id===g.id))g.go();v.wait=1.1/f;v.st='work'}else v.st=on?'idle':'off';v.tg=null}}
 export function workDay(w){const L=w.workers;if(!L?.length)return '';let tot=0,quit=[];for(const v of [...L]){const c=wage(v);if(w.money>=c){w.money-=c;tot+=c;v.days=(v.days||0)+1}else{fireW(w,v);quit.push(WORKT[v.k].n)}}
  return (tot?`Farm wages −$${tot}`:'')+(quit.length?` · Unpaid ${quit.join(', ')} quit`:'')}

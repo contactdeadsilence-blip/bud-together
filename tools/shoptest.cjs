@@ -3,7 +3,7 @@ const pp=require('puppeteer-core'),{spawn}=require('child_process');const sl=ms=
 (async()=>{const PORT=3231;const srv=spawn('node',['server/index.js'],{env:{...process.env,PORT,BT_DEBUG:1,DATABASE_URL:''},stdio:'ignore'});await sl(700);
 const b=await pp.launch({executablePath:'/usr/bin/google-chrome',headless:'new',protocolTimeout:300000,args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 const P=await b.newPage();await P.setViewport({width:960,height:540});const errs=[];P.on('pageerror',e=>errs.push(e.message));
-await P.evaluateOnNewDocument(()=>{try{localStorage.bt_seenacct=1}catch(e){};window.__pad={id:'Xbox Sim',index:0,connected:true,mapping:'standard',timestamp:0,buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0})),axes:[0,0,0,0]};navigator.getGamepads=()=>[window.__pad,null,null,null]});
+await P.evaluateOnNewDocument(()=>{try{localStorage.bt_seenacct=1;localStorage.bt_seen_version='99.0.0'}catch(e){};window.__pad={id:'Xbox Sim',index:0,connected:true,mapping:'standard',timestamp:0,buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0})),axes:[0,0,0,0]};navigator.getGamepads=()=>[window.__pad,null,null,null]});
 await P.goto(`http://localhost:${PORT}/?q=0`,{waitUntil:'networkidle0'});
 const ev=(f,...a)=>P.evaluate(f,...a),st=()=>ev(()=>__bt.state()),ph=()=>ev(()=>__bt.phone());
 const frames=async n=>{const f0=await ev(()=>__bt.frames);while(await ev(()=>__bt.frames)<f0+n)await sl(15)};
@@ -13,7 +13,7 @@ const A=0,B=1,LB=4,RB=5,VIEW=8,START=9,UP=12,DOWN=13,LEFT=14,RIGHT=15;
 const res=[];const ok=(n,c,i='')=>{res.push(c);console.log(c?'PASS':'FAIL',n,i)};
 const fk=()=>ev(()=>document.querySelector('#phone .f')?.dataset.pk||null);
 await ev(()=>window.dispatchEvent(new Event('gamepadconnected')));
-let s=await st();if(s.root=='splash'){await press(A);await frames(4)}if(await ev(()=>__bt.cre?.()))await press(B);await frames(3);
+let s=await st();if(s.root=='splash'){await press(A);await frames(4)}if(await ev(()=>__bt.cre?.()))await press(B);await frames(3);if((await st()).root=='m-acct'){await ev(()=>document.querySelector('[data-a=guest]').click());await frames(3)}
 await press(A,4);await sl(1500);await frames(5);s=await st();ok('solo game started',s.root==null,s.root);
 const W2=f=>ev(f);const SH=async n=>{if(process.env.SHOTS){await P.setViewport({width:1280,height:720});await frames(3);await P.screenshot({path:'/workspace/ui-shots/grow/v15-'+n+'.png'});await P.setViewport({width:960,height:540});await frames(2)}};const fcls=()=>ev(()=>{const e=__bt2.fk();return e?(e.dataset.bs||e.dataset.a||e.className):null});
 await ev(()=>__bt.send({t:'dbg',earned:99999}));await sl(300);await W2(()=>__bt2.openLap('shop'));await frames(3);

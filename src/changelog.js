@@ -1,5 +1,11 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.8.1',date:'Nov 1, 2026',title:'Beta v1.8.1 — New Main Menu, Collision & Smarter Workers',notes:[
+'🌿 New main menu: a live 3D grow room with swaying plants, drifting light and a slow camera, behind clean dark-glass buttons (cheap to render and paused once you play).',
+'🧱 You now bump into placed furniture, shelves, tables, pots, racks and equipment instead of walking through them (you can never get trapped inside one).',
+'🧭 AI workers path around walls and objects instead of walking through them.',
+'🐛 Fixed a crash in build mode when previewing some pieces.',
+]},
 {v:'1.8.0',date:'Oct 31, 2026',title:'Beta v1.8.0 — Profiles, Leaderboard & Lobbies',notes:[
 '👤 Public profiles: display name, avatar preview, bio and join date. View anyone from the room screen, Pause → 👥 Players, the leaderboard, or by looking at them and pressing A / E.',
 '📊 Lifetime stats saved on the server: plants grown, grams harvested, jars sold, money earned, playtime, dispensary revenue, best reputation and businesses owned.',
