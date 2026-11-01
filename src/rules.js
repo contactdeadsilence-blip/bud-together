@@ -45,7 +45,7 @@ SHOP.seed_pack={n:'Mystery Seed Pack',p:60,uses:1};SHOP.brush={n:'Pollen Brush',
 export const GH={x0:-11,x1:-6.2,z0:-2.6,z1:2.6};// greenhouse footprint (west of the shed)
 export const inGH=e=>e.x>GH.x0&&e.x<GH.x1&&e.z>GH.z0&&e.z<GH.z1;
 // shelves / sink / utilities
-export const SLOTS=6,CAN=100,FILL=10,GAL=2;// shelf slots; can capacity %; % per fill tick; gallons per full can
+export const SLOTS=12,RACKCAP=8,CAN=100,FILL=10,GAL=2;// shelf slots; can capacity %; % per fill tick; gallons per full can
 export const RATE={water:.5,kwh:.15,base:2,light:.6};// $/gallon, $/kWh, $/day base, kW per placed grow light
 
 export const WILT0=120,WILT1=300,DIE=480;// seconds at 0% moisture: wilting starts, fully wilted, dead (8 min grace)

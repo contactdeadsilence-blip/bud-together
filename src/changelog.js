@@ -1,5 +1,6 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.8.3',date:'Nov 1, 2026',title:'Beta v1.8.3 — Bigger Storage & New Sounds',notes:['Shelves now hold 12 items (4 per level, including the bottom level) and drying racks hang 8 buds on two lines','Workers use the new shelf and rack capacity','New sounds: rosin press hiss and sizzle, glass jar clink on shelves, scale beeps, Mylar and grove bag crinkle, label printer, vacuum sealer, hanging and taking bud off the rack, and trimming','All sounds follow your volume setting']},
 {v:'1.8.2',date:'Nov 1, 2026',title:'Beta v1.8.2 — Controller Polish',notes:['Controller focus no longer lands on a hidden field behind the character creator']},
 {v:'1.8.1',date:'Nov 1, 2026',title:'Beta v1.8.1 — New Main Menu, Collision & Smarter Workers',notes:[
 '🌿 New main menu: a live 3D grow room with swaying plants, drifting light and a slow camera, behind clean dark-glass buttons (cheap to render and paused once you play).',

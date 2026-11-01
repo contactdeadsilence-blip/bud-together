@@ -1,6 +1,6 @@
 // v1.7.3 AI farm workers: server-authoritative NPCs that walk to targets and reuse the normal player actions (act) so every rule stays identical.
 import {WORKT,WORK_MAX,WORK_HOURS,SKILL} from '../src/bizdata.js';
-import {CAN,THIRSTY,DCAP,stage,SHOP} from '../src/rules.js';import {findEq,packBox} from './proc.js';import {PACKT} from '../src/proc.js';
+import {CAN,THIRSTY,DCAP,stage,SHOP,SLOTS,RACKCAP} from '../src/rules.js';import {findEq,packBox} from './proc.js';import {PACKT} from '../src/proc.js';
 const PAD={x:2.4,z:7.2},LOGMAX=20;
 const SPD=1.6,HOME={x:1.2,z:6.4};
 const wage=v=>Math.round(WORKT[v.k].wage*SKILL[v.sk].m);
@@ -46,16 +46,16 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
  if(v.k==='trimmer'){const wet=H.find(e=>e.type==='wetbud'),dry=H.find(e=>e.type==='drybud'),trim=H.find(e=>e.type==='trim'),pk=H.find(e=>e.type==='packed'||e.type==='pkg');const scale=findEq(w,v,'scale');
   // target helpers: equipment may sit on a table (virtual table item) — act on the table with sub=index
   const tgo=(o,fn,d=1.1)=>({id:o._tab?o._tab.id:o.id,x:o.x,z:o.z,d,go:fn}),um=o=>o._tab?{t:'use',target:o._tab.id,sub:o._tab.data.items.indexOf(o._it)}:{t:'use',target:o.id};
-  const racks=w.ents.filter(e=>e.type==='rack'&&!e.by),dryR=racks.filter(e=>(e.data.slots||[]).some(s=>s.t<=0)&&!claimed(w,v,e.id)),room=racks.some(e=>(e.data.slots||[]).length<4);
+  const racks=w.ents.filter(e=>e.type==='rack'&&!e.by),dryR=racks.filter(e=>(e.data.slots||[]).some(s=>s.t<=0)&&!claimed(w,v,e.id)),room=racks.some(e=>(e.data.slots||[]).length<RACKCAP);
   const takeDry=()=>{const r=nearest(v,dryR);return r?go(r,()=>doAct(w,v,act,{t:'use',target:r.id},null),1.1):null};
   if(trim){const T=nearest(v,w.ents.filter(e=>e.type==='table'&&!e.by))||scale;if(T)return go(T,()=>drop(w,v,trim,T.x+.3,T.z),1.1);drop(w,v,trim);return null}
-  if(pk){const sh=nearest(v,w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).filter(Boolean).length<6));if(sh)return go(sh,()=>doAct(w,v,act,{t:'use',target:sh.id},pk),1.1);if(scale)return tgo(scale,()=>drop(w,v,pk,scale.x+.4,scale.z+.3));drop(w,v,pk);return null}
+  if(pk){const sh=nearest(v,w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).filter(Boolean).length<SLOTS));if(sh)return go(sh,()=>doAct(w,v,act,{t:'use',target:sh.id},pk),1.1);if(scale)return tgo(scale,()=>drop(w,v,pk,scale.x+.4,scale.z+.3));drop(w,v,pk);return null}
   if(dry){if(!dry.data.tr){const sk=SKILL[v.sk];doAct(w,v,act,{t:'trim',trim:{acc:Math.min(1,.45+.25*v.sk),spd:Math.min(1,.5+.25*v.sk)}},dry);return{wait:2.5/sk.f}}
    if(!scale){v.say='Need a Scale to pack dried bud';return null}const box=packBox(w,scale);if(!box){const jb=H.find(e=>e.type==='jars'||e.type==='mylar'||e.type==='grove');if(jb)return tgo(scale,()=>drop(w,v,jb,scale.x+.5,scale.z));const fj=nearest(v,w.ents.filter(e=>free(e)&&e.type==='jars'&&!claimed(w,v,e.id)));if(fj&&H.length<3)return go(fj,()=>{if(free(fj))pickUp(w,v,fj)});if(buy(w,v,'jars'))return collect(w,v);v.say='Need Jars, Grove Bags or Mylar Bags near the scale';return null}
    if(box.type==='mylar'){const T=PACKT.bud.filter(g=>g<=dry.data.g),tg=T.length?T[T.length-1]:0;if(!tg){v.say='Too little bud for a Mylar bag';drop(w,v,dry,scale.x+.4,scale.z);return null}
     return tgo(scale,()=>doAct(w,v,act,{...um(scale),pack:{tg,acc:Math.min(1,.7+.12*v.sk),seal:Math.min(1,.6+.18*v.sk)}},dry))}
    return tgo(scale,()=>doAct(w,v,act,um(scale),dry))}
-  if(wet){const r=nearest(v,racks.filter(e=>(e.data.slots||[]).length<4));if(r)return go(r,()=>doAct(w,v,act,{t:'use',target:r.id},wet),1.1);const g=takeDry();if(g)return g;v.say='All drying racks are full';return null}
+  if(wet){const r=nearest(v,racks.filter(e=>(e.data.slots||[]).length<RACKCAP));if(r)return go(r,()=>doAct(w,v,act,{t:'use',target:r.id},wet),1.1);const g=takeDry();if(g)return g;v.say='All drying racks are full';return null}
   // racks full of finished bud: empty them first so the next harvest has room
   if(!room&&dryR.length)return takeDry();
   const ripe=pots.filter(p=>stage(p.data.plant)==='ready'&&!claimed(w,v,p.id));if(ripe.length){const p=nearest(v,ripe);return go(p,()=>{if(stage(p.data.plant)==='ready')doAct(w,v,act,{t:'use',target:p.id},null)})}
