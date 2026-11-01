@@ -9,3 +9,4 @@
   Used for `public/models/anims.glb`, which holds the idle, walk, jog, sprint, crouch, sit, drive, pick-up, interact, kneel and jump clips.
 
 The clothing, accessories, tattoos, freckles and face morphs are generated procedurally in code (`src/human.js`) on top of these meshes.
+- Outdoor trees, bushes, rocks, grass: Stylized Nature MegaKit (Standard) by Quaternius — CC0 1.0 — https://quaternius.itch.io/stylized-nature-megakit
