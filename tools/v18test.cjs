@@ -45,9 +45,9 @@ await press(B);ok('B exits build',!(await bs()).on);
 await ev(()=>__bt.warp(0,2,0,-.08));await frames(20);await shot('B-buildings');
 await ev(()=>__bt.warp(34,-6,.6,-.12));await frames(20);await shot('B-buildings2');
 // Stage C: paint + furniture
-await press(UP);await press(RB);await press(RB);ok('Colors cat',(await bs()).cat==4);await press(RIGHT);
+await press(UP);await press(RB);await press(RB);await press(RB);ok('Colors cat',(await bs()).cat==5);await press(RIGHT);
 const rm=(await W()).build.filter(p=>p.k=='wall'&&p.m==0&&p.r%2==0).sort((a,b)=>b.z-a.z)[0];await ev((x,z)=>__bt.warp(x,z+2.2,0,-.2),rm.x,rm.z);await frames(8);await press(A);await sl(500);q=await bs();ok('paint brick',(await W()).build.find(p=>p.id==rm.id).m==1,JSON.stringify([rm,q]));
-await press(LB);ok('Furniture cat',(await bs()).cat==3);
+await press(LB);ok('Furniture cat',(await bs()).cat==4);
 const fl=(await W()).build.find(p=>p.k=='floor');await ev((x,z)=>__bt.warp(x,z+2.2,0,-.6),fl.x,fl.z);await frames(8);const di=(await W()).decor.items.length;await press(A);await sl(500);ok('furniture on built floor',(await W()).decor.items.length==di+1);await shot('C-furn');
 await press(B);
 // Stage D: shop + stock

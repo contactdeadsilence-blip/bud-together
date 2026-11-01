@@ -1,5 +1,6 @@
 // Player-facing patch notes. Newest first. Bump CURRENT_VERSION when adding an entry.
 export const CHANGELOG=[
+{v:'1.8.2',date:'Nov 1, 2026',title:'Beta v1.8.2 — Controller Polish',notes:['Controller focus no longer lands on a hidden field behind the character creator']},
 {v:'1.8.1',date:'Nov 1, 2026',title:'Beta v1.8.1 — New Main Menu, Collision & Smarter Workers',notes:[
 '🌿 New main menu: a live 3D grow room with swaying plants, drifting light and a slow camera, behind clean dark-glass buttons (cheap to render and paused once you play).',
 '🧱 You now bump into placed furniture, shelves, tables, pots, racks and equipment instead of walking through them (you can never get trapped inside one).',

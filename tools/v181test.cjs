@@ -17,7 +17,7 @@ let s=await st();if(s.root=='splash'){await press(A);await frames(4)}if(await ev
 s=await st();ok('menu shown',s.root=='m-main',s.root);
 ok('no title/subtitle/HUD on menu',await ev(()=>!document.querySelector('#m-main h1')&&getComputedStyle(document.getElementById('hud')).display=='none'));
 ok('menu renders at low pixel ratio',await ev(()=>__bt.gfx().pr<=1),JSON.stringify(await ev(()=>__bt.gfx().pr)));
-ok('version label visible',await ev(()=>/1\.8\.1/.test(document.body.innerText)));
+ok('version label visible',await ev(()=>/1\.8\.[1-9]/.test(document.body.innerText)));
 for(let i=1;i<=4;i++){await sl(1200);await frames(20);await P.screenshot({path:`/workspace/ui-shots/grow/v181-menu-${i}.png`})}
 await press(DOWN);await frames(4);await P.screenshot({path:'/workspace/ui-shots/grow/v181-menu-focus.png'});ok('pad focus visible',await ev(()=>!!document.querySelector('#menu .btn.f')));await press(UP);await frames(4);
 const f0=await ev(()=>__bt.frames),t0=Date.now();await sl(3000);const mfps=(await ev(()=>__bt.frames)-f0)/((Date.now()-t0)/1000);console.log('menu fps (swiftshader)',mfps.toFixed(1));
