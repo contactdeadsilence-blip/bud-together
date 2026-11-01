@@ -48,7 +48,7 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   const tgo=(o,fn,d=1.1)=>({id:o._tab?o._tab.id:o.id,x:o.x,z:o.z,d,go:fn}),um=o=>o._tab?{t:'use',target:o._tab.id,sub:o._tab.data.items.indexOf(o._it)}:{t:'use',target:o.id};
   const racks=w.ents.filter(e=>e.type==='rack'&&!e.by),dryR=racks.filter(e=>(e.data.slots||[]).some(s=>s.t<=0)&&!claimed(w,v,e.id)),room=racks.some(e=>(e.data.slots||[]).length<RACKCAP);
   const takeDry=()=>{const r=nearest(v,dryR);return r?go(r,()=>doAct(w,v,act,{t:'use',target:r.id},null),1.1):null};
-  if(trim){const T=nearest(v,w.ents.filter(e=>e.type==='table'&&!e.by))||scale;if(T)return go(T,()=>drop(w,v,trim,T.x+.3,T.z),1.1);drop(w,v,trim);return null}
+  if(trim){const T=nearest(v,w.ents.filter(e=>e.type==='table'&&!e.by))||scale;if(T)return go(T,()=>{const p=w.ents.find(e=>e!==trim&&free(e)&&e.type==='trim'&&e.data.s===trim.data.s&&near(e,T.x+.3,T.z)<.8);if(p){p.data.g=Math.round(((p.data.g||0)+(trim.data.g||0))*10)/10;w.ents=w.ents.filter(e=>e!==trim);w._svw=1}else drop(w,v,trim,T.x+.3,T.z)},1.1);drop(w,v,trim);return null}
   if(pk){const sh=nearest(v,w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).filter(Boolean).length<SLOTS));if(sh)return go(sh,()=>doAct(w,v,act,{t:'use',target:sh.id},pk),1.1);if(scale)return tgo(scale,()=>drop(w,v,pk,scale.x+.4,scale.z+.3));drop(w,v,pk);return null}
   if(dry){if(!dry.data.tr){const sk=SKILL[v.sk];doAct(w,v,act,{t:'trim',trim:{acc:Math.min(1,.45+.25*v.sk),spd:Math.min(1,.5+.25*v.sk)}},dry);return{wait:2.5/sk.f}}
    if(!scale){v.say='Need a Scale to pack dried bud';return null}const box=packBox(w,scale);if(!box){const jb=H.find(e=>e.type==='jars'||e.type==='mylar'||e.type==='grove');if(jb)return tgo(scale,()=>drop(w,v,jb,scale.x+.5,scale.z));const fj=nearest(v,w.ents.filter(e=>free(e)&&e.type==='jars'&&!claimed(w,v,e.id)));if(fj&&H.length<3)return go(fj,()=>{if(free(fj))pickUp(w,v,fj)});if(buy(w,v,'jars'))return collect(w,v);v.say='Need Jars, Grove Bags or Mylar Bags near the scale';return null}
@@ -60,11 +60,21 @@ function plan(w,v,act){const H=held(w,v),pots=w.ents.filter(e=>e.type==='pot'&&!
   if(!room&&dryR.length)return takeDry();
   const ripe=pots.filter(p=>stage(p.data.plant)==='ready'&&!claimed(w,v,p.id));if(ripe.length){const p=nearest(v,ripe);return go(p,()=>{if(stage(p.data.plant)==='ready')doAct(w,v,act,{t:'use',target:p.id},null)})}
   return takeDry()}
+ if(v.k==='extractor'){const tgo=(o,fn,d=1.1)=>({id:o._tab?o._tab.id:o.id,x:o.x,z:o.z,d,go:fn}),um=o=>o._tab?{t:'use',target:o._tab.id,sub:o._tab.data.items.indexOf(o._it)}:{t:'use',target:o.id};
+  const jar=H.find(e=>e.type==='pkg'&&e.data.cj),trim=H.find(e=>e.type==='trim'),conc=H.find(e=>e.type==='conc'),cjb=H.find(e=>e.type==='cjars'),press=findEq(w,v,'press'),rv=findEq(w,v,'oilres'),fl=findEq(w,v,'oilfill');
+  if(jar){const b=nearest(v,w.ents.filter(e=>e.type==='sbin'&&!e.by&&(e.data.st||[]).length<12));if(b)return go(b,()=>doAct(w,v,act,{t:'use',target:b.id},jar),1.1);v.say='Need a Storage Bin with room';drop(w,v,jar);return null}
+  if(conc&&rv)return tgo(rv,()=>doAct(w,v,act,um(rv),conc));
+  if(trim){if(!press){v.say='Need a Rosin Press';return null}return tgo(press,()=>doAct(w,v,act,{...um(press),press:{a:[.6+.1*v.sk,.6+.1*v.sk,.6+.1*v.sk]}},trim))}
+  if(cjb&&fl)return tgo(fl,()=>drop(w,v,cjb,fl.x+.3,fl.z));
+  if(fl&&rv&&(rv.data.g||0)>=1&&H.length<3){if(!findEq(w,fl,'cjars')||Math.hypot(findEq(w,fl,'cjars').x-fl.x,findEq(w,fl,'cjars').z-fl.z)>3){const f=nearest(v,w.ents.filter(e=>free(e)&&e.type==='cjars'&&!claimed(w,v,e.id)));if(f)return go(f,()=>{if(free(f))pickUp(w,v,f)});if(buy(w,v,'cjars'))return collect(w,v);return null}
+   return tgo(fl,()=>{held(w,v).forEach(e=>e.bi=1);act(w,v.id,{...um(fl)})})}
+  const tr=nearest(v,w.ents.filter(e=>free(e)&&e.type==='trim'&&!claimed(w,v,e.id)));if(tr&&H.length<3)return go(tr,()=>{if(free(tr))pickUp(w,v,tr)});
+  return null}
  if(v.k==='fstock'){const B=w.build||[],space=B.filter(p=>DCAP[p.k]&&(p.st||[]).length<DCAP[p.k]),it=H.find(canSell);
   if(it){const p=nearest(v,space.filter(p=>p.k==='dcase').length?space.filter(p=>p.k==='dcase'):space);if(p)return go(p,()=>doAct(w,v,act,{t:'dstock',id:p.id},it),1.2);v.say='Every case and shelf is full';return null}
   if(!space.length)return null;
-  const loose=w.ents.filter(e=>free(e)&&canSell(e)&&!claimed(w,v,e.id)),shv=w.ents.filter(e=>e.type==='shelf'&&!e.by&&(e.data.slots||[]).some(s=>s&&canSell(s))&&!claimed(w,v,e.id));
-  const s=nearest(v,[...loose,...shv]);if(s)return go(s,()=>{if(s.type==='shelf'){const sl=s.data.slots,i=sl.findIndex(x=>x&&canSell(x));if(i>=0){mk(w,v,sl[i].type,sl[i].data);sl.splice(i,1);w._svw=1}}else if(free(s))pickUp(w,v,s)},1.1);
+  const loose=w.ents.filter(e=>free(e)&&canSell(e)&&!claimed(w,v,e.id)),shv=w.ents.filter(e=>(e.type==='shelf'&&(e.data.slots||[]).some(s=>s&&canSell(s))||(e.type==='sbin'||e.type==='stash')&&(e.data.st||[]).some(canSell))&&!e.by&&!claimed(w,v,e.id));
+  const s=nearest(v,[...loose,...shv]);if(s)return go(s,()=>{if(s.type!=='shelf'&&s.data.st){const L=s.data.st,i=L.findIndex(canSell);if(i>=0){mk(w,v,L[i].type,L[i].data);L.splice(i,1);w._svw=1}}else if(s.type==='shelf'){const sl=s.data.slots,i=sl.findIndex(x=>x&&canSell(x));if(i>=0){mk(w,v,sl[i].type,sl[i].data);sl.splice(i,1);w._svw=1}}else if(free(s))pickUp(w,v,s)},1.1);
   return null}
  return null}
 

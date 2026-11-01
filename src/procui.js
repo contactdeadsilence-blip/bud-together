@@ -1,10 +1,10 @@
 // Section 3 C–F client: 3D props, prompts and minigame hooks for drying env, curing, storage, packaging, rosin, equipment.
 import {STRAINS,SHOP,grade,prodQ} from './rules.js';import {STORE,PRODUCT,qcat,dryEnv,lvl,lvNext,PACKT} from './proc.js';import {packGame,pressGame} from './minigames.js';
-let H;export function procInit(h){H=h}
+let H,SH=0;addEventListener('keydown',e=>{if(e.key=='Shift')SH=1});addEventListener('keyup',e=>{if(e.key=='Shift')SH=0});export function procInit(h){H=h}
 const sn=s=>STRAINS[s]?.name||s||'';
 export function catTxt(type,d){if(!d)return'';const q=type=='trim'?d.q??50:prodQ(d),C=qcat(type,d);return `${C[0]} · ${grade(q)[0]}`}
-export function procKey(e){const d=e.data||{};return (STORE[e.type]?'st'+(d.st||[]).length:'')+(e.type=='rack'&&d.env?'h'+d.env.h+'T'+d.env.T:'')+(e.type=='radio'?'r'+(d.on?1:0):'')+(e.type=='packed'?'hm'+Math.round(Math.min(1.5,d.hm||0)*2)+(d.ct||''):'')+(e.type=='pkg'||e.type=='conc'?d.g+'|'+d.n+'|'+d.q+'|'+(d.cj||0)+(d.vac||0)+'|'+(d.lb||1):'')+(e.type=='packed'?'v'+(d.vac||0)+'l'+(d.lb||1):'')}
-const EQ=['press','scale','vseal','lprint','mylar','jars','grove','cjars','trimmer'];
+export function procKey(e){const d=e.data||{};return (STORE[e.type]?'st'+(d.st||[]).length:'')+(e.type=='rack'&&d.env?'h'+d.env.h+'T'+d.env.T:'')+(e.type=='radio'?'r'+(d.on?1:0):'')+(e.type=='oilres'?'g'+Math.round(d.g||0):'')+(e.type=='packed'?'hm'+Math.round(Math.min(1.5,d.hm||0)*2)+(d.ct||''):'')+(e.type=='pkg'||e.type=='conc'?d.g+'|'+d.n+'|'+d.q+'|'+(d.cj||0)+(d.vac||0)+'|'+(d.lb||1):'')+(e.type=='packed'?'v'+(d.vac||0)+'l'+(d.lb||1):'')}
+const EQ=['press','scale','vseal','lprint','mylar','jars','grove','cjars','trimmer','oilres','oilfill'];
 const tabItems=()=>{const L=[];for(const t of H.W().ents)if(!t.by&&Array.isArray(t.data?.items)){const c=Math.cos(t.ry||0),s=Math.sin(t.ry||0);t.data.items.forEach((it,i)=>{if(it&&EQ.includes(it.type))L.push({id:t.id,sub:i,type:it.type,data:it.data,x:t.x+it.x*c+it.z*s,z:t.z-it.x*s+it.z*c,by:0})})}return L};
 const dd=(a,e)=>Math.hypot(a.x-e.x,a.z-e.z);
 const near=(t,e,r=3)=>[...H.W().ents,...tabItems()].filter(o=>o.type==t&&!o.by&&dd(o,e)<r).sort((a,b)=>dd(a,e)-dd(b,e))[0];
@@ -16,6 +16,7 @@ export function subAim(t){const e=t?.e;if(!e||!Array.isArray(e.data?.items)||!e.
 export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(S){if(!PRODUCT.includes(ct))return null;if(S.only&&!S.only.includes(ct))return'';return (e.data.st||[]).length>=S.n?'':'Store '+H.NAME(ct)+` in ${SHOP[e.type].n} (${(e.data.st||[]).length}/${S.n})`}
  if((e.type=='scale'||e.type=='press')&&ct=='conc')return near('cjars',e,60)?(c.data.g>=1?'Fill 1g concentrate jars ('+Math.floor(c.data.g+1e-6)+'×)':'Need 1g+ of rosin to fill a jar'):e.type=='scale'&&near('mylar',e,60)?'Package rosin (minigame)':'Place Concentrate Jars next to the '+(e.type=='press'?'press':'scale');
+ if(e.type=='oilres')return ct=='conc'?'Pour rosin into reservoir':'';
  if(e.type=='scale'&&ct=='packed')return near('mylar',e,60)?'Package bud into Mylar bags (minigame)':'Place Mylar Bags by the scale to package';
  if(e.type=='press'&&(ct=='drybud'||ct=='trim'))return 'Press '+(ct=='trim'?'trim':'bud')+' into rosin (minigame)';
  if(e.type=='vseal')return ct=='pkg'?(c.data.cj?'Concentrate jars need no sealing':c.data.vac?'Already vacuum sealed':'Vacuum seal Mylar bag'):ct=='packed'&&c.data.ct=='grove'?(c.data.vac?'Already vacuum sealed':'Vacuum seal grove bag'):'';
@@ -23,15 +24,18 @@ export function procRule(c,e){const ct=c.type,S=STORE[e.type];
  if(e.type=='trimmer')return (ct=='drybud'||ct=='wetbud')?(c.data.tr?'Already trimmed':'Load '+(ct=='wetbud'?'wet':'dried')+' bud into Trim Machine (auto-trim)'):'Hold dried or wet bud to use the Trim Machine';
  if(e.type=='scale'&&ct=='drybud'){const b=packBox(e);return !b?'Place a Jar Box, Grove Bags or Mylar Bags near the scale':b.type=='mylar'?'Package bud into Mylar bags (minigame)':'Weigh & pack into '+(b.type=='grove'?'grove bag':'glass jar')}
  return undefined}
-const MOVE=['cjars','fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears','radio'];
+const MOVE=['oilres','oilfill','cjars','fan','dehum','grove','jars','ccab','sbin','stash','scale','press','hbin','mylar','vseal','lprint','trimmer','shears','radio'];
 export function procPrompt(c,t,only){let e=t?.e;if(!e)return undefined;if(c&&!only){const v=subAim(t);if(v){const r=procRule(c,v);if(r)return r}}const S=STORE[e.type];
  if(e.type=='radio'&&!c&&!only){const d=e.data||{},ST=['Lo-Fi Greenhouse','Roots & Dub FM','Neon Synthwave','Ambient Garden','Funky Harvest'],pm=H.pad?.();return (d.on?'Turn radio off':'Turn radio on')+` · 📻 ${ST[(d.st||0)%5]} ${Math.round((d.vol??.6)*100)}%`+(pm?' · RT station · ◀ ▶ volume':' · R station · [ ] volume')}
  if(only&&!c&&MOVE.includes(e.type)&&!(e.type=='hbin'&&(e.data.br||[]).length)){const n=(e.data.st||[]).length;return H.bag().length<3?'Pick up '+(SHOP[e.type]?.n||H.NAME(e.type,e.data))+(n?` (${n} inside stay stored)`:''):'Hands full'}
+ if(e.type=='oilres')return only?undefined:c?.type=='conc'?`Pour ${c.data.g}g rosin into reservoir`:`🛢 Oil Reservoir · ${Math.round((e.data.g||0)*10)/10}g pooled`;
+ if(e.type=='oilfill'&&!c&&!only){const r=near('oilres',e,3);return r?`Fill 1g rosin jar · pool ${Math.round((r.data.g||0)*10)/10}g (Shift+use = batch 10)`:'Oil Filler — place an Oil Reservoir within 3 m'}
  if(S&&!c&&!only){const L=e.data.st||[];return L.length?`Take ${L.at(-1).type=='pkg'?'retail pack':H.NAME(L.at(-1).type)} · ${SHOP[e.type].n} ${L.length}/${S.n}`:`${SHOP[e.type].n} — empty (hold product to store)`}
  if(e.type=='rack'&&!c&&e.data.env&&!only&&!(e.data.slots||[]).length){const v=e.data.env;return `Drying rack · ${v.h}% RH · ${v.T}°C · speed ×${v.sp}${v.dq>0?' · ideal':v.dq<0?' · too humid/hot':''}`}
  return undefined}
 // returns true if handled
 export function procInteract(c,t,only){if(only)return false;const W=H.W();
+ {const v=subAim(t),e=v&&(v.type=='oilfill'||v.type=='oilres')?v:t?.e;if(e&&!c&&e.type=='oilfill'){const sub=e.sub!=null?{sub:e.sub}:{};H.send({t:'use',target:e.id,...sub,batch:SH?1:0});return true}}
  if(c?.type=='packed'&&!t&&c.data.ct!='grove'&&(c.data.cure||0)<1){H.send({t:'burp'});H.sfx('ui');return true}
  let e=t?.e;if(!e||!c)return false;const v=subAim(t);if(v&&procRule(c,v))e=v;const sub=e.sub!=null?{sub:e.sub}:{};
  if(c.type=='conc'&&(e.type=='scale'||e.type=='press')&&near('cjars',e,60)){H.send({t:'use',target:e.id,...sub});H.sfx('ui');return true}
@@ -55,6 +59,8 @@ export function procProp(g,e){const {THREE,mat,box,cyl,at,glass}=H,t=e.type,d=e.
  if(t=='grove'){g.add(at(box(.34,.2,.24,'#2a3a2a'),0,.1,0));for(let i=0;i<3;i++)g.add(at(box(.09,.16,.02,'#1a2e20'),-.1+i*.1,.28,0));g.add(at(box(.3,.06,.01,'#8ad06a'),0,.12,.121));return true}
  if(t=='ccab'){g.add(at(H.rbox(.6,1.1,.45,'#5a3a22'),0,.55,0),at(box(.5,.9,.01,'#cfe8ff',{transparent:true,opacity:.35}),0,.58,.226),at(box(.12,.05,.01,'#111'),.18,1.02,.23),at(box(.06,.025,.005,'#3aff6a'),.18,1.02,.235));
   const n=(d.st||[]).length;for(let i=0;i<Math.min(8,n);i++)g.add(at(new THREE.Mesh(H.JARG,glass),-.18+(i%4)*.12,.2+Math.floor(i/4)*.45,0));for(const y of [.15,.6])g.add(at(box(.54,.02,.38,'#7a5434'),0,y,0));return true}
+ if(t=='oilres'){g.add(at(cyl(.11,.11,.3,'#9aa0a8',16),0,.15,0),at(cyl(.1,.1,Math.min(.27,.02+(d.g||0)/200),'#d89a20',16),0,.02+Math.min(.27,.02+(d.g||0)/200)/2,0),at(H.box(.18,.002,.06,mat('#fff',{map:H.lbl('or'+Math.round(d.g||0),(x,w,h)=>{x.fillStyle='#111';x.fillRect(0,0,w,h);x.fillStyle='#ffb020';x.font='bold 40px sans-serif';x.textAlign='center';x.fillText(Math.round((d.g||0)*10)/10+'g',w/2,46)},128,64)})),0,.31,0));return true}
+ if(t=='oilfill'){g.add(at(box(.3,.36,.26,'#2a5a8a'),0,.18,0),at(box(.12,.06,.12,'#ccc'),0,.42,0),at(cyl(.015,.015,.08,'#aaa'),0,.3,.14),at(box(.14,.02,.1,'#333'),0,.05,.16),at(box(.1,.05,.005,'#3aff6a'),.08,.3,.131));return true}
  if(t=='sbin'){g.add(at(box(.6,.32,.4,'#3a4a5a',{transparent:true,opacity:.85}),0,.16,0),at(box(.62,.04,.42,'#2a6ad0'),0,.34,0));const n=(d.st||[]).length;for(let i=0;i<Math.min(6,n);i++)g.add(at(box(.1,.12,.02,'#c8b070'),-.2+i*.08,.12,0));return true}
  if(t=='stash'){g.add(at(H.rbox(.8,1.2,.45,'#2e2e32'),0,.6,0),at(box(.36,1.1,.01,'#3a3a40'),-.19,.6,.226),at(box(.36,1.1,.01,'#3a3a40'),.19,.6,.226),at(box(.02,.16,.02,'#aaa'),-.03,.7,.24),at(box(.02,.16,.02,'#aaa'),.03,.7,.24),at(box(.1,.06,.01,'#111'),0,.95,.235));return true}
  if(t=='mylar'){g.add(at(box(.3,.16,.22,'#1a1a1a'),0,.08,0),at(box(.24,.06,.01,'#c0c0c8'),0,.1,.111));for(let i=0;i<3;i++)g.add(at(box(.08,.12,.01,'#b8bcc4'),-.08+i*.08,.2,0));return true}

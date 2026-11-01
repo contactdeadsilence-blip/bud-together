@@ -2,7 +2,7 @@
 import {STRAINS,SHOP,CURE,DRY,prodQ,grade,gradeOk} from '../src/rules.js';
 import {STORE,PRODUCT,BURP,dryEnv,qcat,pkgVal,locked,lvl,PACKT} from '../src/proc.js';
 const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,+v||0)),r1=v=>Math.round(v*10)/10;
-const EQ=['press','scale','vseal','lprint','mylar','jars','grove','cjars','trimmer'];
+const EQ=['press','scale','vseal','lprint','mylar','jars','grove','cjars','trimmer','oilres','oilfill'];
 // equipment set on a table/desk lives in t.data.items: expose it with world coordinates
 const tabItems=w=>{const L=[];for(const t of w.ents)if(!t.by&&Array.isArray(t.data?.items)){const c=Math.cos(t.ry||0),s=Math.sin(t.ry||0);for(const it of t.data.items)if(it&&EQ.includes(it.type))L.push({type:it.type,data:it.data,x:t.x+it.x*c+it.z*s,z:t.z-it.x*s+it.z*c,by:0,_tab:t,_it:it})}return L};
 const dist=(a,e)=>Math.hypot(a.x-e.x,a.z-e.z);
@@ -40,10 +40,16 @@ export function procAct(w,pid,m,X){const {bag,c,say,give,full}=X;let t=subT(X.t,
   const q=Math.max(0,Math.min(100,prodQ(c.data)+Math.round((acc-.8)*10)+(seal<.4?-6:0)));if(--box.data.uses<=0)rmE(w,box);
   const rem=r1(c.data.g-n*tg),o0={type:ct,data:{...c.data,g:rem}};c.type='pkg';c.data={s:c.data.s,g:tg,n,q,cure:0,cc:cc?1:0,vac:vs?1:0,lb:pr?2:1,day:w.day,acc:Math.round(acc*100),seal:Math.round(seal*100)};t.data.last=tg;w.sound='bag';w._sv=1;if(rem>=.1){const r=mk(o0.type,o0.data);X.give(r);r.bi=c.bi;c.bi=0}
   return say(`📦 Packaged ${n}× ${tg}g ${STRAINS[c.data.s]?.name||''}${cc?' rosin':''} · ${qcat('pkg',c.data)[0]} (grade ${grade(q)[0]}) · fill ${Math.round(acc*100)}% · seal ${Math.round(seal*100)}%${vs?' (vacuum)':''}`),true}
+ // v1.8.5 oil reservoir: pour held rosin in; filling machine dispenses 1g jars from the pool
+ if(t?.type==='oilres'&&ct==='conc'){const d=t.data,G=(d.g||0)+c.data.g;d.q=Math.round(((d.q||0)*(d.g||0)+(c.data.q??60)*c.data.g)/G);d.g=Math.round(G*100)/100;d.s=c.data.s;rmE(w,c);w.sound='clink';w._sv=1;return say(`🛢 Poured rosin in · pool ${r1(d.g)}g`),true}
+ if(t?.type==='oilfill'&&!c&&!m.only){const rv=near(w,t,'oilres',3),cj=near(w,t,'cjars',3);if(!rv)return say('Place an Oil Reservoir within 3 m of the filler'),true;if(!cj)return say('Place Concentrate Jars next to the filler'),true;if((rv.data.g||0)<1)return say(`Reservoir has ${r1(rv.data.g||0)}g — need 1g`),true;
+  const n=Math.max(1,Math.min(m.batch?10:1,Math.floor(rv.data.g+1e-6),cj.data.uses??10));cj.data.uses=(cj.data.uses??10)-n;if(cj.data.uses<=0)rmE(w,cj);rv.data.g=Math.round((rv.data.g-n)*100)/100;const pr=!!near(w,t,'lprint',3);
+  if(full())return true;give({id:w.nid++,type:'pkg',x:t.x,y:0,z:t.z,ry:0,data:{s:rv.data.s||'owl',g:1,n,q:rv.data.q??60,cure:0,cc:1,cj:1,vac:0,lb:pr?2:1,day:w.day,src:'oil'}});w.sound='clink';w._sv=1;return say(`🍯 Filled ${n}× 1g rosin jar${n>1?'s':''} · pool ${r1(rv.data.g)}g left`),true}
  // rosin press result
  if(t?.type==='press'&&!m.press&&!m.only&&(ct==='drybud'||ct==='trim')){m.press={a:[.6,.6,.6]}}
  if(m.press&&t?.type==='press'){if(ct!=='drybud'&&ct!=='trim')return say('Hold dried bud or trim to press it'),true;const a=(Array.isArray(m.press.a)?m.press.a:[]).slice(0,3).map(v=>cl(v));while(a.length<3)a.push(0);const av=a.reduce((x,y)=>x+y,0)/3,hy=!!t.data.hy,bud=ct==='drybud';
   const yld=(bud?.2:.1)+(hy?.05:0),g=Math.max(.1,r1(c.data.g*yld*(.6+.4*av))),q=Math.round(Math.max(0,Math.min(100,(c.data.q??70)*(bud?.6:.9)+av*40-8+(hy?5:0))));
+  const rv=near(w,t,'oilres',3);if(rv){const d=rv.data;const G=(d.g||0)+g;d.q=Math.round(((d.q||0)*(d.g||0)+q*g)/G);d.g=Math.round(G*100)/100;d.s=c.data.s;rmE(w,c);w.sound='press';w._sv=1;return say(`🛢 Pressed ${g}g rosin into the reservoir · pool ${r1(d.g)}g`),true}
   c.type='conc';c.data={s:c.data.s,g,q,src:bud?'bud':'trim'};w.sound='press';w._sv=1;return say(`🍯 Pressed ${g}g ${STRAINS[c.data.s]?.name||''} rosin · ${qcat('conc',c.data)[0]} (grade ${grade(q)[0]}) · temp ${Math.round(a[0]*100)}% · pressure ${Math.round(a[1]*100)}% · time ${Math.round(a[2]*100)}%`),true}
  // vacuum sealer: vacuum-seal a retail pack (Mylar bag) or a grove bag
  if(t?.type==='vseal'&&!m.only){if(!c)return say('Vacuum Sealer — hold a Mylar bag to vacuum seal it (packs made at a scale next to it are sealed automatically)'),true;

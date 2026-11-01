@@ -21,6 +21,8 @@ Object.assign(SHOP,{
  sbin:{n:'Storage Bin',p:30,cat:'furn',d:'Plastic tote that holds 12 products. Contents stay sealed.'},
  stash:{n:'Stash Cabinet',p:160,lv:2,cat:'furn',d:'Locking cabinet that holds 24 products.'},
  mylar:{n:'Mylar Bags ×10',p:10,uses:10,cat:'equip',d:'Retail bags for the packaging minigame at the scale. Works with dried bud or cured jars.'},
+ oilres:{n:'Oil Reservoir',p:120,lv:2,cat:'equip',d:'Collector that pools every gram of rosin pressed within 3 m (keeps the fractions). Set it on a table next to the press.'},
+ oilfill:{n:'Oil Filling Machine',p:280,lv:3,cat:'equip',d:'Dispenses 1g rosin jars from a nearby Oil Reservoir (needs Concentrate Jars within 3 m). Use for 1 jar, Shift+use fills a batch of 10.'},
  cjars:{n:'Concentrate Jars ×10',p:12,uses:10,cat:'equip',d:'1-gram glass concentrate jars with lids. Place next to the press or scale and use it while holding rosin to fill them.'},
  hseal:{n:'Hand Sealer',p:0,hide:1,d:'Built into every Mylar box — time the heat bar.'},hlabel:{n:'Hand Labels',p:0,hide:1,d:'Handwritten sticker labels.'},
  dscale:{n:'Digital Scale',p:90,lv:2,ent:'scale',dat:{dg:1},cat:'equip',d:'0.1 g precision: steadier pouring in the packaging minigame (+5% accuracy).'},

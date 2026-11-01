@@ -448,6 +448,9 @@ function applyWorld(w){W=w;DOORC=w.doorC||0;regGen(w.gen);phoneRefresh();syncDec
  w.log.forEach(t=>feed(t));if(w.toast&&w.toast.pid==myId)toast(w.toast.t);if(w.sound)sfx(w.sound);if(lapOpen)renderLap(true);if(decoCat)renderDecoCat(true)}
 // v13a: HUD notices stack briefly and fade out after ~4s (never block input)
 function feed(t){if(/died|Harvested/.test(t))rumble(.8,300);const F=$('feed'),d=document.createElement('div');d.className='fn';d.textContent=t;F.appendChild(d);while(F.children.length>4)F.firstChild.remove();setTimeout(()=>d.classList.add('out'),4000);setTimeout(()=>d.remove(),4600)}
+// v1.8.5 money cheat: type deadsilence, or pad Up Up Down Down LB RB
+let chB='';function cheatKey(k){chB=(chB+'|'+k).slice(-80);if(W&&(chB.endsWith('d|e|a|d|s|i|l|e|n|c|e')||chB.endsWith('p12|p12|p13|p13|p4|p5'))){chB='';send({t:'cheat'})}}
+addEventListener('keydown',e=>{if(e.key.length==1&&!/INPUT|TEXTAREA/.test(document.activeElement?.tagName))cheatKey(e.key.toLowerCase())});
 let toastT;const toastHide=()=>{$('toast').style.opacity=0};function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toastT);toastT=setTimeout(()=>$('toast').style.opacity=0,2400)}
 const bag=()=>W?W.ents.filter(e=>e.by==myId).sort((a,b)=>(a.bi||0)-(b.bi||0)):[];const carried=()=>bag()[0]||null;
 function enterBuild(){const c=carried(),k=c&&String(c.type).startsWith('b_')?c.type.slice(2):'',L=['disp','dcase','dcount','dshelf','dsign','rollup'];if(k&&BP[k]?.c=='x'){send({t:'unpack'});BLD.toggle(true);BLD.setSel(3,L.indexOf(k));return}BLD.toggle(true)}
@@ -587,7 +590,7 @@ const radial=(x,y,dz)=>{const m=Math.hypot(x,y);if(m<dz)return [0,0];const s=Mat
 let padTrash=0,viewT=0,viewF=false,invT=0,invF=false;function pollPad(dt){if(creatorOpen()){gate=true;return null}const gp=getPad(),root=uiRoot();
  if(root!==lastRoot){lastRoot=root;gate=true;rp.d='';if(root&&root.id!='splash'&&padMode)setFocus(defFocus(root))}
  if(!gp)return null;
- const B=k=>{const b=gp.buttons[k];return !!b&&(b.pressed||b.value>.5)};const E={};let any=false;for(let k=0;k<17;k++){const v=B(k);if(v)any=true;E[k]=v&&!pb[k];pb[k]=v}
+ const B=k=>{const b=gp.buttons[k];return !!b&&(b.pressed||b.value>.5)};const E={};let any=false;for(let k=0;k<17;k++){const v=B(k);if(v)any=true;E[k]=v&&!pb[k];pb[k]=v;if(E[k])cheatKey('p'+k)}
  const std=gp.mapping==='standard'||gp.axes.length<6,ax=i=>gp.axes[i]||0;const lx=ax(0),ly=ax(1),rx=std?ax(2):ax(3),ry=std?ax(3):ax(4);
  if(any||Math.hypot(lx,ly)>.4||Math.hypot(rx,ry)>.4)setMode(true);
  if(capture){for(let k=0;k<17;k++)if(E[k]&&(k<12||k>15)){const old=binds[capture],pm=x=>(x=='phone'&&capture=='map')||(x=='map'&&capture=='phone');for(const o of Object.keys(binds))if(o!=capture&&binds[o]==k&&!pm(o))binds[o]=old;if(capture=='map'&&binds.phone==old)binds.phone=k;binds[capture]=k;localStorage.bt_binds=JSON.stringify(binds);toast('Bound '+capture+' → '+BN[k]);capture=null;gate=true;renderRemap();renderHelp();break}return null}
