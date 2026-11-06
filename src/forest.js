@@ -2,13 +2,13 @@
 // One InstancedMesh per model per primitive, textures downsized to 256-512px, no shadow casting; trunks and big rocks get circle colliders.
 import * as THREE from 'three';import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 export const TREEC=[];
-const gy=(x,z)=>{const ox=Math.max(0,Math.abs(x)-45),oz=Math.max(0,z-14,-46-z),d=Math.hypot(ox,oz);return -.03+d*d*.004};
+const gy=(x,z)=>{const ox=Math.max(0,Math.abs(x)-95),oz=Math.max(0,z-55,-95-z),d=Math.hypot(ox,oz);return -.03+d*d*.0018};
 let sd=1867;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;// seeded: same forest for everyone
-// outside the build zone (|x|<43, -43<z<12.2) and clear of the front path/drive
-const spot=(near)=>{for(let i=0;i<60;i++){const x=(R()-.5)*(near?104:150),z=(near?-50+R()*68:-75+R()*105);if(Math.abs(x)<44.5&&z>-44.5&&z<13)continue;if(z>11&&Math.abs(x)<14)continue;return [x,z]}return null};
+// outside expanded build zone and clear of Budville (+z town) and player path
+const spot=(near)=>{for(let i=0;i<80;i++){const x=(R()-.5)*(near?180:260),z=(near?-90+R()*160:-120+R()*200);if(Math.abs(x)<96&&z>-96&&z<56)continue;if(z>8&&Math.abs(x)<8)continue;if(z>18&&x>-60&&x<75)continue;return [x,z]}return null};
 // name, count, height range [m], collider: 't' trunk / 'r' rock
-const SET=[['CommonTree_1',8,7,10,'t'],['CommonTree_3',8,8,11,'t'],['Pine_1',7,7,11,'t'],['Pine_2',7,7,11,'t'],['Pine_3',6,8,12,'t'],['DeadTree_1',3,6,8,'t'],
- ['Bush_Common',40,.9,1.6],['Rock_Medium_1',10,1.2,2.2,'r'],['Rock_Medium_2',12,.5,1.2],['Rock_Medium_3',8,1.4,2.4,'r'],['Grass_Common_Tall',70,.5,.9,0,1]];
+const SET=[['CommonTree_1',14,7,10,'t'],['CommonTree_3',14,8,11,'t'],['Pine_1',12,7,11,'t'],['Pine_2',12,7,11,'t'],['Pine_3',10,8,12,'t'],['DeadTree_1',5,6,8,'t'],
+ ['Bush_Common',70,.9,1.6],['Rock_Medium_1',16,1.2,2.2,'r'],['Rock_Medium_2',18,.5,1.2],['Rock_Medium_3',12,1.4,2.4,'r'],['Grass_Common_Tall',110,.5,.9,0,1]];
 export function loadForest(scene){const L=new GLTFLoader(),mc=new Map();const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0),v=new THREE.Vector3(),sv=new THREE.Vector3(),bb=new THREE.Box3();
  const mat=o=>{if(!mc.has(o.uuid)){const m=new THREE.MeshLambertMaterial({map:o.map,color:o.color});if(o.map)o.map.anisotropy=1;if(/Leaf|Leaves|Grass/i.test(o.name)){m.alphaTest=.5;m.side=THREE.DoubleSide}mc.set(o.uuid,m)}return mc.get(o.uuid)};
  for(const [n,cnt,h0,h1,col,near] of SET){const pts=[];for(let i=0;i<cnt;i++){const p=spot(near);if(p)pts.push([p[0],p[1],R(),R()*6.28])}

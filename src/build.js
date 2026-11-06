@@ -60,7 +60,7 @@ export function init(ctx){C=ctx;C.scene.add(G);hud=document.createElement('div')
  hud.addEventListener('click',e=>{const b=e.target.closest('[data-bc],[data-bi],[data-bx]');if(!b)return;if(b.dataset.bc!=null){cat=+b.dataset.bc;setGhost()}else if(b.dataset.bi!=null){idx[cat]+=+b.dataset.bi;setGhost()}else if(b.dataset.bx=='exit')toggle(false);else if(b.dataset.bx=='rm')del();else if(b.dataset.bx=='sell')sell(false);else if(b.dataset.bx=='sellall')sell(true,true);else if(b.dataset.bx=='light')light();C.sfx('ui');renderHud()})}
 // world sync
 const pkey=p=>p.k+p.m+':'+(p.ex|0)+(lowq()?'l':'')+(p.k=='dsign'?'o'+p.o:'')+(p.st?'s'+p.st.map(i=>i.d?.s).join():'');
-export function sync(list,stock){STOCK=stock||{};const L=list||[];const old=new Map(G.children.map(o=>[o.userData.bid,o]));G.clear();walls=[];const RS=new Set((list||[]).filter(p=>BP[p.k]?.c=='r').map(p=>p.x+','+p.z));
+export function sync(list,stock){STOCK=stock||{};const raw=list||[];const L=C.editBuild?C.editBuild(raw):raw;const old=new Map(G.children.map(o=>[o.userData.bid,o]));G.clear();walls=[];const RS=new Set(L.filter(p=>BP[p.k]?.c=='r').map(p=>p.x+','+p.z));
  for(const p0 of L){const p=BP[p0.k]?.c=='r'?{...p0,ex:roofEx(p0,RS)}:p0;let o=old.get(p.id);if(!o||o.userData.key!=pkey(p)){o=pieceModel(p.k,p.m,p.o,BP[p.k]?.c=='x'?(p.st||[]).map(i=>JCOL(i.d?.s)):p.ex|0);o.position.set(p.x,0,p.z);o.rotation.y=-p.r*Math.PI/2}o.userData.bid=p.id;o.userData.key=pkey(p);o.userData.o=p.o;G.add(o);
   if(BP[p.k].c=='x'){if(p.k!='dsign'){const hw=p.k=='dshelf'?.82:.9,hd=p.k=='dshelf'?.22:.32,sw=p.r&1;walls.push(sw?{x0:p.x-hd,x1:p.x+hd,z0:p.z-hw,z1:p.z+hw,bid:p.id}:{x0:p.x-hw,x1:p.x+hw,z0:p.z-hd,z1:p.z+hd,bid:p.id})}continue}if(BP[p.k].c!='w')continue;const sw=p.r&1,seg=(a,b)=>{const lo=Math.min(a,b),hi=Math.max(a,b);walls.push(sw?{x0:p.x-.1,x1:p.x+.1,z0:p.z+lo,z1:p.z+hi,bid:p.id}:{x0:p.x+lo,x1:p.x+hi,z0:p.z-.1,z1:p.z+.1,bid:p.id})};
   if(p.k=='door'){seg(-1,-.65);seg(.65,1);if(!p.o)seg(-.65,.65)}else if(p.k=='gdoor'||p.k=='rollup'){seg(-1,-.95);seg(.95,1);if(!p.o)seg(-.95,.95)}else seg(-1,1)}
@@ -78,7 +78,7 @@ function tint(ok){ghost?.traverse(o=>{if(o.isMesh){const un=c=>{c=c.clone();c.us
 function frame(){const k=cur();aimId=null;if(selBox){C.scene.remove(selBox);selBox=null}
  const ap=aimPiece();if(ap&&(k.startsWith('m:')||!ghost||C.keysDel)){aimId=ap.id}
  if(ap){const o=G.children.find(c=>c.userData.bid==ap.id);if(o){selBox=new THREE.BoxHelper(o,k.startsWith('m:')?'#7fd3ff':'#ffd23f');C.scene.add(selBox)}}
- if(ghost){const s=snap(k,groundPt());gp={...s,ok:true};if(k.startsWith('f:')){const W=C.W(),Rb=C.ROOMB(W?.room||1);const dk=DECOR[k.slice(2)];gp.ok=s.x>Rb.x0&&s.x<Rb.x1&&s.z>Rb.z0&&s.z<Rb.z1||onBFloor(B,s.x,s.z)||!!dk.out&&Math.abs(s.x)<=42&&Math.abs(s.z)<=42;ghost.rotation.y=rot*Math.PI/2}else{const L=bExpand(k,s.x,s.z,rot),used=new Set(B.map(p=>bSlot(p.k,p.x,p.z,p.r)));gp.ok=L.every(p=>bAllowed(p.x,p.z))&&L.some(p=>!used.has(bSlot(p.k,p.x,p.z,p.r)));ghost.rotation.y=-rot*Math.PI/2}ghost.position.set(s.x,0,s.z);tint(gp.ok)}
+ if(ghost){const s=snap(k,groundPt());gp={...s,ok:true};if(k.startsWith('f:')){const W=C.W(),Rb=C.ROOMB(W?.room||1);const dk=DECOR[k.slice(2)];gp.ok=s.x>Rb.x0&&s.x<Rb.x1&&s.z>Rb.z0&&s.z<Rb.z1||onBFloor(B,s.x,s.z)||!!dk.out&&Math.abs(s.x)<=95&&Math.abs(s.z)<=95;ghost.rotation.y=rot*Math.PI/2}else{const L=bExpand(k,s.x,s.z,rot),used=new Set(B.map(p=>bSlot(p.k,p.x,p.z,p.r)));gp.ok=L.every(p=>bAllowed(p.x,p.z))&&L.some(p=>!used.has(bSlot(p.k,p.x,p.z,p.r)));ghost.rotation.y=-rot*Math.PI/2}ghost.position.set(s.x,0,s.z);tint(gp.ok)}
  lastT=target();if(C.frames()%12==0||hold)renderHud();if(ap)lastAim=ap;else lastAim=null}
 let lastAim=null,hold=null,conf=null;
 const sellP=k=>Math.floor(((BP[k]||BPF[k])?.p||0)/2);
@@ -106,7 +106,7 @@ export function act(){const k=cur(),W=C.W();if(!W)return;
  if(!gp?.ok){C.toast("Can't place that there");C.sfx('err');return}
  if(!stockOf(k)&&W.money<priceOf(k)){C.toast(`Need $${priceOf(k)} — or buy it at budsupply.shop → Furniture & Construction`);C.sfx('err');return}
  if(k.startsWith('f:'))C.send({t:'dplace',k:k.slice(2),x:gp.x,y:0,z:gp.z,ry:rot*Math.PI/2});else C.send({t:'bplace',k,x:gp.x,z:gp.z,r:rot,m:mi})}
-export function del(){const T=target();if(!T)return C.toast('Aim at a built piece or furniture to remove it');C.send(T.t=='b'?{t:'bdel',id:T.p.id}:{t:'dstow',id:T.d.id})}
+export function del(){const T=target();if(!T)return C.toast('Aim at a built piece or furniture to remove it');if(T.t=='b'&&T.p.gk?.startsWith('town_')&&C.owns&&!C.owns(T.p.gk))return C.toast('Buy this property first');C.send(T.t=='b'?{t:'bdel',id:T.p.id}:{t:'dstow',id:T.d.id})}
 // sell: piece/furniture for 50%; whole=true sells every piece of a prefab building (keyboard/mouse needs a 2nd press within 3s to confirm; pad confirms by holding Y 2s)
 export function sell(whole=false,ask=false){const T=target();if(!T)return C.toast('Aim at a built piece or furniture to sell it');
  if(whole&&T.grp?.length>1){if(ask&&!(conf&&conf.g==T.p.g&&performance.now()-conf.t<3000)){conf={g:T.p.g,t:performance.now()};C.toast(`Sell the whole ${grpN(T)} (${T.grp.length} pieces) for $${grpV(T)}? Press again to confirm`);C.sfx('ui');return}conf=null;C.send({t:'bsell',id:T.p.id,whole:1});return}

@@ -2,6 +2,7 @@
 // Categories: beginner, daily, weekly, hidden, collection, business, property, exploration, seasonal.
 import {STRAINS,collPct} from './rules.js';
 import {lvl as shopLvl} from './proc.js';
+import {ownedGrow} from './town.js';
 
 export const MCATS=[
   ['beginner','Beginner'],['daily','Daily'],['weekly','Weekly'],['hidden','Hidden'],
@@ -39,7 +40,7 @@ export const MDEF=[
   {id:'p_shed',cat:'property',n:'Starter Shed',d:'Own your grow shed (always yours).',need:1,get:()=>1,r:{cash:25,xp:10}},
   {id:'p_expand',cat:'property',n:'Room to Grow',d:'Expand the shed ($500 + 5★).',need:2,get:w=>w.room|1,r:{cash:300,xp:80,deco:'rug'}},
   {id:'p_vehicle',cat:'property',n:'First Ride',d:'Purchase your first vehicle.',need:1,get:()=>0,r:{cash:0,xp:0},coming:1},
-  {id:'p_prop2',cat:'property',n:'Second Property',d:'Purchase a second grow property.',need:1,get:()=>0,r:{cash:0,xp:0},coming:1},
+  {id:'p_prop2',cat:'property',n:'Second Property',d:'Purchase a second grow property in Budville (cottage, bungalow, or empty lot).',need:1,get:w=>ownedGrow(w)>=1?1:0,r:{cash:500,xp:150}},
   // Exploration
   {id:'x_town',cat:'exploration',n:'Meet the Town',d:'Talk to a townsperson.',need:1,get:w=>w.mis?.talks|0,r:{cash:40,xp:20}},
   {id:'x_map',cat:'exploration',n:'Know the Land',d:'Open the property map.',need:1,get:w=>w.mis?.mapOpen|0,r:{cash:20,xp:10}},

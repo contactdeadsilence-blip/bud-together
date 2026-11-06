@@ -2,6 +2,7 @@
 import {itemPrice,fairTotal,buyBoost,custDone,custCap,spawnGap,homeOpen,decorScore} from './biz.js';
 import {STRAINS,prodQ} from '../src/rules.js';
 import {misNote} from './missions.js';
+import {townDoors} from '../src/town.js';
 
 export const PERS={
   regular:{n:'Regular',buy:1,price:1,q:1,chat:.4},
@@ -12,7 +13,7 @@ export const PERS={
 };
 const PKEYS=Object.keys(PERS);
 const CUSTN=['Alex','Sam','Jordan','Riley','Casey','Morgan','Jamie','Taylor','Quinn','Avery','Drew','Rowan','Kai','Skyler','Reese','Parker','Blake','Cameron','Hayden','Finley'];
-const TOWN_CAP=5; // outdoor wanderers
+const TOWN_CAP=8; // outdoor wanderers
 const fwd=(p,d)=>{const r=p.r|0,c=[1,0,-1,0][r],s=[0,1,0,-1][r];return {x:p.x-s*d,z:p.z+c*d}};
 function shopOpen(w){return (w.build||[]).some(p=>p.k==='dsign'&&p.o)}
 function rollPers(){const r=Math.random();return r<.18?'picky':r<.36?'bargain':r<.52?'connoisseur':r<.7?'chatty':'regular'}
@@ -49,10 +50,12 @@ export function townTick(w,dt){
   w.town??=[];const hr=w.min/60,sc=sched(hr);
   // spawn outdoor NPCs near the road/path (z~8–14, x±18)
   if(sc!=='home'&&w.town.length<TOWN_CAP){w._ts=(w._ts||0)+dt;if(w._ts>9){w._ts=0;
-    const side=Math.random()<.5?-1:1,x=side*(10+Math.random()*10),z=8+Math.random()*8;
-    const u=makeCust({id:w.nid++,x,z,ry:Math.random()*6.28,pts:[],role:'town',sch:sc});
-    // simple patrol waypoints
-    u.pts=[{x,z},{x:x+side*-6,z:z+2},{x:x+side*-3,z:10},{x:0,z:12},{w:'idle'},{x:side*14,z:z},{w:'gone'}];
+    const doors=townDoors(w);const side=Math.random()<.5?-1:1;
+    const startZ=22+Math.random()*4,startX=side*(8+Math.random()*40);
+    const u=makeCust({id:w.nid++,x:startX,z:startZ,ry:Math.random()*6.28,pts:[],role:'town',sch:sc});
+    const dest=doors[Math.random()*doors.length|0];
+    const mid={x:(startX+dest.x)/2,z:22};
+    u.pts=[{x:startX,z:startZ},mid,{x:dest.x,z:dest.z},{w:'idle'},{x:dest.x+side*6,z:dest.z},{x:0,z:14},{w:'gone'}];
     w.town.push(u)}}
   for(const u of w.town){
     const g=u.pts[u.ph];if(!g){u.dead=1;continue}

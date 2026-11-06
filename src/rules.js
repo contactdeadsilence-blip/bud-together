@@ -130,7 +130,7 @@ export const bSlot=(k,x,z,r,y=0)=>BP[k].c+':'+x+','+z+(BP[k].c=='w'?':'+(r&1):''
 // expand a placement (piece or prefab) to absolute pieces; origin snapped to even tile centers
 export function bExpand(k,x,z,r){r=((r|0)%4+4)%4;if(BP[k])return [{k,x,z,r}];const P=BPF[k];if(!P)return [];const c=[1,0,-1,0][r],s=[0,1,0,-1][r];
  return P.L().map(([pk,tx,tz,pr,m])=>({k:pk,x:x+tx*c-tz*s,z:z+tx*s+tz*c,r:(pr+r)%4,m}))}
-export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2;
+export const bAllowed=(x,z)=>Math.abs(x)<95&&z>-95&&z<55;
 
 export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.05&&Math.abs(p.z-z)<=1.05);
 // v1.9.1: starter shed / extension / greenhouse as editable build pieces (same grid as player kits)
