@@ -1,11 +1,13 @@
 import {workTick,workDay,workMsg,workView,navSet} from './workers.js';
 import {setupSocial,cnt,limiter} from './social.js';
 import {bizOf,bizMsg,bizTick,bizDay,custDone,sale,spawnGap,custCap,payTime,buyBoost,markOf,fairTotal,homeOpen,itemPrice as bizPrice} from './biz.js';
-import {DCAP,DMARK,STAFF,fairPrice,GRADES as GR2,BP,BPF,BMAT,PAINTP,bSlot,bExpand,bAllowed,onBFloor,seedCoreBuild,seedExtBuild,SLOTS,RACKCAP,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD,seedOf,settle,grade,gradeOk,prodQ,CURE,GRADES,inGH,harvQ,BASE,MUTS,rollMut,rollPack,makeCross,regGen,collPct,MILES,RAR,NW1,NW2} from '../src/rules.js';import {procTick,procAct,concContract,radioMsg} from './proc.js';import {qcat} from '../src/proc.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import path from 'path';import {fileURLToPath} from 'url';
+import {DCAP,DMARK,STAFF,fairPrice,GRADES as GR2,BP,BPF,BMAT,PAINTP,bSlot,bExpand,bAllowed,onBFloor,seedCoreBuild,seedExtBuild,SLOTS,RACKCAP,CAN,FILL,GAL,RATE,STRAINS,SHOP,READY,DRY,stage,WILT0,WILT1,DIE,POUR,DRAIN,DRAIN_EMPTY,NUTR,THIRSTY,HFLOOR,BAGCAP,STYLE,DECOR,defDecor,ROOMB,rackSnap,RACKN,MINPS,START_CASH,SURFS,BIG,JOINT,WAKE,canSleep,MAXORD,seedOf,settle,grade,gradeOk,prodQ,CURE,GRADES,inGH,harvQ,BASE,MUTS,rollMut,rollPack,makeCross,regGen,collPct,MILES,RAR,NW1,NW2} from '../src/rules.js';import {procTick,procAct,concContract,radioMsg} from './proc.js';import {qcat} from '../src/proc.js';import express from 'express';import {WebSocketServer} from 'ws';import http from 'http';import crypto from 'crypto';import {openStore} from './store.js';import {mountShopEarly,mountShop,packPublic} from './shop.js';import path from 'path';import {fileURLToPath} from 'url';
 const dir=path.join(path.dirname(fileURLToPath(import.meta.url)),'..','dist');
 const app=express();app.use(express.static(dir));app.get('/health',(q,r)=>r.send('ok'));app.get('/health/db',(q,r)=>r.json({kind:store.kind,ok:store.kind=='file'||!!store.status?.ok,err:store.status?.err||null}));
 // ---------- accounts + saves ----------
+const rooms=new Map();
 const store=await openStore().catch(e=>{console.error('Store init failed, using memory:',e.message);const m=new Map();return {kind:'memory',get:async k=>m.get(k)??null,set:async(k,v)=>{m.set(k,v)},del:async k=>{m.delete(k)},list:async p=>[...m].filter(([k])=>k.startsWith(p)).map(([k,v])=>({k,v}))}});console.log('Store:',store.kind);
+mountShopEarly(app,store,rooms);
 app.use('/api',express.json({limit:'200kb'}));
 const U=n=>String(n||'').trim().toLowerCase();const okU=n=>/^[a-z0-9_]{3,16}$/.test(n);
 const hash=(pw,salt)=>crypto.scryptSync(String(pw),salt,64).toString('hex');
@@ -26,9 +28,9 @@ app.delete('/api/saves/:id',authed(async(q,r,u)=>{await store.del('save:'+u+':'+
 function snap(w){const c=JSON.parse(JSON.stringify(w));for(const v of c.workers||[]){v.tg=null;v.wait=0}for(const e of c.ents)if(e.by&&!(e.by<0&&(c.workers||[]).some(v=>v.id===e.by))){e.by=0;e.bi=0;e.x=PAD.x+(Math.random()-.5);e.z=PAD.z+(Math.random()-.5);e.y=0}c.log=[];delete c.toast;delete c.sound;delete c.fx;delete c.sleepers;delete c._sv;return c}
 async function saveRoom(r){if(!r.owner||!r.started)return;try{await store.set('save:'+r.owner+':'+r.sid,{name:r.sname,at:Date.now(),w:snap(r.w)});r.savedAt=Date.now()}catch(e){console.error('save failed',e.message)}}
 
-const server=http.createServer(app);const wss=new WebSocketServer({server,path:'/ws'});
-const rooms=new Map();const COLORS=['#ff6b4a','#3fb5ff','#ffd23f','#9b6bff'];
+const server=http.createServer(app);const wss=new WebSocketServer({server,path:'/ws'});const COLORS=['#ff6b4a','#3fb5ff','#ffd23f','#9b6bff'];
 setupSocial({app,store,authed,A,rooms,who});
+mountShop({app,store,authed,A,rooms});
 const mk=()=>{let c;do c=Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('');while(rooms.has(c));return c};
 const roster=r=>r.players.map((p,i)=>({id:p.id,name:p.name,u:p.u||null,color:COLORS[i],look:p.look||null}));
 const okLook=l=>l&&typeof l=='object'&&JSON.stringify(l).length<3000?l:null;
