@@ -3,7 +3,7 @@ export const STRAINS={kush:{name:'Silent Kush',speed:.85,g:14,ppg:14,diff:2,col:
 // v12 stage 3: seed types, pot sizes, soil tiers, nutrients, quality grades
 export const SEEDT={r:{n:'Regular',m:1,d:'cheap · random phenotype (yield ±25%)'},f:{n:'Feminized',m:1.6,d:'stable · +4 quality'},a:{n:'Auto',m:1.4,d:'fast (+35%) · grows without much light · -20% yield'}};
 export function seedOf(k){if(!k?.startsWith('seed_'))return null;const [,s,t]=k.split('_');return STRAINS[s]?{s,ty:t||'r'}:null}
-const SEEDBASE={haze:15,owl:20,kush:30,lemon:12,blue:22,og:40};
+const SEEDBASE={haze:15,owl:20,kush:30,lemon:12,blue:22,og:40,cherry:18,diesel:35,gelato:28,skunk:16};
 export const SOILQ=['Basic Soil','Premium Soil','Super Soil'];
 export const CURE=240,GRADES=[['A+',92,1.5],['A',85,1.3],['B',72,1.1],['C',58,.9],['D',0,.7]];
 export const grade=q=>GRADES.find(g=>q>=g[1]);
@@ -11,8 +11,8 @@ export const gradeOk=(q,min)=>!min||GRADES.findIndex(g=>g[0]==grade(q)[0])<=GRAD
 export const prodQ=d=>Math.max(0,Math.min(100,Math.round((d.q??70)+(d.cure||0)*(d.ct==='grove'?10:8)+(d.bq||0)-(d.pen||0))));
 export function stage6(p){if(!p)return '';if(p.dead)return 'dead';const a=p.age;return a<15?'germination':a<60?'seedling':a<170?'veg':a<230?'pre-flower':a<READY?'flower':'ripe'}
 export const STAGE6=['germination','seedling','veg','pre-flower','flower','ripe'];
-export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35,uses:4,ent:'soil',dat:{sq:1}},soil_s:{n:'Super Soil',p:55,uses:4,ent:'soil',dat:{sq:2}},pot:{n:'Pot',p:10},pot_s:{n:'Small Pot',p:6,ent:'pot',dat:{sz:.7}},pot_l:{n:'Large Pot',p:18,ent:'pot',dat:{sz:1.4}},gbed:{n:'Garden Bed',p:45,ent:'pot',dat:{sz:2,bed:1}},nutr_g:{n:'Grow Nutrients (N)',p:18,uses:8,ent:'nutr',dat:{f:'g'}},nutr_b:{n:'Bloom Nutrients (P-K)',p:18,uses:8,ent:'nutr',dat:{f:'b'}},
- water:{n:'Watering Can',p:0,hide:1},shelf:{n:'Storage Shelf',p:45},seedrack:{n:'Wall Seed Rack',p:35},nutr:{n:'Nutrients',p:15,uses:8},light:{n:'Grow Light',p:60},rack:{n:'Drying Rack',p:40},jars:{n:'Jar Box',p:12,uses:10},scale:{n:'Scale',p:35},shears:{n:'Trim Shears',p:15},trim:{n:'Trim',p:0,hide:1},hbin:{n:'Harvest Bin',p:25},gbag:{n:'Garbage Bags',p:4,uses:5},papers:{n:'Rolling Papers',p:6,uses:10},table:{n:'Work Table',p:60},bed:{n:'Bed',p:150},tcan:{n:'Trash Can',p:20},
+export const SHOP={soil:{n:'Soil Bag',p:20,uses:4},soil_p:{n:'Premium Soil',p:35,uses:4,ent:'soil',dat:{sq:1}},soil_s:{n:'Super Soil',p:55,uses:4,ent:'soil',dat:{sq:2}},pot:{n:'Pot',p:10},pot_s:{n:'Small Pot',p:6,ent:'pot',dat:{sz:.7}},pot_l:{n:'Large Pot',p:18,ent:'pot',dat:{sz:1.4}},gbed:{n:'Garden Bed',p:45,ent:'pot',dat:{sz:2,bed:1}},nutr_g:{n:'Grow Nutrients (N)',p:18,uses:8,ent:'nutr',dat:{f:'g'},d:'Green bottle · nitrogen for veg. Best while the plant is bushing out.'},nutr_b:{n:'Bloom Nutrients (P-K)',p:18,uses:8,ent:'nutr',dat:{f:'b'},d:'Purple bottle · phosphorus & potassium for pre-flower and flower.'},
+ water:{n:'Watering Can',p:0,hide:1},shelf:{n:'Storage Shelf',p:45},seedrack:{n:'Wall Seed Rack',p:35},nutr:{n:'Balanced Nutrients',p:15,uses:8,d:'All-purpose feed. Fine any stage, but Grow (N) is better in veg and Bloom (P-K) in flower.'},light:{n:'Grow Light',p:60},rack:{n:'Drying Rack',p:40},jars:{n:'Jar Box',p:12,uses:10},scale:{n:'Scale',p:35},shears:{n:'Trim Shears',p:15},trim:{n:'Trim',p:0,hide:1},hbin:{n:'Harvest Bin',p:25},gbag:{n:'Garbage Bags',p:4,uses:5},papers:{n:'Rolling Papers',p:6,uses:10},table:{n:'Work Table',p:60},bed:{n:'Bed',p:150},tcan:{n:'Trash Can',p:20},
  pal_soil:{n:'Pallet · 8 Soil Bags',p:136,pal:'soil',k:8},pal_nutr:{n:'Pallet · 6 Nutrients',p:72,pal:'nutr',k:6},pal_pot:{n:'Pallet · 10 Pots',p:80,pal:'pot',k:10},pal_jars:{n:'Pallet · 6 Jar Boxes',p:61,pal:'jars',k:6}};
 for(const k of ['soil_p','soil_s','pot_s','pot_l','gbed','nutr_g','nutr_b','pal_soil','pal_nutr','pal_pot','pal_jars']){const v=SHOP[k];delete SHOP[k];SHOP[k]=v}
 for(const s in STRAINS)for(const t in SEEDT)SHOP['seed_'+s+(t=='r'?'':'_'+t)]={n:STRAINS[s].name+(t=='r'?' Seeds':' '+SEEDT[t].n+' Seeds'),p:Math.round(SEEDBASE[s]*SEEDT[t].m),uses:3};
@@ -26,9 +26,16 @@ Object.assign(STRAINS,{mint:{name:'Mint Static',rar:2,speed:1.05,g:12,ppg:15,dif
  aurora:{name:'Aurora Byte',rar:4,speed:.85,g:15,ppg:24,diff:3,col:'#7af0ff',look:{pis:'#ff7af0',frost:1,cal:'#6ab8ff',lf:'n',st:'spear'}},
  phantom:{name:'Phantom Mint',rar:3,hid:1,speed:1,g:14,ppg:20,diff:2,col:'#c8fff0',look:{pis:'#ffffff',frost:1,cal:'#b8f0e0',lf:'s',st:'spear'}},
  sol:{name:'Solar Flare',rar:4,hid:1,speed:1.2,g:13,ppg:25,diff:2,col:'#ffb020',look:{pis:'#ff5a00',frost:.85,cal:'#ffc040',lf:'n',st:'fox'}},
- void:{name:'Violet Void',rar:5,hid:1,speed:.8,g:17,ppg:32,diff:3,col:'#5a1aa0',look:{pis:'#ff3ad0',frost:1,cal:'#2a0a5a',lf:'w',st:'chunky'}}});
+ void:{name:'Violet Void',rar:5,hid:1,speed:.8,g:17,ppg:32,diff:3,col:'#5a1aa0',look:{pis:'#ff3ad0',frost:1,cal:'#2a0a5a',lf:'w',st:'chunky'}},
+ cherry:{name:'Cherry Codec',rar:1,speed:1.25,g:9,ppg:11,diff:1,col:'#e83a5a',look:{pis:'#ff7a9a',frost:.65,cal:'#c84060',lf:'n',st:'spear'}},
+ diesel:{name:'Diesel Bit',rar:2,speed:.75,g:16,ppg:16,diff:2,col:'#c8a040',look:{pis:'#f0d070',frost:.7,cal:'#a88830',lf:'w',st:'chunky'}},
+ gelato:{name:'Neon Gelato',rar:3,speed:.95,g:13,ppg:18,diff:2,col:'#d07aff',look:{pis:'#ffe0f0',frost:.95,cal:'#b060e0',lf:'s',st:'fox'}},
+ skunk:{name:'Crypto Skunk',rar:0,speed:1.1,g:11,ppg:10,diff:1,col:'#6aaa2a',look:{pis:'#e8f0a0',frost:.5,cal:'#5a9030',lf:'w',st:'spear'}},
+ frost:{name:'Frost Protocol',rar:4,speed:.88,g:15,ppg:26,diff:3,col:'#d0f0ff',look:{pis:'#ffffff',frost:1,cal:'#a8d8f0',lf:'n',st:'fox'}},
+ nebula:{name:'Nebula Kush',rar:5,hid:1,speed:.82,g:18,ppg:30,diff:3,col:'#3a2a8a',look:{pis:'#ff8ad0',frost:1,cal:'#2a1a6a',lf:'w',st:'chunky'}}});
+for(const s of['cherry','diesel','gelato','skunk'])for(const t in SEEDT)SHOP['seed_'+s+(t=='r'?'':'_'+t)]={n:STRAINS[s].name+(t=='r'?' Seeds':' '+SEEDT[t].n+' Seeds'),p:Math.round(SEEDBASE[s]*SEEDT[t].m),uses:3};
 export const pairKey=(a,b)=>[a,b].sort().join('+');
-export const HIDDEN={'blue+kush':'void','ember+lemon':'sol','mint+og':'phantom'};
+export const HIDDEN={'blue+kush':'void','ember+lemon':'sol','mint+og':'phantom','cherry+diesel':'nebula'};
 export const MUTS={vari:{n:'Variegated',rar:2,q:3,d:'marbled white-green leaves · +3 quality'},albino:{n:'Albino',rar:3,q:6,d:'ghost-white leaves · +6 quality'},twin:{n:'Twin Cola',rar:3,y:1.3,d:'double top cola · +30% yield'},gold:{n:'Golden Trichomes',rar:5,q:12,y:1.1,d:'gold frost · +12 quality'}};
 export function rollMut(ch=.04,rng=Math.random){if(rng()>=ch)return null;const r=rng();return r<.4?'vari':r<.7?'albino':r<.92?'twin':'gold'}
 export const PACKW=[60,30,14,6,2,1];
@@ -73,7 +80,7 @@ export const DECOR={rug:{n:'Woven Rug',p:40,w:1.6,d:2.2,h:.02,s:'floor'},rugr:{n
 DECOR.lamp.lt=['#ffcf8a',1.4,3];DECOR.neon.lt=['#7dff9a',1.2,3];
 export const defDecor=()=>({paint:'cream',panel:'plank',floor:'oak',light:'warm',fix:'shade',own:[],items:[]});
 // interior bounds the decor must fit in (room 1 / with the expansion)
-export const FXB={kush:['relax','😌','Relaxed',60],haze:['speed','⚡','Speed boost',40],owl:['nv','🦉','Night vision',60],lemon:['jump','🍋','Jump boost',30],blue:['wobble','🌀','Glitch vision',45],og:['fog','👻','Ghostly fog',50]};const FXMAP={mint:'lemon',ember:'haze',aurora:'owl',phantom:'og',sol:'haze',void:'kush'};
+export const FXB={kush:['relax','😌','Relaxed',60],haze:['speed','⚡','Speed boost',40],owl:['nv','🦉','Night vision',60],lemon:['jump','🍋','Jump boost',30],blue:['wobble','🌀','Glitch vision',45],og:['fog','👻','Ghostly fog',50]};const FXMAP={mint:'lemon',ember:'haze',aurora:'owl',phantom:'og',sol:'haze',void:'kush',cherry:'lemon',diesel:'og',gelato:'blue',skunk:'haze',frost:'owl',nebula:'kush'};
 export function fxBase(s,d=0){if(FXB[s])return s;if(FXMAP[s])return FXMAP[s];const p=STRAINS[s]?.par;if(p&&d<4)return fxBase(p[0],d+1);const k=Object.keys(FXB);let h=0;for(const ch of String(s))h=h*31+ch.charCodeAt(0)|0;return k[Math.abs(h)%k.length]}
 export const RACKN=10;export function rackSnap(B,x,z){const d=[[x-B.x0,B.x0+.06,z,Math.PI/2],[B.x1-x,B.x1-.06,z,-Math.PI/2],[z-B.z0,x,B.z0+.06,0],[B.z1-z,x,B.z1-.06,Math.PI]];const m=d.reduce((a,b)=>Math.abs(b[0])<Math.abs(a[0])?b:a);return m[2]===z&&m[3]!==0&&m[3]!==Math.PI?{x:m[1],z,ry:m[3]}:{x,z:m[2],ry:m[3]}}
 export const ROOMB=r=>({x0:-4.1,x1:r>1?11:4.1,z0:-5,z1:5});
