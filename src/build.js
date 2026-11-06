@@ -5,7 +5,7 @@ let C=null;const G=new THREE.Group();G.name='build';let B=[],STOCK={},on=false,c
 const FURN=()=>Object.keys(DECOR).filter(k=>DECOR[k].s!='wall');
 const CATS=[['🧱 Walls',()=>['wall','door','window','gdoor']],['⬛ Floors & Roofs',()=>['floor','roof','roofs','roofr']],['🏠 Buildings',()=>['room','greenhouse','garage','shed','ext','expand']],['🏪 Dispensary',()=>['disp','dcase','dcount','dshelf','dsign','rollup']],['🛋 Furniture',()=>FURN().map(k=>'f:'+k)],['🎨 Colors & Materials',()=>BMAT.map((_,i)=>'m:'+i)]];
 const cur=()=>{const L=CATS[cat][1]();idx[cat]=((idx[cat]%L.length)+L.length)%L.length;return L[idx[cat]]};
-const nameOf=k=>k=='expand'?'Expand Shed Grow Room':k.startsWith('f:')?DECOR[k.slice(2)].n:k.startsWith('m:')?BMAT[+k.slice(2)][1]:(BP[k]||BPF[k]).n;
+const nameOf=k=>k=='expand'?'Expand Shed (editable pieces)':k.startsWith('f:')?DECOR[k.slice(2)].n:k.startsWith('m:')?BMAT[+k.slice(2)][1]:(BP[k]||BPF[k]).n;
 const priceOf=k=>k=='expand'?500:k.startsWith('f:')?DECOR[k.slice(2)].p:k.startsWith('m:')?PAINTP:(BP[k]||BPF[k]).p;
 const stockOf=k=>k.startsWith('f:')?STOCK['f_'+k.slice(2)]||0:STOCK[k]||0;
 import {pmat,WOOD,PANEL,FLOOR,SURF} from './pbr.js';

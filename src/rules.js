@@ -130,8 +130,30 @@ export const bSlot=(k,x,z,r,y=0)=>BP[k].c+':'+x+','+z+(BP[k].c=='w'?':'+(r&1):''
 // expand a placement (piece or prefab) to absolute pieces; origin snapped to even tile centers
 export function bExpand(k,x,z,r){r=((r|0)%4+4)%4;if(BP[k])return [{k,x,z,r}];const P=BPF[k];if(!P)return [];const c=[1,0,-1,0][r],s=[0,1,0,-1][r];
  return P.L().map(([pk,tx,tz,pr,m])=>({k:pk,x:x+tx*c-tz*s,z:z+tx*s+tz*c,r:(pr+r)%4,m}))}
-export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2&&!(x>-5.2&&x<12.2&&z>-6.2&&z<7.6)&&!(x>-11.8&&x<-5.4&&z>-3.4&&z<3.4);
+export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2;
+
 export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.05&&Math.abs(p.z-z)<=1.05);
+// v1.9.1: starter shed / extension / greenhouse as editable build pieces (same grid as player kits)
+function shedPF(){const L=boxPF(4,5,0,{win:1,front:'door',fm:0,rm:0});return L}
+function extPF(){return boxPF(4,5,0,{openBack:1,win:1,fm:0,rm:0})}
+function ghPF(){return boxPF(3,3,3,{rm:3,fm:2,front:'door',win:1})}
+export function coreLayouts(){return{
+ shed:{ox:-3,oz:-4,L:shedPF,gk:'coreshed'},
+ ext:{ox:5,oz:-4,L:extPF,gk:'coreext'},
+ gh:{ox:-10,oz:-2,L:ghPF,gk:'coregh'}
+}}
+function pushCore(w,key){const C=coreLayouts()[key],B=w.build??=([]),used=new Set(B.map(p=>bSlot(p.k,p.x,p.z,p.r))),gid=w.nid++,L=C.L();
+ for(const [pk,tx,tz,pr,m] of L){const x=C.ox+tx,z=C.oz+tz,r=pr|0;if(used.has(bSlot(pk,x,z,r)))continue;B.push({id:w.nid++,k:pk,x,z,r,m:m||0,o:0,g:gid,gk:C.gk});used.add(bSlot(pk,x,z,r))}return gid}
+function openShedToExt(w){const B=w.build||[];w.build=B.filter(p=>{if(p.gk!=='coreshed'||BP[p.k]?.c!=='w')return true;return !(p.x===4&&(p.r&1))})}
+/** Migrate / seed editable shed+GH pieces. Safe to call repeatedly. Keeps ents/plants. */
+export function seedCoreBuild(w){if(!w)return;w.build??=[];w.nid??=1;w.bstock??={};
+ const has=gk=>(w.build||[]).some(p=>p.gk===gk);
+ if(!has('coreshed'))pushCore(w,'shed');
+ if((w.room|0)>1){if(!has('coreext')){pushCore(w,'ext');openShedToExt(w)}else openShedToExt(w)}
+ if(!has('coregh'))pushCore(w,'gh');
+ w.shedB=1}
+export function seedExtBuild(w){if((w.room|0)<2)w.room=2;if(!(w.build||[]).some(p=>p.gk==='coreext'))pushCore(w,'ext');openShedToExt(w);w.shedB=1}
+
 // shop listings for construction stock (bought items go to your build inventory, saved with the farm)
 for(const [k,v] of Object.entries(BP))SHOP['b_'+k]=v.c=='x'?{n:v.n,p:v.p,cat:'build',d:'Dispensary fixture — delivered in a crate to the delivery pad. Pick it up, then press B (D-pad ▲ on controller) to unpack it into Build mode and place it.'}:{n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
 for(const [k,v] of Object.entries(BPF))SHOP['b_'+k]={n:v.n,p:v.p,cat:'build',bld:1,d:'Prefab building kit — walls, door, floor and roof snap together in one placement. Goes to your Build inventory; place it in Build mode (B / D-pad ▲).'};
