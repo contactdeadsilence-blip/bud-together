@@ -525,7 +525,7 @@ async function buyPack(id){if(!ACC.tok){toast('Log in to buy currency');return}i
  try{const d=await api('POST','/api/shop/checkout',{pack:id,save:ACC.last});if(d.url)location.href=d.url;else toast(d.e||'Checkout failed')}catch(e){toast(e.message||'Checkout failed')}}
 async function openShop(){showMenu('shop');const box=$('shopbody');box.innerHTML='<p class="sub">Loading…</p>';setFocus(defFocus($('m-shop')));
  let d;try{d=await api('GET','/api/shop/packs')}catch(e){d={ready:0,why:e.message,packs:[]}}
- const need=d.ready?'':'<div class="card" style="border-left:6px solid #ffb030"><h3>Shop offline (test mode)</h3><small>'+esc(d.why||'Configure Stripe test keys on the server')+'</small></div>';
+ const need=d.ready?'':'<div class="card" style="border-left:6px solid #ffb030"><h3>Shop offline</h3><small>'+esc(d.why||'Configure Stripe keys on the server')+'</small></div>';
  box.innerHTML=need+(d.packs||[]).map(p=>`<button class="card" data-pack="${p.id}" ${d.ready?'':'disabled'}><h3>${esc(p.n)}</h3>+$${p.cash.toLocaleString()} grow cash · <b>${p.usd}</b><br><span class="p">${d.ready?'Buy with Stripe ▶':'Unavailable'}</span></button>`).join('')+'<div class="card info">Logged in: <b>'+(ACC.user||'guest — log in first')+'</b> · Save: <b>'+(ACC.last||'none')+'</b>. Credits apply to that save (idempotent).</div>';
  setFocus(defFocus($('m-shop')))}
 function esc(t){return String(t||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
