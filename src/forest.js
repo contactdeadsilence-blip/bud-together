@@ -1,11 +1,12 @@
 // v1.8.6 outdoor scenery: Stylized Nature MegaKit (Standard) by Quaternius (CC0, https://quaternius.itch.io/stylized-nature-megakit).
 // One InstancedMesh per model per primitive, textures downsized to 256-512px, no shadow casting; trunks and big rocks get circle colliders.
 import * as THREE from 'three';import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {onCorridor} from './town.js';
 export const TREEC=[];
 const gy=(x,z)=>{const ox=Math.max(0,Math.abs(x)-95),oz=Math.max(0,z-55,-95-z),d=Math.hypot(ox,oz);return -.03+d*d*.0018};
 let sd=1867;const R=()=>(sd=(sd*16807)%2147483647)/2147483647;// seeded: same forest for everyone
-// outside expanded build zone and clear of Budville (+z town) and player path
-const spot=(near)=>{for(let i=0;i<80;i++){const x=(R()-.5)*(near?180:260),z=(near?-90+R()*160:-120+R()*200);if(Math.abs(x)<96&&z>-96&&z<56)continue;if(z>8&&Math.abs(x)<8)continue;if(z>18&&x>-60&&x<75)continue;return [x,z]}return null};
+// outside expanded build zone and clear of Budville roads/lots and player path
+const spot=(near)=>{for(let i=0;i<80;i++){const x=(R()-.5)*(near?180:260),z=(near?-90+R()*160:-120+R()*200);if(Math.abs(x)<96&&z>-96&&z<56)continue;if(z>8&&Math.abs(x)<8)continue;if(z>18&&x>-60&&x<75)continue;if(onCorridor(x,z,1.2))continue;return [x,z]}return null};
 // name, count, height range [m], collider: 't' trunk / 'r' rock
 const SET=[['CommonTree_1',14,7,10,'t'],['CommonTree_3',14,8,11,'t'],['Pine_1',12,7,11,'t'],['Pine_2',12,7,11,'t'],['Pine_3',10,8,12,'t'],['DeadTree_1',5,6,8,'t'],
  ['Bush_Common',70,.9,1.6],['Rock_Medium_1',16,1.2,2.2,'r'],['Rock_Medium_2',18,.5,1.2],['Rock_Medium_3',12,1.4,2.4,'r'],['Grass_Common_Tall',110,.5,.9,0,1]];

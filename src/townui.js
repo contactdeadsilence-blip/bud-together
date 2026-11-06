@@ -4,28 +4,52 @@ import {ROADS,PROPS,isTownGk,ownsTown,TOWN_V} from './town.js';
 import * as BLD from './build.js';
 
 let root=null,sig='',walls=[];
-const _box=new THREE.Box3(),_v=new THREE.Vector3();
 
 export function townWalls(){return walls}
 
 function roadMat(k){
-  if(k==='walk')return new THREE.MeshStandardMaterial({color:'#b8b4ac',roughness:.92});
-  return new THREE.MeshStandardMaterial({color:'#3a3c40',roughness:.85});
+  const m=k==='walk'
+    ? new THREE.MeshStandardMaterial({color:'#b8b4ac',roughness:.92})
+    : new THREE.MeshStandardMaterial({color:'#3a3c40',roughness:.85});
+  // kill z-fighting at abutting edges
+  m.polygonOffset=true;m.polygonOffsetFactor=k==='walk'?-1:-2;m.polygonOffsetUnits=1;
+  m.depthWrite=true;
+  return m;
 }
 
+/** Build non-overlapping road meshes with layered Y (road under walk). */
 function buildRoads(g){
+  const roads=new THREE.Group();roads.name='roads';
   for(const r of ROADS){
     const w=r.x1-r.x0,d=r.z1-r.z0;
-    const m=new THREE.Mesh(new THREE.BoxGeometry(w,.06,d),roadMat(r.k));
-    m.position.set((r.x0+r.x1)/2,.02,(r.z0+r.z1)/2);m.receiveShadow=true;g.add(m);
+    if(w<=0||d<=0)continue;
+    const y=r.k==='walk'?0.028:0.018;
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,.05,d),roadMat(r.k));
+    m.position.set((r.x0+r.x1)/2,y,(r.z0+r.z1)/2);
+    m.receiveShadow=true;m.castShadow=false;
+    roads.add(m);
   }
+  g.add(roads);
 }
 
 function mergeGroup(parts){
-  // group pieces by material key then merge geometries roughly via nesting (reuse piece models)
   const g=new THREE.Group();g.name='townStatic';
   for(const o of parts)g.add(o);
   return g;
+}
+
+/** Exposed-edge flags for roof pieces so gables/fascia render on town buildings. */
+function roofExFlags(list){
+  const R=new Set(list.filter(p=>p.k==='roof'||p.k==='roofs'||p.k==='roofr').map(p=>Math.round(p.x)+','+Math.round(p.z)));
+  const _v=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0);
+  return (p)=>{
+    let f=0;
+    for(const [b,lx,lz] of[[1,2,0],[2,-2,0],[4,0,2],[8,0,-2]]){
+      _v.set(lx,0,lz).applyAxisAngle(_Y,-(p.r|0)*Math.PI/2);
+      if(!R.has(Math.round(p.x+_v.x)+','+Math.round(p.z+_v.z)))f|=b;
+    }
+    return f;
+  };
 }
 
 /** Rebuild static town when version/ownership changes. Returns wall AABBs. */
@@ -38,19 +62,16 @@ export function syncTownStatic(scene,w,pieceModel){
   walls=[];
   root=new THREE.Group();root.name='budville';
   buildRoads(root);
+  const town=(w?.build||[]).filter(p=>isTownGk(p.gk)&&!ownsTown(w,p.gk));
+  const exOf=roofExFlags(town);
   const parts=[];
-  for(const p of (w?.build||[])){
-    if(!isTownGk(p.gk))continue;
-    if(ownsTown(w,p.gk))continue; // owned → Build sync
-    const o=pieceModel(p.k,p.m,p.o,0);
+  for(const p of town){
+    const isR=p.k==='roof'||p.k==='roofs'||p.k==='roofr';
+    const o=pieceModel(p.k,p.m,p.o,isR?exOf(p):0);
     o.position.set(p.x,0,p.z);o.rotation.y=-(p.r|0)*Math.PI/2;
     o.userData.bid=p.id;parts.push(o);
-    // walls for collision (same as build.js)
-    const BP=null; // filled below via heuristic
   }
-  // wall AABBs from unowned town pieces (mirror build.js logic lightly)
-  for(const p of (w?.build||[])){
-    if(!isTownGk(p.gk)||ownsTown(w,p.gk))continue;
+  for(const p of town){
     if(!['wall','window','door','gdoor','rollup'].includes(p.k))continue;
     const sw=p.r&1,seg=(a,b)=>{const lo=Math.min(a,b),hi=Math.max(a,b);walls.push(sw?{x0:p.x-.1,x1:p.x+.1,z0:p.z+lo,z1:p.z+hi}:{x0:p.x+lo,x1:p.x+hi,z0:p.z-.1,z1:p.z+.1})};
     if(p.k==='door'){seg(-1,-.65);seg(.65,1);if(!p.o)seg(-.65,.65)}
@@ -58,7 +79,6 @@ export function syncTownStatic(scene,w,pieceModel){
     else seg(-1,1);
   }
   root.add(mergeGroup(parts));
-  // distance cull helper
   root.userData.cull=1;
   scene.add(root);
   return walls;
@@ -68,7 +88,6 @@ export function townCull(cam){
   if(!root||!cam)return;
   const dx=cam.position.x-30,dz=cam.position.z-30;
   const far=dx*dx+dz*dz>140*140;
-  // keep roads always; hide far building children beyond view
   if(root.children[1])root.children[1].visible=!far||cam.position.z>5;
 }
 
