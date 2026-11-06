@@ -2,6 +2,7 @@
 // daily P&L + expenses, satisfaction/reputation/reviews, extra locations (simulated branches).
 import {STRAINS,fairPrice,GRADES,DCAP,BP} from '../src/rules.js';
 import {defBiz,pkey,MARK,SKILL,STAFFT,UPG,LOCS,UTIL,CLEAN_FEE,MAXREV,MAXHIST,BRANCH_CAP,SHAPES,ICONS,COLS,AWN,LTS,reviewText} from '../src/bizdata.js';
+import {misNote} from './missions.js';
 const CN=['Alex','Sam','Jordan','Riley','Casey','Morgan','Jamie','Taylor','Quinn','Avery','Drew','Rowan','Kai','Skyler','Reese','Parker'];
 const cl=(v,a,b)=>Math.max(a,Math.min(b,v)),int=(v,n)=>{v=Math.floor(+v);return Number.isFinite(v)&&v>=0&&v<n?v:null};
 export function bizOf(w){const b=w.biz??=defBiz();const d=defBiz();for(const k in d)b[k]??=d[k];
@@ -35,7 +36,7 @@ export function bizTick(w,dt){const b=bizOf(w),st=w.staff?.stocker;if(st)b.clean
  const h=Math.floor(w.min/60);if(h===b._h)return;b._h=h;if(h<8||h>=22)return;
  b.locs.forEach((L,i)=>{if(!i||!L.inv.length)return;const S=L.staff,meta=LOCS.find(x=>x.id===L.id)||LOCS[1];let n=(meta.tr||1)*(.6+b.rep*.3)*(1+.2*(L.upg.sig|0))*(S.cashier?SKILL[S.cashier.sk|0].f:.3)*(S.budtender?1.2:1);n=Math.floor(n+Math.random());
   for(let j=0;j<n&&L.inv.length;j++){const ix=Math.random()*L.inv.length|0,it=L.inv[ix],pr=itemPrice(w,it,null),fair=fairTotal(it);const p=Math.min(.95,.8*Math.pow(fair/pr,2.2)*(S.budtender?1.15:1));const who=CN[Math.random()*CN.length|0];
-   if(Math.random()<p){L.inv.splice(ix,1);w.money+=pr;w.earned=(w.earned||0)+pr;sale(w,pr);L.today=(L.today||0)+pr;addSat(w,62+cl((fair/pr-1)*70,-35,18)+(S.budtender?8:0)+(S.stocker?4:-4),who,fair/pr<.75?'Prices are way too high.':'',i)}
+   if(Math.random()<p){L.inv.splice(ix,1);w.money+=pr;w.earned=(w.earned||0)+pr;sale(w,pr);misNote(w,'sell',1);misNote(w,'earn',pr);L.today=(L.today||0)+pr;addSat(w,62+cl((fair/pr-1)*70,-35,18)+(S.budtender?8:0)+(S.stocker?4:-4),who,fair/pr<.75?'Prices are way too high.':'',i)}
    else{b.today.lost++;addSat(w,40,who,'Prices are way too high.',i)}}})}
 export function bizDay(w,msg){const b=bizOf(w);let wag=0,rent=0,util=0,stolen=0;
  b.locs.forEach((L,i)=>{const S=staffOf(w,i);for(const k in S)if(S[k]&&STAFFT[k])wag+=Math.round(STAFFT[k].wage*SKILL[S[k].sk|0].m);
