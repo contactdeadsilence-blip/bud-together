@@ -134,25 +134,41 @@ export const bAllowed=(x,z)=>Math.abs(x)<43&&z>-43&&z<12.2;
 
 export const onBFloor=(B,x,z)=>(B||[]).some(p=>p.k=='floor'&&Math.abs(p.x-x)<=1.05&&Math.abs(p.z-z)<=1.05);
 // v1.9.1: starter shed / extension / greenhouse as editable build pieces (same grid as player kits)
-function shedPF(){const L=boxPF(4,5,0,{win:1,front:'door',fm:0,rm:0});return L}
-function extPF(){return boxPF(4,5,0,{openBack:1,win:1,fm:0,rm:0})}
-function ghPF(){return boxPF(3,3,3,{rm:3,fm:2,front:'door',win:1})}
+// Core footprints match the old shell (±4×±5 shed, GH west). Front door centered on the path (x≈0).
+function stripFront(L,tz){for(let i=L.length-1;i>=0;i--){const p=L[i];if(p[2]===tz&&(p[0]==='wall'||p[0]==='door'||p[0]==='window'||p[0]==='gdoor'))L.splice(i,1)}return L}
+function shedPF(){const L=boxPF(4,5,0,{win:1,front:'wall',fm:0,rm:0});stripFront(L,9);
+ // Front z=5: solid sides + centered door at x=0 (odd tile ok for doorway)
+ L.push(['wall',0,9,0,0],['door',3,9,0,0],['wall',6,9,0,0]);return L}
+function extPF(){const L=boxPF(4,5,0,{openBack:1,win:1,front:'wall',fm:0,rm:0});stripFront(L,9);
+ L.push(['wall',0,9,0,0],['door',3,9,0,0],['wall',6,9,0,0]);return L}
+function ghPF(){const L=boxPF(3,3,3,{rm:3,fm:2,front:'wall',win:1});stripFront(L,5);
+ // GH ox=-10 → door at x=-7 (mid of 6m bay): tiles 0,2,4 → center door on tx=2
+ L.push(['wall',0,5,0,3],['door',2,5,0,3],['wall',4,5,0,3]);return L}
 export function coreLayouts(){return{
  shed:{ox:-3,oz:-4,L:shedPF,gk:'coreshed'},
  ext:{ox:5,oz:-4,L:extPF,gk:'coreext'},
  gh:{ox:-10,oz:-2,L:ghPF,gk:'coregh'}
 }}
+const CORE_V=2;
 function pushCore(w,key){const C=coreLayouts()[key],B=w.build??=([]),used=new Set(B.map(p=>bSlot(p.k,p.x,p.z,p.r))),gid=w.nid++,L=C.L();
- for(const [pk,tx,tz,pr,m] of L){const x=C.ox+tx,z=C.oz+tz,r=pr|0;if(used.has(bSlot(pk,x,z,r)))continue;B.push({id:w.nid++,k:pk,x,z,r,m:m||0,o:0,g:gid,gk:C.gk});used.add(bSlot(pk,x,z,r))}return gid}
+ for(const [pk,tx,tz,pr,m] of L){const x=C.ox+tx,z=C.oz+tz,r=pr|0;if(used.has(bSlot(pk,x,z,r)))continue;
+  const open=pk==='door'||pk==='gdoor'||pk==='rollup'?1:0;
+  B.push({id:w.nid++,k:pk,x,z,r,m:m||0,o:open,g:gid,gk:C.gk});used.add(bSlot(pk,x,z,r))}return gid}
 function openShedToExt(w){const B=w.build||[];w.build=B.filter(p=>{if(p.gk!=='coreshed'||BP[p.k]?.c!=='w')return true;return !(p.x===4&&(p.r&1))})}
-/** Migrate / seed editable shed+GH pieces. Safe to call repeatedly. Keeps ents/plants. */
+function rebuildCores(w){const keep=(w.build||[]).filter(p=>!p.gk||(p.gk!=='coreshed'&&p.gk!=='coreext'&&p.gk!=='coregh'));
+ w.build=keep;pushCore(w,'shed');if((w.room|0)>1){pushCore(w,'ext');openShedToExt(w)}pushCore(w,'gh');w._coreV=CORE_V}
+/** Migrate / seed editable shed+GH pieces. Idempotent. Keeps ents/plants/player décor. */
 export function seedCoreBuild(w){if(!w)return;w.build??=[];w.nid??=1;w.bstock??={};
- const has=gk=>(w.build||[]).some(p=>p.gk===gk);
- if(!has('coreshed'))pushCore(w,'shed');
- if((w.room|0)>1){if(!has('coreext')){pushCore(w,'ext');openShedToExt(w)}else openShedToExt(w)}
- if(!has('coregh'))pushCore(w,'gh');
+ if((w._coreV|0)<CORE_V)rebuildCores(w);
+ else{const has=gk=>(w.build||[]).some(p=>p.gk===gk);
+  if(!has('coreshed'))pushCore(w,'shed');
+  if((w.room|0)>1){if(!has('coreext')){pushCore(w,'ext');openShedToExt(w)}else openShedToExt(w)}
+  if(!has('coregh'))pushCore(w,'gh');
+  // ensure core exterior doors stay walkable (open) after older saves
+  for(const p of w.build)if(p.gk&&(p.k==='door'||p.k==='gdoor')&&p.o==null)p.o=1}
  w.shedB=1}
-export function seedExtBuild(w){if((w.room|0)<2)w.room=2;if(!(w.build||[]).some(p=>p.gk==='coreext'))pushCore(w,'ext');openShedToExt(w);w.shedB=1}
+export function seedExtBuild(w){if((w.room|0)<2)w.room=2;if((w._coreV|0)<CORE_V){rebuildCores(w);w.shedB=1;return}
+ if(!(w.build||[]).some(p=>p.gk==='coreext'))pushCore(w,'ext');openShedToExt(w);w.shedB=1}
 
 // shop listings for construction stock (bought items go to your build inventory, saved with the farm)
 for(const [k,v] of Object.entries(BP))SHOP['b_'+k]=v.c=='x'?{n:v.n,p:v.p,cat:'build',d:'Dispensary fixture — delivered in a crate to the delivery pad. Pick it up, then press B (D-pad ▲ on controller) to unpack it into Build mode and place it.'}:{n:v.n,p:v.p,cat:'build',bld:1,d:'Construction stock — goes to your Build inventory. Press B (D-pad ▲ on controller) to enter Build mode and place it.'};
