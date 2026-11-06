@@ -12,7 +12,7 @@ export function tickNPC(W,scene,dt,cam,lowq){_ani=0;
  for(const v of W?.workers||[])pushU('k'+v.id,v.x,v.z,v.ry,v.k=='grower'?4:v.k=='trimmer'?9:10,v,null);
  const seen=new Set();
  for(let i=0;i<_ani;i++){const u=_buf[i];seen.add(u.id);let o=N.get(u.id);if(!o){const lk=defLook(u.lk%2?'f':'m',u.lk);o={g:makeHuman(lk),tp:new THREE.Vector3(u.x,0,u.z),spd:0,acc:0,meta:null};o.g.position.copy(o.tp);o.g.userData.npc=u.id;o.g.userData.nid=+(String(u.id).replace(/\D/g,''))||0;if(u.wk)o.g.add(o.tag=wkTag(u.wk));scene.add(o.g);N.set(u.id,o)}o.meta=u.meta;if(u.wk&&o.tag)wkTagSet(o.tag,u.wk);
-  o.tp.set(u.x,0,u.z);o.g.rotation.y=u.ry||0;
+  o.tp.set(u.x,0,u.z);o.g.rotation.y=(u.ry||0)+Math.PI;// human model faces -Z; same offset as peer avatars
   _p0.copy(o.g.position);o.g.position.lerp(o.tp,1-Math.exp(-dt*6));const sp=_p0.distanceTo(o.g.position)/Math.max(dt,1e-3);o.spd+=(sp-o.spd)*(1-Math.exp(-dt*5));
   const far=cam&&cam.position.distanceToSquared(o.g.position)>900;o.acc+=dt;if(!lowq||!far||o.acc>.08){animateAvatar(o.g,Math.min(o.acc,.2),{spd:o.spd});o.acc=0}}
  for(const [id,o] of N)if(!seen.has(id)){scene.remove(o.g);N.delete(id)}
